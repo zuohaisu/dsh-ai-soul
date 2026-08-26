@@ -41,6 +41,7 @@ test('creating and reviewing a proposal do not mutate Soul State or the original
   assert.deepEqual(pending, pendingBefore)
   assert.equal(pending.review, null)
   assert.equal(reviewed.review.decision, 'approved')
+  assert.equal(typeof reviewed.review.proposalFingerprint, 'string')
 })
 
 test('unreviewed and rejected proposals cannot be applied', () => {
@@ -57,6 +58,23 @@ test('unreviewed and rejected proposals cannot be applied', () => {
   })
 
   assert.throws(() => applyStateTransitionProposal(soul, rejected), /only approved proposals/)
+})
+
+test('review is bound to the exact proposal contents it approved', () => {
+  const soul = createSoulState({ soulId: 'soul-1', name: 'Soul One' })
+  const approved = reviewStateTransitionProposal(proposal(), {
+    decision: 'approved',
+    reviewer: 'governance:test',
+    reason: 'Approved as submitted.',
+    provenance: { reviewId: 'review-bound' },
+  })
+
+  approved.value.claim = 'A different claim inserted after review.'
+
+  assert.throws(
+    () => applyStateTransitionProposal(soul, approved),
+    /review does not match current proposal contents/,
+  )
 })
 
 test('generic proposals reject identity and covenant mutation targets', () => {
@@ -94,6 +112,7 @@ test('approved proposal appends only to selected domain and records traceable ev
   assert.equal(next.evolution[0].kind, 'governed-state-transition')
   assert.equal(next.evolution[0].provenance.proposalId, 'proposal-1')
   assert.deepEqual(next.evolution[0].provenance.evidence, pending.evidence)
+  assert.equal(next.evolution[0].provenance.review.decision, 'approved')
   assert.equal(next.evolution[0].provenance.review.reviewer, 'governance:test')
   assert.equal(next.evolution[0].change.target, 'userModel')
   assert.equal(next.evolution[0].change.confidence, 0.82)
