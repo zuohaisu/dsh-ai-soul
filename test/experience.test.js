@@ -84,3 +84,14 @@ test('experience creation rejects missing provenance', () => {
     /provenance is required/,
   )
 })
+
+test('experience creation rejects omitted payload', () => {
+  assert.throws(
+    () => createExperienceRecord({
+      kind: 'conversation-turn',
+      source: { runtime: 'test' },
+      provenance: { eventId: 'event-4' },
+    }),
+    /payload is required/,
+  )
+})
