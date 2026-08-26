@@ -11,3 +11,10 @@ export {
 } from './artifact-import.js'
 
 export { FileSoulStore } from './soul-store.js'
+
+export {
+  EXPERIENCE_RECORD_VERSION,
+  createExperienceRecord,
+  promoteExperienceToAutobiography,
+  validateExperienceRecord,
+} from './experience.js'
