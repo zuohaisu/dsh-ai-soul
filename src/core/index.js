@@ -36,3 +36,9 @@ export {
   reviewStateTransitionProposal,
   validateStateTransitionProposal,
 } from './state-transition.js'
+
+export {
+  REFLECTION_RESULT_VERSION,
+  createReflectionResult,
+  validateReflectionResult,
+} from './reflection.js'
