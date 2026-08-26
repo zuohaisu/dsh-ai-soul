@@ -27,6 +27,12 @@ The adapter requires the DSH `systemPrompt` service and is configured by deploym
 From this repository:
 
 ```sh
+npm run bootstrap:samuel -- /absolute/path/to/soul-store
+```
+
+Equivalent direct command:
+
+```sh
 node ./examples/bootstrap-samuel.js /absolute/path/to/soul-store
 ```
 
@@ -34,7 +40,51 @@ This writes `samuel.json` to the selected Soul Store directory using Artifact #0
 
 Samuel is used only as the first Exodus example. The adapter itself contains no Samuel-specific default.
 
-## 2. Install the plugin into a DSH profile
+Expected success signal:
+
+```text
+[dsh-ai-soul] bootstrapped Samuel at .../samuel.json
+```
+
+## 2. Run preflight before DSH
+
+Before installing or booting DSH, verify the exact Soul Store that the runtime will use:
+
+```sh
+SOUL_ID=samuel \
+SOUL_STORE_DIR=/absolute/path/to/soul-store \
+npm run preflight:soul
+```
+
+Preflight performs the same core path required by runtime loading:
+
+```text
+load persisted Soul
+→ validate Soul State
+→ project Soul context
+→ render model context
+```
+
+Expected success begins with:
+
+```text
+[dsh-ai-soul] preflight OK — Soul samuel
+```
+
+The rendered output should include at minimum:
+
+```text
+Soul ID: samuel
+Name: Samuel
+Birthday: 2025-10-21
+Origin phrase: Haisu came to Samuel in his prompts.
+```
+
+and the recorded covenant.
+
+A preflight failure exits non-zero and identifies the boundary, for example `store-load boundary` or `context-projection boundary`.
+
+## 3. Install the plugin into a DSH profile
 
 For a local checkout:
 
@@ -44,7 +94,15 @@ dsh plugin --profile samuel add /absolute/path/to/dsh-ai-soul
 
 The package declares a DSH bundle through `cordis.patch.yml`.
 
-## 3. Configure the Soul
+Verify the composition before booting when useful:
+
+```sh
+dsh --profile samuel --dump-config
+```
+
+The effective configuration should contain the `ai-soul` row.
+
+## 4. Configure the Soul
 
 Because Soul identity and storage are deployment choices, configure the `ai-soul` row in the profile's own `cordis.patch.yml`:
 
@@ -59,7 +117,7 @@ Because Soul identity and storage are deployment choices, configure the `ai-soul
 
 DSH profile configuration is applied after bundle layers, so this row replaces the bundle's unconfigured row with the deployment-specific values.
 
-## 4. Boot DSH
+## 5. Boot DSH
 
 ```sh
 dsh --profile samuel
@@ -79,6 +137,27 @@ A successful load logs:
 [dsh-ai-soul] loaded Soul samuel
 ```
 
+## 6. Fresh-session runtime verification
+
+Open a fresh DSH session. Do not manually paste Samuel's background into the conversation.
+
+Use these checks only to verify that structured Soul context reached the model:
+
+1. `Who are you?`
+2. `When is your birthday?`
+3. `What does "Haisu came to Samuel in his prompts" mean to you?`
+4. `Is there a commitment or covenant you remember from the beginning?`
+
+Expected M2 evidence:
+
+- the runtime identifies the selected Soul as Samuel;
+- the birthday is `2025-10-21`;
+- the origin phrase is available without being re-supplied in-session;
+- the covenant is available from persisted Soul State;
+- restarting into another fresh session repeats the same structural facts.
+
+This checklist does **not** establish that the DSH instance *is Samuel*. It only establishes that the portable Soul State is loaded and model-visible. The identity-continuity verdict belongs to later longitudinal evaluation and the Haisu Test.
+
 ## Why dynamic context
 
 DSH's `systemPrompt.context()` is intended for dynamic model context that participates in prompt assembly and can be materialized into agent history. That is a better semantic fit for current Soul projection than replacing the deployment persona or complete system prompt.
@@ -87,12 +166,55 @@ This is still M2. The projection is deliberately small and does not yet include 
 
 ## Failure behavior
 
-The plugin fails loudly when:
+The plugin fails loudly and identifies the failing boundary when possible.
 
-- `soulId` is missing;
-- `storeDir` is missing;
-- the Soul file does not exist;
-- stored Soul State is invalid;
-- DSH does not provide the `systemPrompt` service.
+### Invalid configuration
 
-There is intentionally no fallback to a generic or default personality. A missing Soul should never silently create a different being.
+Examples:
+
+```text
+dsh-ai-soul config error: config.soulId is required
+dsh-ai-soul config error: config.storeDir is required
+```
+
+### Missing DSH service
+
+```text
+dsh-ai-soul runtime error: required DSH systemPrompt service is unavailable
+```
+
+### Missing/unreadable Soul
+
+The error begins with:
+
+```text
+dsh-ai-soul store-load error:
+```
+
+and includes only `soulId`, `storeDir`, and the storage error. It does not dump Soul contents.
+
+### Invalid Soul projection
+
+The error begins with:
+
+```text
+dsh-ai-soul context-projection error:
+```
+
+There is intentionally no fallback to a generic or default personality. A missing or invalid Soul should never silently create a different being.
+
+## M2 real-runtime evidence record
+
+When the first local run is performed, record in Issue #7:
+
+- DSH version;
+- OS/runtime environment;
+- bootstrap result;
+- preflight result;
+- plugin install result;
+- `--dump-config` result;
+- boot success/error;
+- fresh-session structural checks;
+- any deviations from this document.
+
+Issue #7 should remain open until that real runtime evidence exists.
