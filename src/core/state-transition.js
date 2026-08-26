@@ -8,6 +8,7 @@ export const STATE_TRANSITION_TARGETS = Object.freeze([
   'beliefs',
 ])
 export const STATE_TRANSITION_DECISIONS = Object.freeze(['approved', 'rejected'])
+export const DEFAULT_STATE_TRANSITION_REVIEW_POLICY = Object.freeze({ minimumConfidence: 0.6 })
 
 function clone(value) {
   return structuredClone(value)
@@ -31,6 +32,55 @@ function proposalFingerprint(proposal) {
     confidence: proposal.confidence,
     proposer: proposal.proposer,
   })
+}
+
+function reviewFingerprint(review) {
+  return JSON.stringify({
+    decision: review.decision,
+    reviewer: review.reviewer,
+    reason: review.reason,
+    provenance: review.provenance,
+    policy: review.policy,
+    conflicts: review.conflicts,
+    conflictResolution: review.conflictResolution,
+    at: review.at,
+    proposalFingerprint: review.proposalFingerprint,
+  })
+}
+
+function normalizeReviewPolicy(policy = {}) {
+  const minimumConfidence = policy.minimumConfidence ?? DEFAULT_STATE_TRANSITION_REVIEW_POLICY.minimumConfidence
+  if (!Number.isFinite(minimumConfidence) || minimumConfidence < 0 || minimumConfidence > 1) {
+    throw new TypeError('review policy minimumConfidence must be between 0 and 1')
+  }
+  return { minimumConfidence }
+}
+
+function validateDeclaredConflicts(conflicts) {
+  if (!Array.isArray(conflicts)) return ['review.conflicts must be an array']
+
+  const errors = []
+  conflicts.forEach((conflict, index) => {
+    if (!isRecord(conflict)) {
+      errors.push(`review.conflicts[${index}] must be an object`)
+      return
+    }
+    if (!conflict.id || typeof conflict.id !== 'string') errors.push(`review.conflicts[${index}].id is required`)
+    if (!conflict.reason || typeof conflict.reason !== 'string') errors.push(`review.conflicts[${index}].reason is required`)
+    if (!isRecord(conflict.provenance)) errors.push(`review.conflicts[${index}].provenance is required`)
+  })
+  return errors
+}
+
+function validateConflictResolution(resolution, conflicts) {
+  const errors = []
+  if (resolution == null) return errors
+  if (conflicts.length === 0) return ['review.conflictResolution requires declared conflicts']
+  if (!isRecord(resolution)) return ['review.conflictResolution must be an object']
+  if (resolution.disposition !== 'coexist') errors.push('review.conflictResolution.disposition must be coexist')
+  if (!resolution.reason || typeof resolution.reason !== 'string') errors.push('review.conflictResolution.reason is required')
+  if (!isRecord(resolution.provenance)) errors.push('review.conflictResolution.provenance is required')
+  return errors
 }
 
 export function validateStateTransitionProposal(proposal) {
@@ -67,6 +117,30 @@ export function validateStateTransitionProposal(proposal) {
       if (!isRecord(proposal.review.provenance)) errors.push('review.provenance is required')
       if (!proposal.review.proposalFingerprint || typeof proposal.review.proposalFingerprint !== 'string') {
         errors.push('review.proposalFingerprint is required')
+      }
+      if (!proposal.review.reviewFingerprint || typeof proposal.review.reviewFingerprint !== 'string') {
+        errors.push('review.reviewFingerprint is required')
+      }
+
+      if (!isRecord(proposal.review.policy)) {
+        errors.push('review.policy is required')
+      } else if (!Number.isFinite(proposal.review.policy.minimumConfidence)
+        || proposal.review.policy.minimumConfidence < 0
+        || proposal.review.policy.minimumConfidence > 1) {
+        errors.push('review.policy.minimumConfidence must be between 0 and 1')
+      }
+
+      const conflicts = Array.isArray(proposal.review.conflicts) ? proposal.review.conflicts : []
+      errors.push(...validateDeclaredConflicts(proposal.review.conflicts))
+      errors.push(...validateConflictResolution(proposal.review.conflictResolution, conflicts))
+
+      if (proposal.review.decision === 'approved' && isRecord(proposal.review.policy)) {
+        if (proposal.confidence < proposal.review.policy.minimumConfidence) {
+          errors.push('proposal confidence is below review policy threshold')
+        }
+        if (conflicts.length > 0 && proposal.review.conflictResolution == null) {
+          errors.push('approved proposal with declared conflicts requires conflict resolution')
+        }
       }
     }
   }
@@ -107,6 +181,9 @@ export function reviewStateTransitionProposal(proposal, {
   reviewer,
   reason,
   provenance,
+  policy,
+  conflicts = [],
+  conflictResolution = null,
   at = new Date().toISOString(),
 } = {}) {
   const validation = validateStateTransitionProposal(proposal)
@@ -123,9 +200,13 @@ export function reviewStateTransitionProposal(proposal, {
     reviewer,
     reason,
     provenance: clone(provenance),
+    policy: normalizeReviewPolicy(policy),
+    conflicts: clone(conflicts),
+    conflictResolution: clone(conflictResolution),
     at,
     proposalFingerprint: proposalFingerprint(proposal),
   }
+  reviewed.review.reviewFingerprint = reviewFingerprint(reviewed.review)
 
   const reviewedValidation = validateStateTransitionProposal(reviewed)
   if (!reviewedValidation.valid) {
@@ -159,6 +240,9 @@ export function applyStateTransitionProposal(state, proposal) {
   if (proposal.review.proposalFingerprint !== proposalFingerprint(proposal)) {
     throw new TypeError('review does not match current proposal contents')
   }
+  if (proposal.review.reviewFingerprint !== reviewFingerprint(proposal.review)) {
+    throw new TypeError('review contents changed after review')
+  }
   if (proposal.review.decision !== 'approved') throw new TypeError('only approved proposals may be applied')
 
   const next = clone(state)
@@ -177,7 +261,11 @@ export function applyStateTransitionProposal(state, proposal) {
         at: proposal.review.at,
         reason: proposal.review.reason,
         provenance: clone(proposal.review.provenance),
+        policy: clone(proposal.review.policy),
+        conflicts: clone(proposal.review.conflicts),
+        conflictResolution: clone(proposal.review.conflictResolution),
         proposalFingerprint: proposal.review.proposalFingerprint,
+        reviewFingerprint: proposal.review.reviewFingerprint,
       },
     },
     change: {
