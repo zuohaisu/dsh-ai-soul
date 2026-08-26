@@ -51,7 +51,9 @@ export function validateSoulState(state) {
     if (!Array.isArray(state?.[key])) errors.push(`${key} must be an array`)
   }
 
-  if (!Array.isArray(state?.relationship?.covenants)) errors.push('relationship.covenants must be an array')
+  for (const key of ['participants', 'state', 'covenants']) {
+    if (!Array.isArray(state?.relationship?.[key])) errors.push(`relationship.${key} must be an array`)
+  }
 
   return { valid: errors.length === 0, errors }
 }
