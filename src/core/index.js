@@ -11,3 +11,8 @@ export {
 } from './artifact-import.js'
 
 export { FileSoulStore } from './soul-store.js'
+
+export {
+  projectSoulContext,
+  renderSoulContext,
+} from './context-projection.js'
