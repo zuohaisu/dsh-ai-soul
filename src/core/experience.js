@@ -1,3 +1,4 @@
+import { validateSignificanceAssessment } from './significance.js'
 import { validateSoulState } from './soul-state.js'
 
 export const EXPERIENCE_RECORD_VERSION = 1
@@ -56,6 +57,7 @@ export function promoteExperienceToAutobiography(state, experience, {
   provenance,
   interpretation = null,
   significance = null,
+  significanceAssessment = null,
   promotedAt = new Date().toISOString(),
 } = {}) {
   const stateValidation = validateSoulState(state)
@@ -75,6 +77,16 @@ export function promoteExperienceToAutobiography(state, experience, {
     throw new TypeError('promotion provenance is required')
   }
 
+  if (significanceAssessment !== null) {
+    const assessmentValidation = validateSignificanceAssessment(significanceAssessment)
+    if (!assessmentValidation.valid) {
+      throw new TypeError(`invalid significance assessment: ${assessmentValidation.errors.join('; ')}`)
+    }
+    if (significanceAssessment.experienceId !== experience.id) {
+      throw new TypeError('significance assessment experienceId must match experience.id')
+    }
+  }
+
   const next = clone(state)
   next.autobiography.push({
     id: `autobiography:${experience.id}`,
@@ -85,6 +97,7 @@ export function promoteExperienceToAutobiography(state, experience, {
     payload: clone(experience.payload),
     interpretation: clone(interpretation),
     significance: clone(significance),
+    significanceAssessment: clone(significanceAssessment),
     promotion: {
       reason,
       provenance: clone(provenance),
