@@ -25,3 +25,13 @@ export {
   createSignificanceAssessment,
   validateSignificanceAssessment,
 } from './significance.js'
+
+export {
+  STATE_TRANSITION_DECISIONS,
+  STATE_TRANSITION_PROPOSAL_VERSION,
+  STATE_TRANSITION_TARGETS,
+  applyStateTransitionProposal,
+  createStateTransitionProposal,
+  reviewStateTransitionProposal,
+  validateStateTransitionProposal,
+} from './state-transition.js'
