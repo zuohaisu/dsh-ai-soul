@@ -10,6 +10,10 @@ function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+function encodeIdentityPart(value) {
+  return encodeURIComponent(value)
+}
+
 export function validateRuntimeEventEnvelope(event) {
   const errors = []
 
@@ -39,8 +43,12 @@ export function mapRuntimeEventToExperience(event) {
     throw new TypeError(`invalid runtime event: ${validation.errors.join('; ')}`)
   }
 
+  const identity = [event.runtime, event.sessionId, event.eventId]
+    .map(encodeIdentityPart)
+    .join(':')
+
   return createExperienceRecord({
-    id: `runtime-event:${event.runtime}:${event.sessionId}:${event.eventId}`,
+    id: `runtime-event:${identity}`,
     at: event.at,
     kind: event.kind,
     source: {
