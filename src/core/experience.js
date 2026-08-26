@@ -18,7 +18,9 @@ export function validateExperienceRecord(record) {
   if (!record?.kind || typeof record.kind !== 'string') errors.push('kind is required')
   if (!record?.source || typeof record.source !== 'object' || Array.isArray(record.source)) errors.push('source is required')
   if (!record?.provenance || typeof record.provenance !== 'object' || Array.isArray(record.provenance)) errors.push('provenance is required')
-  if (!Object.prototype.hasOwnProperty.call(record ?? {}, 'payload')) errors.push('payload is required')
+  if (!Object.prototype.hasOwnProperty.call(record ?? {}, 'payload') || record?.payload === undefined) {
+    errors.push('payload is required')
+  }
 
   return { valid: errors.length === 0, errors }
 }
