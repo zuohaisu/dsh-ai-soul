@@ -34,3 +34,25 @@ test('adapter has no Samuel-specific default', async () => {
   const ctx = { systemPrompt: { context() {} } }
   await assert.rejects(() => apply(ctx, {}), /config\.soulId is required/)
 })
+
+test('adapter reports missing systemPrompt service at the runtime boundary', async () => {
+  await assert.rejects(
+    () => apply({}, { soulId: 'soul-2', storeDir: '.souls' }),
+    /required DSH systemPrompt service is unavailable/,
+  )
+})
+
+test('adapter reports store-load failures without dumping Soul state', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-adapter-missing-'))
+  const ctx = { systemPrompt: { context() {} } }
+
+  await assert.rejects(
+    () => apply(ctx, { soulId: 'missing-soul', storeDir: rootDir }),
+    (error) => {
+      assert.match(error.message, /store-load error/)
+      assert.match(error.message, /soulId=missing-soul/)
+      assert.match(error.message, /storeDir=/)
+      return true
+    },
+  )
+})
