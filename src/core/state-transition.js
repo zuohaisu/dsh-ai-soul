@@ -17,6 +17,22 @@ function isRecord(value) {
   return value != null && typeof value === 'object' && !Array.isArray(value)
 }
 
+function proposalFingerprint(proposal) {
+  return JSON.stringify({
+    version: proposal.version,
+    id: proposal.id,
+    at: proposal.at,
+    target: proposal.target,
+    operation: proposal.operation,
+    value: proposal.value,
+    reason: proposal.reason,
+    evidence: proposal.evidence,
+    provenance: proposal.provenance,
+    confidence: proposal.confidence,
+    proposer: proposal.proposer,
+  })
+}
+
 export function validateStateTransitionProposal(proposal) {
   const errors = []
 
@@ -49,6 +65,9 @@ export function validateStateTransitionProposal(proposal) {
       if (!proposal.review.reason || typeof proposal.review.reason !== 'string') errors.push('review.reason is required')
       if (!proposal.review.at || typeof proposal.review.at !== 'string') errors.push('review.at is required')
       if (!isRecord(proposal.review.provenance)) errors.push('review.provenance is required')
+      if (!proposal.review.proposalFingerprint || typeof proposal.review.proposalFingerprint !== 'string') {
+        errors.push('review.proposalFingerprint is required')
+      }
     }
   }
 
@@ -99,7 +118,14 @@ export function reviewStateTransitionProposal(proposal, {
   }
 
   const reviewed = clone(proposal)
-  reviewed.review = { decision, reviewer, reason, provenance: clone(provenance), at }
+  reviewed.review = {
+    decision,
+    reviewer,
+    reason,
+    provenance: clone(provenance),
+    at,
+    proposalFingerprint: proposalFingerprint(proposal),
+  }
 
   const reviewedValidation = validateStateTransitionProposal(reviewed)
   if (!reviewedValidation.valid) {
@@ -130,6 +156,9 @@ export function applyStateTransitionProposal(state, proposal) {
     throw new TypeError(`invalid state transition proposal: ${proposalValidation.errors.join('; ')}`)
   }
   if (proposal.review == null) throw new TypeError('proposal must be reviewed before application')
+  if (proposal.review.proposalFingerprint !== proposalFingerprint(proposal)) {
+    throw new TypeError('review does not match current proposal contents')
+  }
   if (proposal.review.decision !== 'approved') throw new TypeError('only approved proposals may be applied')
 
   const next = clone(state)
@@ -143,10 +172,12 @@ export function applyStateTransitionProposal(state, proposal) {
       proposal: clone(proposal.provenance),
       evidence: clone(proposal.evidence),
       review: {
+        decision: proposal.review.decision,
         reviewer: proposal.review.reviewer,
         at: proposal.review.at,
         reason: proposal.review.reason,
         provenance: clone(proposal.review.provenance),
+        proposalFingerprint: proposal.review.proposalFingerprint,
       },
     },
     change: {
