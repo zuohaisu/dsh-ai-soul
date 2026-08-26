@@ -40,6 +40,25 @@ test('maps one explicit runtime event into a deterministic Experience Record', (
   })
 })
 
+test('derived IDs do not collide when identity parts contain delimiters', () => {
+  const first = mapRuntimeEventToExperience({
+    ...event,
+    runtime: 'a:b',
+    sessionId: 'c',
+    eventId: 'd',
+  })
+  const second = mapRuntimeEventToExperience({
+    ...event,
+    runtime: 'a',
+    sessionId: 'b:c',
+    eventId: 'd',
+  })
+
+  assert.notEqual(first.id, second.id)
+  assert.equal(first.id, 'runtime-event:a%3Ab:c:d')
+  assert.equal(second.id, 'runtime-event:a:b%3Ac:d')
+})
+
 test('capture does not mutate Soul State or promote autobiography', () => {
   const soul = createSoulState({ soulId: 'soul-1', name: 'Soul One' })
   const before = structuredClone(soul)
