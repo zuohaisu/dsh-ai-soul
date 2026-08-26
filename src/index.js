@@ -11,10 +11,10 @@ export const inject = ['systemPrompt']
 
 function validateConfig(config = {}) {
   if (!config.soulId || typeof config.soulId !== 'string') {
-    throw new TypeError('config.soulId is required')
+    throw new TypeError('dsh-ai-soul config error: config.soulId is required')
   }
   if (!config.storeDir || typeof config.storeDir !== 'string') {
-    throw new TypeError('config.storeDir is required')
+    throw new TypeError('dsh-ai-soul config error: config.storeDir is required')
   }
 
   return {
@@ -25,16 +25,36 @@ function validateConfig(config = {}) {
 }
 
 export async function apply(ctx, rawConfig = {}) {
-  if (!ctx) throw new TypeError('DSH context is required')
+  if (!ctx) throw new TypeError('dsh-ai-soul runtime error: DSH context is required')
   if (!ctx.systemPrompt?.context) {
-    throw new TypeError('DSH systemPrompt service is required')
+    throw new TypeError('dsh-ai-soul runtime error: required DSH systemPrompt service is unavailable')
   }
 
   const config = validateConfig(rawConfig)
   const store = new FileSoulStore({ rootDir: config.storeDir })
-  const state = await store.load(config.soulId)
-  const projection = projectSoulContext(state)
-  const text = renderSoulContext(projection)
+
+  let state
+  try {
+    state = await store.load(config.soulId)
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(
+      `dsh-ai-soul store-load error: unable to load soulId=${config.soulId} from storeDir=${config.storeDir}: ${detail}`,
+      { cause: error },
+    )
+  }
+
+  let text
+  try {
+    const projection = projectSoulContext(state)
+    text = renderSoulContext(projection)
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(
+      `dsh-ai-soul context-projection error for soulId=${config.soulId}: ${detail}`,
+      { cause: error },
+    )
+  }
 
   ctx.systemPrompt.context({
     name: `ai-soul:${config.soulId}`,
@@ -46,3 +66,4 @@ export async function apply(ctx, rawConfig = {}) {
 }
 
 export * from './core/index.js'
+export { preflightSoul } from './preflight.js'
