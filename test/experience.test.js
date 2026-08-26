@@ -41,7 +41,6 @@ test('promotion to autobiography is explicit and provenance-preserving', () => {
     reason: 'This decision materially changed the shared project history.',
     provenance: { reviewer: 'test', method: 'explicit-promotion' },
     interpretation: 'A durable project-level commitment was made.',
-    significance: { level: 'high' },
     promotedAt: '2026-08-27T03:11:00.000Z',
   })
 
@@ -71,6 +70,26 @@ test('promotion requires an explicit reason and provenance', () => {
   assert.throws(
     () => promoteExperienceToAutobiography(soul, experience, { reason: 'important' }),
     /promotion provenance is required/,
+  )
+})
+
+test('promotion rejects raw unprovenanced significance', () => {
+  const soul = createSoulState({ soulId: 'soul-1', name: 'Soul One' })
+  const experience = createExperienceRecord({
+    id: 'exp-raw-significance',
+    kind: 'decision',
+    source: { runtime: 'test' },
+    provenance: { eventId: 'event-raw-significance' },
+    payload: { text: 'important' },
+  })
+
+  assert.throws(
+    () => promoteExperienceToAutobiography(soul, experience, {
+      reason: 'Attempted legacy significance.',
+      provenance: { reviewer: 'test' },
+      significance: { level: 'high' },
+    }),
+    /raw significance is not supported; use significanceAssessment/,
   )
 })
 
