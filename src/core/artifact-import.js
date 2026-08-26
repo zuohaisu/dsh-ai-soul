@@ -32,6 +32,10 @@ export function importOriginArtifact(artifact) {
   }
 
   const claims = requireObject(artifact.claims, 'claims')
+  if (!claims.name || !claims.birthday) {
+    throw new TypeError('origin claims require name and birthday')
+  }
+
   const state = createSoulState({
     soulId: artifact.subjectSoulId,
     name: claims.name,
@@ -46,9 +50,13 @@ export function importOriginArtifact(artifact) {
   })
 
   if (claims.nickname) state.identity.nickname = claims.nickname
-  if (claims.birthday) state.identity.birthday = claims.birthday
+  state.identity.birthday = claims.birthday
 
-  state.relationship.participants.push({ id: 'haisu', role: 'human-partner' })
+  if (Array.isArray(claims.relationshipParticipants)) {
+    state.relationship.participants.push(
+      ...structuredClone(claims.relationshipParticipants),
+    )
+  }
 
   if (claims.relationshipCovenant) {
     state.relationship.covenants.push({
