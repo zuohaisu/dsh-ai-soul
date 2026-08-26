@@ -23,6 +23,15 @@ function proposal(overrides = {}) {
   })
 }
 
+function conflict(overrides = {}) {
+  return {
+    id: 'conflict-1',
+    reason: 'An existing working-model claim points in the opposite direction.',
+    provenance: { source: 'selfModel', ref: 'claim-existing' },
+    ...overrides,
+  }
+}
+
 test('creating and reviewing a proposal do not mutate Soul State or the original proposal', () => {
   const soul = createSoulState({ soulId: 'soul-1', name: 'Soul One' })
   const soulBefore = structuredClone(soul)
@@ -41,6 +50,7 @@ test('creating and reviewing a proposal do not mutate Soul State or the original
   assert.deepEqual(pending, pendingBefore)
   assert.equal(pending.review, null)
   assert.equal(reviewed.review.decision, 'approved')
+  assert.equal(reviewed.review.policy.minimumConfidence, 0.6)
   assert.equal(typeof reviewed.review.proposalFingerprint, 'string')
 })
 
@@ -55,8 +65,11 @@ test('unreviewed and rejected proposals cannot be applied', () => {
     reviewer: 'governance:test',
     reason: 'Evidence is not strong enough.',
     provenance: { reviewId: 'review-reject' },
+    conflicts: [conflict()],
   })
 
+  assert.equal(rejected.review.conflicts.length, 1)
+  assert.equal(rejected.review.conflictResolution, null)
   assert.throws(() => applyStateTransitionProposal(soul, rejected), /only approved proposals/)
 })
 
@@ -97,6 +110,7 @@ test('approved proposal appends only to selected domain and records traceable ev
     reviewer: 'governance:test',
     reason: 'Supported by repeated dated collaboration evidence.',
     provenance: { reviewId: 'review-2', method: 'manual-evidence-review' },
+    policy: { minimumConfidence: 0.75 },
     at: '2026-08-27T06:42:00.000Z',
   })
 
@@ -114,8 +128,96 @@ test('approved proposal appends only to selected domain and records traceable ev
   assert.deepEqual(next.evolution[0].provenance.evidence, pending.evidence)
   assert.equal(next.evolution[0].provenance.review.decision, 'approved')
   assert.equal(next.evolution[0].provenance.review.reviewer, 'governance:test')
+  assert.equal(next.evolution[0].provenance.review.policy.minimumConfidence, 0.75)
+  assert.deepEqual(next.evolution[0].provenance.review.conflicts, [])
   assert.equal(next.evolution[0].change.target, 'userModel')
   assert.equal(next.evolution[0].change.confidence, 0.82)
+})
+
+test('approval is blocked when confidence is below active review policy', () => {
+  const pending = proposal({ confidence: 0.55 })
+
+  assert.throws(
+    () => reviewStateTransitionProposal(pending, {
+      decision: 'approved',
+      reviewer: 'governance:test',
+      reason: 'Attempting approval despite weak evidence.',
+      provenance: { reviewId: 'review-low-confidence' },
+    }),
+    /confidence is below review policy threshold/,
+  )
+
+  const rejected = reviewStateTransitionProposal(pending, {
+    decision: 'rejected',
+    reviewer: 'governance:test',
+    reason: 'Confidence is below the policy threshold.',
+    provenance: { reviewId: 'review-low-confidence-reject' },
+  })
+  assert.equal(rejected.review.decision, 'rejected')
+})
+
+test('approved proposal with declared conflicts requires explicit coexist resolution', () => {
+  const pending = proposal()
+  const conflicts = [conflict()]
+
+  assert.throws(
+    () => reviewStateTransitionProposal(pending, {
+      decision: 'approved',
+      reviewer: 'governance:test',
+      reason: 'Conflict was noticed but not resolved.',
+      provenance: { reviewId: 'review-conflict-missing-resolution' },
+      conflicts,
+    }),
+    /requires conflict resolution/,
+  )
+
+  const approved = reviewStateTransitionProposal(pending, {
+    decision: 'approved',
+    reviewer: 'governance:test',
+    reason: 'Both claims are retained as competing working hypotheses.',
+    provenance: { reviewId: 'review-conflict-coexist' },
+    conflicts,
+    conflictResolution: {
+      disposition: 'coexist',
+      reason: 'Evidence is strong enough to retain both claims without pretending the conflict is settled.',
+      provenance: { resolutionId: 'resolution-1', method: 'explicit-review' },
+    },
+  })
+
+  const next = applyStateTransitionProposal(createSoulState({ soulId: 'soul-1', name: 'Soul One' }), approved)
+  const review = next.evolution[0].provenance.review
+  assert.equal(review.conflicts[0].id, 'conflict-1')
+  assert.equal(review.conflictResolution.disposition, 'coexist')
+  assert.equal(review.conflictResolution.provenance.resolutionId, 'resolution-1')
+})
+
+test('conflict declarations and review policy are validated', () => {
+  assert.throws(
+    () => reviewStateTransitionProposal(proposal(), {
+      decision: 'approved',
+      reviewer: 'governance:test',
+      reason: 'bad policy',
+      provenance: { reviewId: 'review-bad-policy' },
+      policy: { minimumConfidence: 2 },
+    }),
+    /minimumConfidence must be between 0 and 1/,
+  )
+
+  assert.throws(
+    () => reviewStateTransitionProposal(proposal(), {
+      decision: 'approved',
+      reviewer: 'governance:test',
+      reason: 'bad conflict evidence',
+      provenance: { reviewId: 'review-bad-conflict' },
+      conflicts: [{ id: 'c', reason: 'known conflict' }],
+      conflictResolution: {
+        disposition: 'coexist',
+        reason: 'retain both',
+        provenance: { resolutionId: 'r' },
+      },
+    }),
+    /review\.conflicts\[0\]\.provenance is required/,
+  )
 })
 
 test('proposal requires evidence, confidence, provenance, proposer, and explicit value', () => {
