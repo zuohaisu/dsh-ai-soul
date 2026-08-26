@@ -18,3 +18,10 @@ export {
   promoteExperienceToAutobiography,
   validateExperienceRecord,
 } from './experience.js'
+
+export {
+  SIGNIFICANCE_ASSESSMENT_VERSION,
+  SIGNIFICANCE_LEVELS,
+  createSignificanceAssessment,
+  validateSignificanceAssessment,
+} from './significance.js'
