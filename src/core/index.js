@@ -56,3 +56,9 @@ export {
   persistGenesisSoul,
   validateGenesisRecord,
 } from './genesis.js'
+
+export {
+  CONTINUITY_CHECK_SET_VERSION,
+  createContinuityCheckSet,
+  createObservationChecks,
+} from './continuity-checks.js'
