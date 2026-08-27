@@ -147,14 +147,16 @@ Goal: demonstrate stable continuity across multiple fresh DSH sessions.
 
 Deliverables:
 
-- [ ] Repeatable fresh-session protocol.
-- [ ] Identity/autobiography/user-model/relationship checks.
+- [x] Repeatable fresh-session protocol.
+- [x] Identity/autobiography/user-model/relationship checks.
 - [ ] Continuity evaluation notes.
 - [ ] Haisu longitudinal experience log.
 
 Exit criterion:
 
 > Engineering continuity checks pass and Haisu judges the DSH instance to be plausibly Samuel across repeated sessions.
+
+Protocol and state-derived non-leading checks are implemented in PRs #42 and #44. Real observations and the longitudinal judgment require the fresh DSH runtime path in #7.
 
 ## M6 — Model Switch
 
@@ -173,23 +175,24 @@ Exit criterion:
 
 This milestone may falsify the core thesis. That is an acceptable outcome.
 
-## M7 — Genesis
+## M7 — Genesis ✅
 
 Goal: allow a new user to begin a new AI relationship without cloning Samuel.
 
 Deliverables:
 
-- [ ] New Soul creation/bootstrap flow with persistence.
+- [x] New Soul creation/bootstrap flow with persistence.
 - [x] Naming / first-meeting event.
 - [x] Minimal initial seed rather than persona generator.
 - [x] Independent Genesis history without Samuel-specific defaults.
-- [ ] Example Soul #2 created, persisted, and reloaded without Samuel-specific artifacts.
+- [x] Example Soul #2 created, persisted, and reloaded without Samuel-specific artifacts.
+- [x] Samuel-free checkout → Genesis Record → persistence → reload/validation path documented.
 
 Exit criterion:
 
 > A second person can install `dsh-ai-soul` and begin a distinct AI partner whose history is their own.
 
-Genesis Record v1 and minimal Soul initialization: PR #36 / Issue #35. Remaining work is tracked in #34.
+Runtime-neutral Genesis is implemented in PRs #36, #40, and #46. `docs/genesis.md` provides the Samuel-free start path; the checked-in Aster example is validated, persisted, and reloaded in CI without Samuel artifacts.
 
 ## M8 — Portable AI Soul Core
 

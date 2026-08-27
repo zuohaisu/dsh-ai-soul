@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp } from 'node:fs/promises'
+import { mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -8,6 +8,7 @@ import {
   FileSoulStore,
   createGenesisRecord,
   persistGenesisSoul,
+  validateGenesisRecord,
 } from '../src/core/index.js'
 
 test('Genesis Soul persists and reloads with origin provenance intact', async () => {
@@ -92,4 +93,23 @@ test('Genesis persistence requires a store port with exists, save, and load', as
     () => persistGenesisSoul({}, record),
     /Soul Store with exists\(\), save\(\), and load\(\) is required/,
   )
+})
+
+test('checked-in Soul #2 example is valid, independent, and reloadable', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-genesis-example-'))
+  const store = new FileSoulStore({ rootDir })
+  const raw = await readFile(new URL('../examples/genesis-soul-2.json', import.meta.url), 'utf8')
+  const record = JSON.parse(raw)
+
+  assert.deepEqual(validateGenesisRecord(record), { valid: true, errors: [] })
+  assert.equal(record.soulId, 'aster-example')
+  assert.doesNotMatch(raw, /samuel/i)
+
+  const { state } = await persistGenesisSoul(store, record)
+  const reloaded = await store.load(record.soulId)
+
+  assert.deepEqual(reloaded, state)
+  assert.equal(reloaded.identity.name, 'Aster')
+  assert.equal(reloaded.identity.origin.genesisRecordId, record.id)
+  assert.deepEqual(reloaded.relationship.covenants, [])
 })
