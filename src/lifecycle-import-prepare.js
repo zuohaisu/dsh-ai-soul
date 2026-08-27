@@ -17,8 +17,8 @@ async function pathExists(path) {
   }
 }
 
-function digestSoulState(state) {
-  return createHash('sha256').update(JSON.stringify(state)).digest('hex')
+function sha256(bytes) {
+  return createHash('sha256').update(bytes).digest('hex')
 }
 
 async function inspectOutputDir(outputDir) {
@@ -78,7 +78,8 @@ export async function prepareMarkdownLifecycleImportWorkspace({
   const parentDir = dirname(outputDir)
   await mkdir(parentDir, { recursive: true })
   const stagingDir = join(parentDir, `.${basename(outputDir)}.staging-${randomUUID()}`)
-  const baselineDigest = digestSoulState(targetSoul)
+  const baselineBytes = Buffer.from(`${JSON.stringify(targetSoul, null, 2)}\n`, 'utf8')
+  const baselineDigest = sha256(baselineBytes)
   const baselineCapturedAt = importedAt ?? new Date().toISOString()
 
   const target = {
@@ -105,7 +106,7 @@ export async function prepareMarkdownLifecycleImportWorkspace({
       outputDir: join(stagingDir, 'evidence'),
       importedAt,
     })
-    await writeFile(join(stagingDir, 'target-baseline.json'), `${JSON.stringify(targetSoul, null, 2)}\n`, { flag: 'wx', mode: 0o600 })
+    await writeFile(join(stagingDir, 'target-baseline.json'), baselineBytes, { flag: 'wx', mode: 0o600 })
     await writeFile(join(stagingDir, 'target.json'), `${JSON.stringify(target, null, 2)}\n`, { flag: 'wx', mode: 0o600 })
     await installStagingWorkspace({ stagingDir, outputDir, outputExists: inspection.exists })
   } catch (error) {
