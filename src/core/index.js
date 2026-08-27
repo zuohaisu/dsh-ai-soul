@@ -42,3 +42,9 @@ export {
   createReflectionResult,
   validateReflectionResult,
 } from './reflection.js'
+
+export {
+  projectEvolutionHistory,
+  renderEvolutionHistory,
+  renderSoulEvolutionHistory,
+} from './evolution-history.js'
