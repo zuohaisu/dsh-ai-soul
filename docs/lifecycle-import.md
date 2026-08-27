@@ -74,3 +74,36 @@ canonicalMutation: false
 ```
 
 It does not alter the candidate claim, baseline, live Soul, or DSH profile, and it does not create or apply a state-transition proposal.
+
+## Semantic review of reconciliation
+
+A validated reconciliation can be attached to the existing Exodus review workspace with `appendExodusReconciliationReview()`.
+
+The reviewer chooses an explicit semantic disposition:
+
+```text
+conflict        imported claim contradicts the reviewed baseline context
+coexistence     both representations may validly coexist
+uncertain       evidence is insufficient to decide
+not-applicable  the comparison should not affect this target Soul/path
+```
+
+No disposition is inferred from the structural comparison. In particular:
+
+```text
+different ≠ conflict
+```
+
+The review record preserves the reconciliation ID, claim ID, target Soul ID, frozen baseline digest, target path, structural comparison, reviewer, timestamp, and rationale. Reconciliation reviews are append-only alongside existing claim relationships and claim review decisions.
+
+One review workspace cannot silently mix reconciliation records from different target Souls or different frozen baseline digests. That boundary prevents evidence from separate lifecycle-import contexts from becoming indistinguishable during review.
+
+This stage still has no canonical mutation authority:
+
+```text
+reconciliation → structural evidence
+review          → semantic interpretation
+proposal/apply  → governed mutation boundary
+```
+
+A reviewer deciding `conflict`, `coexistence`, `uncertain`, or `not-applicable` does not itself modify Soul State and does not automatically create a state-transition proposal.
