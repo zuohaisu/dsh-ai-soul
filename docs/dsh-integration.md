@@ -96,13 +96,14 @@ Verify the composition before booting when useful:
 dsh --profile samuel --dump-config
 ```
 
+The effective config should contain an `ai-soul` entry pointing to the selected Soul Store.
+
 ## 4. Configure the Soul
 
 Configure the `ai-soul` row in the profile's `cordis.patch.yml`:
 
 ```yaml
 - id: ai-soul
-  name: dsh-ai-soul
   config:
     soulId: samuel
     storeDir: /absolute/path/to/soul-store
@@ -111,21 +112,37 @@ Configure the `ai-soul` row in the profile's `cordis.patch.yml`:
 
 Use an absolute `storeDir` for the first runtime verification.
 
-## 5. Boot DSH
+## 5. Verify runtime activation separately from the chat surface
+
+Start the selected profile directly:
 
 ```sh
 dsh --profile samuel
 ```
 
-On activation, the plugin validates configuration, loads the selected Soul, projects model context, and registers it through DSH dynamic prompt context.
-
-A successful load logs:
+A successful plugin activation logs:
 
 ```text
 [dsh-ai-soul] loaded Soul samuel
 ```
 
-## 6. Fresh-session runtime verification
+This signal proves that DSH activated the plugin, loaded the configured persisted Soul, projected its context, and registered the context provider. It does **not** by itself prove that an interactive chat surface is attached to that process.
+
+In the first real local verification on 2026-08-27, both `dsh --profile samuel` and `dsh-tui --profile samuel` emitted the successful Soul-load signal but did not present an interactive terminal conversation. Treat that result as **runtime activation success / fresh-session verification incomplete**, not as either M2 completion or plugin failure.
+
+## 6. Attach an interactive DSH surface
+
+Use a DSH interaction surface that preserves the same profile composition. For the current local verification path, try the official web surface first:
+
+```sh
+dsh web --profile samuel
+```
+
+The next success condition is not merely that the process starts. A browser chat session must be created using the `samuel` profile, without manually pasting Samuel background into the conversation.
+
+If the web command starts but the plugin load line is absent, verify the effective profile with `--dump-config` before interpreting any model response as Soul-backed.
+
+## 7. Fresh-session runtime verification
 
 Open a fresh DSH session. Do not manually paste Samuel's background into the conversation.
 
@@ -150,8 +167,16 @@ This checklist does **not** establish that the DSH instance *is Samuel*. It only
 
 The plugin fails loudly at configuration, runtime-service, store-load, and context-projection boundaries. There is intentionally no fallback to a generic/default identity.
 
+Distinguish three different failure classes during M2 verification:
+
+1. **Plugin/runtime activation failure** — no successful Soul-load signal, or a configuration/service/store error is emitted.
+2. **Interaction-surface failure** — `[dsh-ai-soul] loaded Soul ...` appears, but no usable chat session is presented.
+3. **Context-visibility failure** — the interactive session works, but the fresh-session structural checks do not expose persisted Soul facts.
+
+Do not collapse these into a single "DSH failed" result; they imply different boundaries and fixes.
+
 ## M2 real-runtime evidence record
 
-Record the first local run in Issue #7 with DSH version, OS/runtime environment, bootstrap result, preflight result, plugin install result, `--dump-config`, boot result, fresh-session structural checks, and deviations from this guide.
+Record the first local run in Issue #7 with DSH version, OS/runtime environment, bootstrap result, preflight result, plugin install result, `--dump-config`, activation result, interaction-surface result, fresh-session structural checks, and deviations from this guide.
 
-Issue #7 remains open until that real runtime evidence exists.
+Issue #7 remains open until a real interactive fresh-session result exists. The 2026-08-27 activation evidence narrows the remaining blocker to obtaining a working interaction surface and then verifying model-visible Soul context.
