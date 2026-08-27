@@ -64,6 +64,11 @@ export {
 } from './exodus-source.js'
 
 export {
+  MARKDOWN_EVIDENCE_VERSION,
+  normalizeMarkdownEvidence,
+} from './markdown-evidence.js'
+
+export {
   CONTINUITY_CHECK_SET_VERSION,
   createContinuityCheckSet,
   createObservationChecks,
