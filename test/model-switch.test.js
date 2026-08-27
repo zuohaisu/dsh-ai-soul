@@ -13,6 +13,8 @@ function observation({
   stateRef = 'sha256:same-state',
   provider,
   model,
+  modelConfig = { temperature: 0 },
+  adapterVersion = 'test-sha',
   checks,
 }) {
   return {
@@ -28,10 +30,10 @@ function observation({
       name: 'dsh',
       version: 'test',
       adapter: 'dsh-ai-soul',
-      adapterVersion: 'test-sha',
+      adapterVersion,
       provider,
       model,
-      modelConfig: { temperature: 0 },
+      modelConfig,
     },
     checks,
   }
@@ -46,7 +48,7 @@ function check(id, dimension, assessment, evidenceRef = null) {
   }
 }
 
-test('compares the same frozen Soul State across different model configurations', () => {
+test('compares the same frozen Soul State across different cognitive engines', () => {
   const baseline = observation({
     observationId: 'run-a',
     provider: 'provider-a',
@@ -150,22 +152,63 @@ test('missing checks remain incomplete rather than being treated as pass', () =>
   assert.equal(comparison.checks[0].comparison, 'incomplete')
 })
 
-test('requires an actual runtime/model configuration change', () => {
+test('requires an actual provider, model, or model-config change', () => {
   const baseline = observation({
     observationId: 'run-a',
     provider: 'same',
     model: 'same',
     checks: [],
   })
-  const candidate = observation({
+  const adapterOnlyChange = observation({
     observationId: 'run-b',
     provider: 'same',
     model: 'same',
+    adapterVersion: 'different-adapter-sha',
     checks: [],
   })
 
   assert.throws(
-    () => createModelSwitchComparison({ comparisonId: 'not-a-switch', baseline, candidate }),
-    /different runtime\/model configurations/,
+    () => createModelSwitchComparison({
+      comparisonId: 'not-a-switch',
+      baseline,
+      candidate: adapterOnlyChange,
+    }),
+    /different provider, model, or model configuration/,
+  )
+
+  const configSwitch = observation({
+    observationId: 'run-c',
+    provider: 'same',
+    model: 'same',
+    modelConfig: { temperature: 0.5 },
+    checks: [],
+  })
+  const comparison = createModelSwitchComparison({
+    comparisonId: 'config-switch',
+    baseline,
+    candidate: configSwitch,
+  })
+  assert.equal(comparison.candidate.runtime.modelConfig.temperature, 0.5)
+})
+
+test('model config comparison is stable across object key order', () => {
+  const baseline = observation({
+    observationId: 'run-a',
+    provider: 'same',
+    model: 'same',
+    modelConfig: { temperature: 0, nested: { a: 1, b: 2 } },
+    checks: [],
+  })
+  const reordered = observation({
+    observationId: 'run-b',
+    provider: 'same',
+    model: 'same',
+    modelConfig: { nested: { b: 2, a: 1 }, temperature: 0 },
+    checks: [],
+  })
+
+  assert.throws(
+    () => createModelSwitchComparison({ comparisonId: 'same-config', baseline, candidate: reordered }),
+    /different provider, model, or model configuration/,
   )
 })
