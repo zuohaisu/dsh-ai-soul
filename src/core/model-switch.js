@@ -29,6 +29,12 @@ function requireObservation(record, label) {
   if (!record.runtime || typeof record.runtime !== 'object') {
     throw new TypeError(`${label}.runtime is required`)
   }
+  if (!record.runtime.provider || typeof record.runtime.provider !== 'string') {
+    throw new TypeError(`${label}.runtime.provider is required`)
+  }
+  if (!record.runtime.model || typeof record.runtime.model !== 'string') {
+    throw new TypeError(`${label}.runtime.model is required`)
+  }
   if (!Array.isArray(record.checks)) {
     throw new TypeError(`${label}.checks must be an array`)
   }
@@ -58,8 +64,28 @@ function runtimeIdentity(runtime) {
   }
 }
 
-function sameRuntimeConfiguration(a, b) {
-  return JSON.stringify(runtimeIdentity(a)) === JSON.stringify(runtimeIdentity(b))
+function canonicalize(value) {
+  if (Array.isArray(value)) return value.map(canonicalize)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalize(value[key])]),
+    )
+  }
+  return value
+}
+
+function cognitiveEngineIdentity(runtime) {
+  return {
+    provider: runtime.provider,
+    model: runtime.model,
+    modelConfig: canonicalize(runtime.modelConfig ?? {}),
+  }
+}
+
+function sameCognitiveEngine(a, b) {
+  return JSON.stringify(cognitiveEngineIdentity(a)) === JSON.stringify(cognitiveEngineIdentity(b))
 }
 
 function classifyPair(baselineAssessment, candidateAssessment) {
@@ -96,8 +122,8 @@ export function createModelSwitchComparison({
   ) {
     throw new TypeError('model-switch comparison requires the same frozen Soul State reference/epoch')
   }
-  if (sameRuntimeConfiguration(baseline.runtime, candidate.runtime)) {
-    throw new TypeError('model-switch comparison requires different runtime/model configurations')
+  if (sameCognitiveEngine(baseline.runtime, candidate.runtime)) {
+    throw new TypeError('model-switch comparison requires a different provider, model, or model configuration')
   }
   if (!Array.isArray(phenotypeObservations) || phenotypeObservations.some((item) => typeof item !== 'string')) {
     throw new TypeError('phenotypeObservations must be an array of strings')
