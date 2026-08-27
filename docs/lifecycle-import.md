@@ -53,11 +53,30 @@ The existing Generic Exodus source/evidence normalization path is reused under `
 
 ## Reconciliation against the frozen baseline
 
-A later import stage may compare one validated candidate claim with one explicit target path in the frozen baseline using `createLifecycleImportReconciliation()`.
+After candidate claims have been prepared in a normal review workspace, a user can create a reconciliation record without writing JavaScript:
 
-The caller must choose the target path and proposed value explicitly. Claim type does not determine Soul ontology automatically.
+```bash
+dsh-ai-soul-import-reconcile \
+  --import-dir ./.imports/aster-001 \
+  --review-dir ./.imports/aster-001/review \
+  --claim-id claim-001 \
+  --reconciliation-id reconcile-001 \
+  --target-path '["identity","name"]' \
+  --proposed-value '"Nova"' \
+  --rationale 'Compare imported name evidence with the frozen baseline.' \
+  --recorded-by rowan \
+  --recorded-at 2026-08-28T01:00:00.000Z
+```
 
-The reconciliation record verifies the exact `target-baseline.json` SHA-256 from `target.json` before reading it, then reports only a structural comparison state:
+`--target-path` and `--proposed-value` are explicit JSON values. Claim type never selects the Soul path automatically.
+
+The command reads `target.json`, verifies the exact SHA-256 of `target-baseline.json`, loads the selected validated claim from `review/claims.json`, and writes an immutable reconciliation record under:
+
+```text
+reconciliations/<reconciliation-id>.json
+```
+
+It reports only one structural comparison state:
 
 ```text
 absent     target path did not exist in the frozen baseline
@@ -77,9 +96,20 @@ It does not alter the candidate claim, baseline, live Soul, or DSH profile, and 
 
 ## Semantic review of reconciliation
 
-A validated reconciliation can be attached to the existing Exodus review workspace with `appendExodusReconciliationReview()`.
+A validated reconciliation can then be attached to the existing review workspace through the published review-update CLI:
 
-The reviewer chooses an explicit semantic disposition:
+```bash
+dsh-ai-soul-exodus-review-update \
+  --review-dir ./.imports/aster-001/review \
+  --operation reconciliation-review \
+  --reconciliation-file ./.imports/aster-001/reconciliations/reconcile-001.json \
+  --disposition uncertain \
+  --reviewer rowan \
+  --reviewed-at 2026-08-28T01:10:00.000Z \
+  --rationale 'A different imported name does not establish identity replacement.'
+```
+
+The reviewer chooses one explicit semantic disposition:
 
 ```text
 conflict        imported claim contradicts the reviewed baseline context
