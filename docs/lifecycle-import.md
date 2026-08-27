@@ -51,4 +51,26 @@ profileMutation: false
 
 The existing Generic Exodus source/evidence normalization path is reused under `evidence/`; lifecycle import does not create a competing import ontology.
 
-This slice does **not** decide whether imported history belongs to the current Soul, detect semantic conflicts automatically, generate canonical mutations, or configure a DSH application profile. Those remain later governed stages.
+## Reconciliation against the frozen baseline
+
+A later import stage may compare one validated candidate claim with one explicit target path in the frozen baseline using `createLifecycleImportReconciliation()`.
+
+The caller must choose the target path and proposed value explicitly. Claim type does not determine Soul ontology automatically.
+
+The reconciliation record verifies the exact `target-baseline.json` SHA-256 from `target.json` before reading it, then reports only a structural comparison state:
+
+```text
+absent     target path did not exist in the frozen baseline
+equal      baseline value and proposed value are structurally equal
+different  both exist but are structurally different
+```
+
+`different` is deliberately **not** equivalent to `conflict`. A difference may represent a genuine contradiction, a compatible later fact, predecessor history, another identity, or unresolved uncertainty. Those semantic judgments belong in the existing review/governance layer.
+
+The reconciliation record remains evidence for review only:
+
+```text
+canonicalMutation: false
+```
+
+It does not alter the candidate claim, baseline, live Soul, or DSH profile, and it does not create or apply a state-transition proposal.
