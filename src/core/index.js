@@ -76,6 +76,17 @@ export {
 } from './exodus-candidate-claim.js'
 
 export {
+  EXODUS_CLAIM_RELATIONSHIPS,
+  EXODUS_REVIEW_STATES,
+  EXODUS_REVIEW_WORKSPACE_VERSION,
+  addExodusClaimRelationship,
+  appendExodusReviewDecision,
+  createExodusReviewWorkspace,
+  getExodusClaimReviewState,
+  validateExodusReviewWorkspace,
+} from './exodus-review-workspace.js'
+
+export {
   CONTINUITY_CHECK_SET_VERSION,
   createContinuityCheckSet,
   createObservationChecks,

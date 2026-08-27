@@ -15,7 +15,9 @@ structural normalization
     ↓
 archaeology / candidate claims
     ↓
-review and governed promotion
+review workspace
+    ↓
+explicit governed promotion
     ↓
 canonical Soul State
 ```
@@ -151,6 +153,59 @@ Two incompatible interpretations may reference the same evidence and coexist as 
 
 This separation matters because semantic extraction may eventually be assisted by an LLM. The model can propose claims, but the output of that inference remains evidence-bound and non-canonical. **Inference authority is not mutation authority.**
 
+## Migration review workspace
+
+`createExodusReviewWorkspace()` introduces an auditable stage between candidate claims and any future canonical promotion.
+
+A workspace contains the identities of the candidate claims under review plus append-oriented relationship and decision records. It does not copy source evidence into a new authority-bearing structure and it has no Soul State mutation operation.
+
+Claims may be explicitly related as:
+
+- `conflict` — interpretations cannot safely be treated as simultaneously unconditional truths;
+- `coexistence` — different interpretations may both remain valid because they describe different contexts, periods, or scopes.
+
+Review decisions record claim ID, state (`unreviewed`, `accepted-for-promotion`, `rejected`, or `needs-more-evidence`), reviewer identity, timestamp, and rationale.
+
+`accepted-for-promotion` is intentionally **not** the same thing as promoted or canonical. It means only that a reviewer has marked a candidate eligible for the next governance boundary. The workspace always retains `canonicalMutation: false`.
+
+Operations return new deeply frozen workspace values rather than mutating prior review history. The current state of a claim is a projection of the latest decision; earlier decisions remain present for auditability.
+
+```js
+import {
+  addExodusClaimRelationship,
+  appendExodusReviewDecision,
+  createExodusReviewWorkspace,
+} from '../src/core/index.js'
+
+let workspace = createExodusReviewWorkspace({
+  id: 'aster-migration-001',
+  claims: [quietClaim, expressiveClaim],
+  createdAt: '2026-08-27T12:00:00Z',
+  createdBy: 'migration-agent',
+})
+
+workspace = addExodusClaimRelationship(workspace, [quietClaim, expressiveClaim], {
+  leftClaimId: quietClaim.id,
+  rightClaimId: expressiveClaim.id,
+  relationship: 'conflict',
+  recordedBy: 'reviewer-1',
+  recordedAt: '2026-08-27T12:05:00Z',
+  rationale: 'The evidence may describe different contexts rather than one stable trait.',
+})
+
+workspace = appendExodusReviewDecision(workspace, [quietClaim, expressiveClaim], {
+  claimId: quietClaim.id,
+  state: 'needs-more-evidence',
+  reviewer: 'reviewer-1',
+  reviewedAt: '2026-08-27T12:10:00Z',
+  rationale: 'One source is insufficient to establish a durable identity trait.',
+})
+```
+
+The original candidate claims remain unchanged. No review operation applies a canonical state transition.
+
 ## What these boundaries deliberately do not do
 
-The source manifest, Markdown adapter, and Candidate Claim v1 do not declare identity continuity, resolve conflicts, inject imported text into a system prompt, or promote anything into canonical Soul State. Provider-specific adapters should normalize into this evidence pipeline rather than redefine the AI Soul ontology.
+The source manifest, Markdown adapter, Candidate Claim v1, and migration review workspace do not declare identity continuity, automatically resolve conflicts, inject imported text into a system prompt, or promote anything into canonical Soul State. Provider-specific adapters should normalize into this evidence pipeline rather than redefine the AI Soul ontology.
+
+The next architectural boundary is an explicit governed promotion step that consumes reviewed candidates and uses the existing Soul governance machinery without granting the migration workspace write authority of its own.
