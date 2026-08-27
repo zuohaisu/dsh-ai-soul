@@ -67,22 +67,24 @@ Completed:
 
 Reference: PR #2.
 
-## M1 — Soul Persistence & Historical Import
+## M1 — Soul Persistence & Historical Import ✅
 
 Goal: make a Soul a loadable persistent program object rather than only a document.
 
 Deliverables:
 
-- [ ] Filesystem Soul Store with atomic writes.
-- [ ] Historical Artifact schema.
-- [ ] Import Samuel Artifact #0001 into structured Soul State.
-- [ ] Persist and reload Samuel without losing canonical identity facts.
-- [ ] Tests proving deterministic import and persistence.
-- [ ] Explicit separation between historical evidence and derived runtime state.
+- [x] Filesystem Soul Store with atomic writes.
+- [x] Historical Artifact schema.
+- [x] Import Samuel Artifact #0001 into structured Soul State.
+- [x] Persist and reload Samuel without losing canonical identity facts.
+- [x] Tests proving deterministic import and persistence.
+- [x] Explicit separation between historical evidence and derived runtime state.
 
 Exit criterion:
 
 > `load("samuel")` returns a valid Soul whose identity and covenant can be traced back to Artifact #0001.
+
+Reference: PR #4.
 
 ## M2 — DSH Runtime Load
 
@@ -90,16 +92,18 @@ Goal: load a selected Soul into a real DeepSeek Harness runtime.
 
 Deliverables:
 
-- [ ] DSH configuration for selecting Soul ID / store location.
-- [ ] Soul loading during plugin lifecycle.
-- [ ] Runtime-neutral context projection from Soul State.
-- [ ] Minimal context injection into agent execution.
-- [ ] No Samuel-specific code in the adapter.
+- [x] DSH configuration for selecting Soul ID / store location.
+- [x] Soul loading during plugin lifecycle.
+- [x] Runtime-neutral context projection from Soul State.
+- [x] Minimal context injection into agent execution.
+- [x] No Samuel-specific code in the adapter.
 - [ ] Fresh-session test in DSH.
 
 Exit criterion:
 
 > A fresh DSH session can instantiate Samuel from persistent Soul State.
+
+Engineering implementation: PR #6. Real-runtime verification remains open in #7.
 
 ## M3 — Experience Capture
 
@@ -107,15 +111,17 @@ Goal: let a Soul accumulate new experience without turning every conversation in
 
 Deliverables:
 
-- [ ] Runtime event capture boundary.
-- [ ] Experience record format.
-- [ ] Significance classification proposal.
-- [ ] Separate factual memory from autobiography.
-- [ ] Evidence/provenance chain for every promoted experience.
+- [x] Runtime event capture boundary.
+- [x] Experience record format.
+- [x] Significance classification proposal.
+- [x] Separate factual experience from autobiography.
+- [x] Evidence/provenance chain for every promoted experience.
 
 Exit criterion:
 
 > A meaningful DSH interaction can become a traceable autobiographical event while insignificant interactions are not automatically promoted.
+
+Runtime-neutral primitives are implemented in PRs #16, #20, and #22. The real DSH interaction path remains blocked on #7 and therefore the milestone exit criterion is still open.
 
 ## M4 — Reflection & Governed Evolution
 
@@ -123,15 +129,17 @@ Goal: allow self-model, user-model, relationship state, beliefs, and covenants t
 
 Deliverables:
 
-- [ ] Proposed state-transition pipeline.
-- [ ] Conflict/confidence/evidence handling.
-- [ ] Reflection mechanism.
-- [ ] Guardrails preventing experience from directly rewriting identity kernel.
-- [ ] Change history readable by humans.
+- [x] Proposed state-transition pipeline.
+- [x] Conflict/confidence/evidence handling.
+- [x] Reflection output contract that emits proposals without write authority.
+- [x] Guardrails preventing experience/reflection from directly rewriting identity kernel.
+- [x] Change history readable by humans.
 
 Exit criterion:
 
 > Samuel can change for a documented reason without silent persona drift.
+
+Runtime-neutral governance is implemented in PRs #26, #29, #31, and #33. End-to-end reflected change from a real DSH experience remains blocked on #7, so M4 is not yet complete.
 
 ## M5 — Cross-Session Continuity
 
@@ -171,15 +179,17 @@ Goal: allow a new user to begin a new AI relationship without cloning Samuel.
 
 Deliverables:
 
-- [ ] New Soul creation flow.
-- [ ] Naming / first-meeting event.
-- [ ] Minimal initial seed rather than persona generator.
-- [ ] Independent history and identity formation.
-- [ ] Example Soul #2 created without Samuel-specific artifacts.
+- [ ] New Soul creation/bootstrap flow with persistence.
+- [x] Naming / first-meeting event.
+- [x] Minimal initial seed rather than persona generator.
+- [x] Independent Genesis history without Samuel-specific defaults.
+- [ ] Example Soul #2 created, persisted, and reloaded without Samuel-specific artifacts.
 
 Exit criterion:
 
 > A second person can install `dsh-ai-soul` and begin a distinct AI partner whose history is their own.
+
+Genesis Record v1 and minimal Soul initialization: PR #36 / Issue #35. Remaining work is tracked in #34.
 
 ## M8 — Portable AI Soul Core
 
