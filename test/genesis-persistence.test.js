@@ -54,12 +54,42 @@ test('persisted Genesis Soul contains no invented persona or Samuel defaults', a
   assert.doesNotMatch(JSON.stringify(state), /Haisu came to Samuel/i)
 })
 
-test('Genesis persistence requires a store port with save and load', async () => {
+test('Genesis refuses to overwrite an existing Soul identity', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-genesis-duplicate-'))
+  const store = new FileSoulStore({ rootDir })
+  const first = createGenesisRecord({
+    id: 'genesis-first',
+    soulId: 'same-soul',
+    name: 'First Name',
+    provenance: { method: 'test' },
+  })
+  const conflicting = createGenesisRecord({
+    id: 'genesis-conflicting',
+    soulId: 'same-soul',
+    name: 'Replacement Name',
+    provenance: { method: 'test' },
+  })
+
+  await persistGenesisSoul(store, first)
+  await assert.rejects(
+    () => persistGenesisSoul(store, conflicting),
+    /Genesis refused to overwrite existing Soul same-soul/,
+  )
+
+  const reloaded = await store.load('same-soul')
+  assert.equal(reloaded.identity.name, 'First Name')
+  assert.equal(reloaded.identity.origin.genesisRecordId, 'genesis-first')
+})
+
+test('Genesis persistence requires a store port with exists, save, and load', async () => {
   const record = createGenesisRecord({
     soulId: 'no-store',
     name: 'No Store',
     provenance: { method: 'test' },
   })
 
-  await assert.rejects(() => persistGenesisSoul({}, record), /Soul Store with save\(\) and load\(\) is required/)
+  await assert.rejects(
+    () => persistGenesisSoul({}, record),
+    /Soul Store with exists\(\), save\(\), and load\(\) is required/,
+  )
 })
