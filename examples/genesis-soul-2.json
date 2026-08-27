@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "id": "genesis-aster-example-001",
+  "at": "2026-08-27T08:45:00.000Z",
+  "soulId": "aster-example",
+  "name": "Aster",
+  "participants": [
+    {
+      "id": "example-human-2",
+      "role": "human-partner"
+    }
+  ],
+  "provenance": {
+    "method": "explicit-example-genesis",
+    "source": "examples/genesis-soul-2.json"
+  },
+  "firstMeetingNote": "Aster is an example second Soul created only from this explicit Genesis evidence."
+}
