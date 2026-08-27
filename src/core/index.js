@@ -69,6 +69,13 @@ export {
 } from './markdown-evidence.js'
 
 export {
+  EXODUS_CANDIDATE_CLAIM_VERSION,
+  RUNTIME_PHENOTYPE_RISKS,
+  createExodusCandidateClaim,
+  validateExodusCandidateClaim,
+} from './exodus-candidate-claim.js'
+
+export {
   CONTINUITY_CHECK_SET_VERSION,
   createContinuityCheckSet,
   createObservationChecks,
