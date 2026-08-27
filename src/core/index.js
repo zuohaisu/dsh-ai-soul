@@ -62,3 +62,8 @@ export {
   createContinuityCheckSet,
   createObservationChecks,
 } from './continuity-checks.js'
+
+export {
+  projectSoulContext,
+  renderSoulContext,
+} from './context-projection.js'
