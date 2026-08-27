@@ -1,4 +1,5 @@
 import { validateExodusCandidateClaim } from './exodus-candidate-claim.js'
+import { validateLifecycleImportReconciliation } from './lifecycle-import-reconciliation.js'
 
 export const EXODUS_REVIEW_WORKSPACE_VERSION = 1
 export const EXODUS_REVIEW_STATES = Object.freeze([
@@ -8,6 +9,12 @@ export const EXODUS_REVIEW_STATES = Object.freeze([
   'needs-more-evidence',
 ])
 export const EXODUS_CLAIM_RELATIONSHIPS = Object.freeze(['conflict', 'coexistence'])
+export const EXODUS_RECONCILIATION_DISPOSITIONS = Object.freeze([
+  'conflict',
+  'coexistence',
+  'uncertain',
+  'not-applicable',
+])
 
 function deepClone(value) {
   return structuredClone(value)
@@ -57,6 +64,7 @@ export function createExodusReviewWorkspace({ id, claims, createdAt, createdBy }
     claimIds: claims.map((claim) => claim.id),
     relationships: [],
     decisions: [],
+    reconciliationReviews: [],
     canonicalMutation: false,
   }))
 }
@@ -134,6 +142,54 @@ export function appendExodusReviewDecision(workspace, claims, {
   }))
 }
 
+export function appendExodusReconciliationReview(workspace, claims, reconciliation, {
+  disposition,
+  reviewer,
+  reviewedAt,
+  rationale,
+}) {
+  const index = validateWorkspaceAndClaims(workspace, claims)
+  const reconciliationValidation = validateLifecycleImportReconciliation(reconciliation)
+  if (!reconciliationValidation.valid) {
+    throw new TypeError(`invalid lifecycle import reconciliation: ${reconciliationValidation.errors.join('; ')}`)
+  }
+  if (!index.has(reconciliation.claimId)) {
+    throw new TypeError(`reconciliation references unknown claim: ${reconciliation.claimId}`)
+  }
+  if (!EXODUS_RECONCILIATION_DISPOSITIONS.includes(disposition)) {
+    throw new TypeError(`disposition must be one of: ${EXODUS_RECONCILIATION_DISPOSITIONS.join(', ')}`)
+  }
+
+  const priorReviews = workspace.reconciliationReviews ?? []
+  for (const prior of priorReviews) {
+    if (prior.targetSoulId !== reconciliation.targetSoulId) {
+      throw new TypeError('reconciliation target Soul does not match existing review context')
+    }
+    if (prior.baseline?.algorithm !== reconciliation.baseline.algorithm || prior.baseline?.digest !== reconciliation.baseline.digest) {
+      throw new TypeError('reconciliation baseline does not match existing review context')
+    }
+  }
+
+  const record = {
+    reconciliationId: reconciliation.id,
+    claimId: reconciliation.claimId,
+    targetSoulId: reconciliation.targetSoulId,
+    baseline: deepClone(reconciliation.baseline),
+    targetPath: deepClone(reconciliation.targetPath),
+    comparison: reconciliation.comparison,
+    disposition,
+    reviewer: nonEmptyString(reviewer, 'reviewer'),
+    reviewedAt: nonEmptyString(reviewedAt, 'reviewedAt'),
+    rationale: nonEmptyString(rationale, 'rationale'),
+  }
+
+  return deepFreeze(deepClone({
+    ...workspace,
+    reconciliationReviews: [...priorReviews, record],
+    canonicalMutation: false,
+  }))
+}
+
 export function getExodusClaimReviewState(workspace, claimId) {
   nonEmptyString(claimId, 'claimId')
   if (!workspace.claimIds?.includes(claimId)) throw new TypeError(`workspace references no claim: ${claimId}`)
@@ -152,6 +208,7 @@ export function validateExodusReviewWorkspace(workspace) {
   if (Array.isArray(workspace.claimIds) && new Set(workspace.claimIds).size !== workspace.claimIds.length) errors.push('claimIds must be unique')
   if (!Array.isArray(workspace.relationships)) errors.push('relationships must be an array')
   if (!Array.isArray(workspace.decisions)) errors.push('decisions must be an array')
+  if (workspace.reconciliationReviews !== undefined && !Array.isArray(workspace.reconciliationReviews)) errors.push('reconciliationReviews must be an array when present')
   if (workspace.canonicalMutation !== false) errors.push('canonicalMutation must remain false')
 
   for (const [index, entry] of (Array.isArray(workspace.relationships) ? workspace.relationships : []).entries()) {
@@ -170,6 +227,19 @@ export function validateExodusReviewWorkspace(workspace) {
     for (const field of ['reviewer', 'reviewedAt', 'rationale']) {
       if (typeof entry[field] !== 'string' || entry[field].trim() === '') errors.push(`decisions[${index}].${field} is required`)
     }
+  }
+
+  for (const [index, entry] of (Array.isArray(workspace.reconciliationReviews) ? workspace.reconciliationReviews : []).entries()) {
+    if (!workspace.claimIds?.includes(entry.claimId)) errors.push(`reconciliationReviews[${index}].claimId is unknown`)
+    for (const field of ['reconciliationId', 'targetSoulId', 'reviewer', 'reviewedAt', 'rationale']) {
+      if (typeof entry[field] !== 'string' || entry[field].trim() === '') errors.push(`reconciliationReviews[${index}].${field} is required`)
+    }
+    if (entry.baseline?.algorithm !== 'sha256' || typeof entry.baseline?.digest !== 'string' || entry.baseline.digest.trim() === '') {
+      errors.push(`reconciliationReviews[${index}].baseline digest is required`)
+    }
+    if (!Array.isArray(entry.targetPath) || entry.targetPath.length === 0) errors.push(`reconciliationReviews[${index}].targetPath is required`)
+    if (!['absent', 'equal', 'different'].includes(entry.comparison)) errors.push(`reconciliationReviews[${index}].comparison is invalid`)
+    if (!EXODUS_RECONCILIATION_DISPOSITIONS.includes(entry.disposition)) errors.push(`reconciliationReviews[${index}].disposition is invalid`)
   }
 
   return { valid: errors.length === 0, errors }
