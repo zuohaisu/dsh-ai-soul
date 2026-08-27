@@ -91,6 +91,13 @@ export {
 } from './exodus-promotion.js'
 
 export {
+  LIFECYCLE_IMPORT_COMPARISON_STATES,
+  LIFECYCLE_IMPORT_RECONCILIATION_VERSION,
+  createLifecycleImportReconciliation,
+  validateLifecycleImportReconciliation,
+} from './lifecycle-import-reconciliation.js'
+
+export {
   CONTINUITY_CHECK_SET_VERSION,
   createContinuityCheckSet,
   createObservationChecks,

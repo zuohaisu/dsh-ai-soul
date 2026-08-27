@@ -28,7 +28,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/index.js && node --check src/preflight.js && node --check src/profile-preflight.js && node --check src/profile-configure.js && node --check src/exodus-prepare.js && node --check src/exodus-review-prepare.js && node --check src/exodus-review-update.js && node --check src/lifecycle-import-prepare.js && node --check src/cli/preflight-dsh-profile.js && node --check src/cli/configure-dsh-profile.js && node --check src/cli/prepare-exodus-markdown.js && node --check src/cli/prepare-exodus-review.js && node --check src/cli/update-exodus-review.js && node --check src/cli/prepare-lifecycle-import.js && node --test",
+    "check": "node --check src/index.js && node --check src/preflight.js && node --check src/profile-preflight.js && node --check src/profile-configure.js && node --check src/exodus-prepare.js && node --check src/exodus-review-prepare.js && node --check src/exodus-review-update.js && node --check src/lifecycle-import-prepare.js && node --check src/core/lifecycle-import-reconciliation.js && node --check src/cli/preflight-dsh-profile.js && node --check src/cli/configure-dsh-profile.js && node --check src/cli/prepare-exodus-markdown.js && node --check src/cli/prepare-exodus-review.js && node --check src/cli/update-exodus-review.js && node --check src/cli/prepare-lifecycle-import.js && node --test",
     "bootstrap:samuel": "node examples/bootstrap-samuel.js",
     "preflight:soul": "node examples/preflight-soul.js",
     "preflight:dsh-profile": "node src/cli/preflight-dsh-profile.js",
