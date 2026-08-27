@@ -137,3 +137,53 @@ proposal/apply  → governed mutation boundary
 ```
 
 A reviewer deciding `conflict`, `coexistence`, `uncertain`, or `not-applicable` does not itself modify Soul State and does not automatically create a state-transition proposal.
+
+## Create a governed promotion proposal
+
+Once the selected candidate claim's latest review state is explicitly `accepted-for-promotion`, the user can create a normal StateTransitionProposal without writing JavaScript:
+
+```bash
+dsh-ai-soul-import-promote \
+  --import-dir ./.imports/aster-001 \
+  --review-dir ./.imports/aster-001/review \
+  --claim-id claim-001 \
+  --target userModel \
+  --path userModel \
+  --value '{"preference":"concise collaboration updates","source":"external-import"}' \
+  --proposer rowan \
+  --proposal-id proposal-aster-001 \
+  --at 2026-08-28T01:20:00.000Z
+```
+
+`--target`, `--path`, and `--value` are explicit. The CLI does not infer a mutable Soul domain from claim type, source schema, Soul ID, DSH profile, or reconciliation result. The existing Generic Exodus promotion boundary remains authoritative, so unreviewed, rejected, `needs-more-evidence`, and unresolved-conflict claims fail closed.
+
+The proposal is persisted under:
+
+```text
+proposals/<proposal-id>.json
+```
+
+Its provenance remains traceable through the normal chain:
+
+```text
+StateTransitionProposal
+  ↓
+review decision
+  ↓
+candidate claim
+  ↓
+normalized source evidence
+```
+
+For lifecycle import, proposal provenance additionally retains the explicit target Soul ID and the frozen baseline digest/capture metadata from `target.json`. This keeps the proposal tied to the import context that produced it even if the live Soul later changes.
+
+Creating the proposal still performs no canonical mutation and no profile mutation:
+
+```text
+accepted-for-promotion ≠ approved
+proposal creation       ≠ apply
+canonicalMutation: false
+profileMutation: false
+```
+
+The resulting file must still pass the normal `reviewStateTransitionProposal()` and `applyStateTransitionProposal()` governance path before canonical Soul State can change. Lifecycle import does not create a second mutation authority.

@@ -13,7 +13,8 @@
     "./exodus-review-prepare": "./src/exodus-review-prepare.js",
     "./exodus-review-update": "./src/exodus-review-update.js",
     "./lifecycle-import-prepare": "./src/lifecycle-import-prepare.js",
-    "./lifecycle-import-reconcile": "./src/lifecycle-import-reconcile.js"
+    "./lifecycle-import-reconcile": "./src/lifecycle-import-reconcile.js",
+    "./lifecycle-import-promote": "./src/lifecycle-import-promote.js"
   },
   "bin": {
     "dsh-ai-soul-configure": "./src/cli/configure-dsh-profile.js",
@@ -22,7 +23,8 @@
     "dsh-ai-soul-exodus-review": "./src/cli/prepare-exodus-review.js",
     "dsh-ai-soul-exodus-review-update": "./src/cli/update-exodus-review.js",
     "dsh-ai-soul-import-prepare": "./src/cli/prepare-lifecycle-import.js",
-    "dsh-ai-soul-import-reconcile": "./src/cli/reconcile-lifecycle-import.js"
+    "dsh-ai-soul-import-reconcile": "./src/cli/reconcile-lifecycle-import.js",
+    "dsh-ai-soul-import-promote": "./src/cli/promote-lifecycle-import.js"
   },
   "files": [
     "src",
@@ -30,7 +32,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/index.js && node --check src/preflight.js && node --check src/profile-preflight.js && node --check src/profile-configure.js && node --check src/exodus-prepare.js && node --check src/exodus-review-prepare.js && node --check src/exodus-review-update.js && node --check src/lifecycle-import-prepare.js && node --check src/lifecycle-import-reconcile.js && node --check src/core/lifecycle-import-reconciliation.js && node --check src/cli/preflight-dsh-profile.js && node --check src/cli/configure-dsh-profile.js && node --check src/cli/prepare-exodus-markdown.js && node --check src/cli/prepare-exodus-review.js && node --check src/cli/update-exodus-review.js && node --check src/cli/prepare-lifecycle-import.js && node --check src/cli/reconcile-lifecycle-import.js && node --test",
+    "check": "node --check src/index.js && node --check src/preflight.js && node --check src/profile-preflight.js && node --check src/profile-configure.js && node --check src/exodus-prepare.js && node --check src/exodus-review-prepare.js && node --check src/exodus-review-update.js && node --check src/lifecycle-import-prepare.js && node --check src/lifecycle-import-reconcile.js && node --check src/lifecycle-import-promote.js && node --check src/core/lifecycle-import-reconciliation.js && node --check src/cli/preflight-dsh-profile.js && node --check src/cli/configure-dsh-profile.js && node --check src/cli/prepare-exodus-markdown.js && node --check src/cli/prepare-exodus-review.js && node --check src/cli/update-exodus-review.js && node --check src/cli/prepare-lifecycle-import.js && node --check src/cli/reconcile-lifecycle-import.js && node --check src/cli/promote-lifecycle-import.js && node --test",
     "bootstrap:samuel": "node examples/bootstrap-samuel.js",
     "preflight:soul": "node examples/preflight-soul.js",
     "preflight:dsh-profile": "node src/cli/preflight-dsh-profile.js",
@@ -39,7 +41,8 @@
     "exodus:review": "node src/cli/prepare-exodus-review.js",
     "exodus:review:update": "node src/cli/update-exodus-review.js",
     "import:prepare": "node src/cli/prepare-lifecycle-import.js",
-    "import:reconcile": "node src/cli/reconcile-lifecycle-import.js"
+    "import:reconcile": "node src/cli/reconcile-lifecycle-import.js",
+    "import:promote": "node src/cli/promote-lifecycle-import.js"
   },
   "keywords": [
     "deepseek-harness",
