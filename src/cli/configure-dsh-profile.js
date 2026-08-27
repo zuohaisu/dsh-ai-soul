@@ -27,7 +27,7 @@ const result = await configureDshProfileDir({
   soulId: values['soul-id'],
   storeDir: values['store-dir'],
   surface: values.surface,
-  dependencySpec: values['dependency-spec'] || 'dsh-ai-soul',
+  dependencySpec: values['dependency-spec'] || 'latest',
   contextOrder: values['context-order'] === undefined ? -10 : Number(values['context-order']),
   dryRun: !values.write,
 })
