@@ -67,3 +67,9 @@ export async function apply(ctx, rawConfig = {}) {
 
 export * from './core/index.js'
 export { preflightSoul } from './preflight.js'
+export {
+  parseAiSoulPatch,
+  preflightDshProfile,
+  preflightDshProfileDir,
+  SURFACE_BUNDLES,
+} from './profile-preflight.js'

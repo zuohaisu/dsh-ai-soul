@@ -6,7 +6,8 @@
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js",
-    "./core": "./src/core/index.js"
+    "./core": "./src/core/index.js",
+    "./profile-preflight": "./src/profile-preflight.js"
   },
   "files": [
     "src",
@@ -14,9 +15,10 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/index.js && node --check src/preflight.js && node --test",
+    "check": "node --check src/index.js && node --check src/preflight.js && node --check src/profile-preflight.js && node --check src/cli/preflight-dsh-profile.js && node --test",
     "bootstrap:samuel": "node examples/bootstrap-samuel.js",
-    "preflight:soul": "node examples/preflight-soul.js"
+    "preflight:soul": "node examples/preflight-soul.js",
+    "preflight:dsh-profile": "node src/cli/preflight-dsh-profile.js"
   },
   "keywords": [
     "deepseek-harness",
