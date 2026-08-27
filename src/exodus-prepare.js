@@ -1,9 +1,10 @@
-import { basename, join } from 'node:path'
+import { randomUUID } from 'node:crypto'
+import { basename, dirname, join } from 'node:path'
 import {
-  cp,
   mkdir,
   readdir,
   readFile,
+  rename,
   rm,
   stat,
   writeFile,
@@ -34,6 +35,31 @@ function ensureReplaceIsSafe(entries) {
   if (unknown.length > 0) {
     throw new Error(`refusing --replace because workspace contains unmanaged entries: ${unknown.join(', ')}`)
   }
+}
+
+async function writeStagingWorkspace({ stagingDir, filename, sourceBytes, source, evidence }) {
+  const originalDir = join(stagingDir, 'original')
+  await mkdir(originalDir, { recursive: true })
+  await writeFile(join(originalDir, filename), sourceBytes, { flag: 'wx' })
+  await writeFile(join(stagingDir, 'source.json'), `${JSON.stringify(source, null, 2)}\n`, { flag: 'wx' })
+  await writeFile(join(stagingDir, 'evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`, { flag: 'wx' })
+}
+
+async function installStagingWorkspace({ stagingDir, outputDir, outputExists }) {
+  if (!outputExists) {
+    await rename(stagingDir, outputDir)
+    return
+  }
+
+  const backupDir = `${outputDir}.backup-${randomUUID()}`
+  await rename(outputDir, backupDir)
+  try {
+    await rename(stagingDir, outputDir)
+  } catch (error) {
+    await rename(backupDir, outputDir)
+    throw error
+  }
+  await rm(backupDir, { recursive: true, force: true })
 }
 
 export async function prepareMarkdownExodusWorkspace({
@@ -76,21 +102,26 @@ export async function prepareMarkdownExodusWorkspace({
   })
   const evidence = normalizeMarkdownEvidence({ source, content: sourceBytes })
 
-  if (replace && inspection.entries.length > 0) {
-    for (const entry of inspection.entries) {
-      await rm(join(outputDir, entry), { recursive: true, force: true })
-    }
-  }
+  const parentDir = dirname(outputDir)
+  await mkdir(parentDir, { recursive: true })
+  const stagingDir = join(parentDir, `.${basename(outputDir)}.staging-${randomUUID()}`)
 
-  const originalDir = join(outputDir, 'original')
-  await mkdir(originalDir, { recursive: true })
-  await cp(sourceFile, join(originalDir, filename), { force: false, errorOnExist: true })
-  await writeFile(join(outputDir, 'source.json'), `${JSON.stringify(source, null, 2)}\n`, { flag: 'wx' })
-  await writeFile(join(outputDir, 'evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`, { flag: 'wx' })
+  try {
+    await mkdir(stagingDir)
+    await writeStagingWorkspace({ stagingDir, filename, sourceBytes, source, evidence })
+    await installStagingWorkspace({
+      stagingDir,
+      outputDir,
+      outputExists: inspection.exists,
+    })
+  } catch (error) {
+    await rm(stagingDir, { recursive: true, force: true })
+    throw error
+  }
 
   return {
     outputDir,
-    originalFile: join(originalDir, filename),
+    originalFile: join(outputDir, 'original', filename),
     sourceFile: join(outputDir, 'source.json'),
     evidenceFile: join(outputDir, 'evidence.json'),
     source,
