@@ -11,9 +11,9 @@ external export
     ↓
 Exodus source-evidence record
     ↓
-normalization / archaeology
+structural normalization
     ↓
-candidate claims
+archaeology / candidate claims
     ↓
 review and governed promotion
     ↓
@@ -56,8 +56,52 @@ const source = createExodusSource({
 })
 ```
 
-Creating this record performs **zero canonical Soul mutations**. Later Exodus stages may derive candidate claims, but those claims require explicit review/governance before they can alter canonical state.
+Creating this record performs **zero canonical Soul mutations**.
 
-## What v1 deliberately does not do
+## Markdown evidence normalization
 
-This boundary does not parse Markdown, infer identity, resolve conflicts, call an LLM, or promote claims. Provider-specific adapters should normalize into this evidence pipeline rather than redefining the AI Soul ontology.
+`normalizeMarkdownEvidence()` is the first generic source adapter. It accepts an `ExodusSource` and the exact Markdown bytes represented by that source.
+
+Before parsing anything, it recomputes SHA-256 and rejects content that no longer matches the source manifest. This keeps later evidence anchored to the preserved import instead of silently normalizing modified text.
+
+The adapter emits deterministic structural evidence units:
+
+- ATX headings;
+- ordinary contiguous content blocks;
+- fenced code blocks;
+- exact 1-based source line ranges;
+- raw source text for each unit;
+- the active heading path;
+- source ID and source digest linkage;
+- `canonicalMutation: false` on the document and every unit.
+
+Example:
+
+```js
+import {
+  createExodusSource,
+  normalizeMarkdownEvidence,
+} from '../src/core/index.js'
+
+const markdown = '# Memory\n\nAster and Mira met while building a garden journal.\n'
+const source = createExodusSource({
+  sourceId: 'aster-memory-001',
+  sourceType: 'memory-export',
+  provider: 'example-chat-runtime',
+  capturedAt: '2026-08-27T09:00:00.000Z',
+  filename: 'memory.md',
+  mediaType: 'text/markdown',
+  content: markdown,
+  provenance: { suppliedBy: 'mira', acquisition: 'user-export' },
+})
+
+const evidence = normalizeMarkdownEvidence({ source, content: markdown })
+```
+
+This is deliberately **structural normalization, not interpretation**. A line such as `Name: Aster`, `Mira prefers concise answers`, or `We promised to stay together` remains text evidence. The adapter does not decide whether it is an identity fact, user-model fact, relationship claim, covenant, contradiction, or noise.
+
+Those semantic decisions belong to later archaeology/candidate-claim stages where provenance, uncertainty, counter-evidence, and review can be represented explicitly.
+
+## What these boundaries deliberately do not do
+
+The source manifest and Markdown adapter do not infer identity, resolve conflicts, call an LLM, create candidate claims, inject imported text into a system prompt, or promote anything into canonical Soul State. Provider-specific adapters should normalize into this evidence pipeline rather than redefine the AI Soul ontology.
