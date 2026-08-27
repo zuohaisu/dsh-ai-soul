@@ -58,6 +58,12 @@ export {
 } from './genesis.js'
 
 export {
+  EXODUS_SOURCE_VERSION,
+  createExodusSource,
+  validateExodusSource,
+} from './exodus-source.js'
+
+export {
   CONTINUITY_CHECK_SET_VERSION,
   createContinuityCheckSet,
   createObservationChecks,
