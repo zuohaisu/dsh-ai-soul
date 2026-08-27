@@ -18,7 +18,7 @@ Expected output includes:
 [dsh-ai-soul] Origin record: genesis-aster-example-001
 ```
 
-The command creates the Soul from the Genesis Record, saves it through `FileSoulStore`, reloads it, and verifies that the reloaded Soul still points to the same Genesis Record.
+The command creates the Soul from the Genesis Record, verifies the Soul ID is not already present, saves it through `FileSoulStore`, reloads it, and checks that the reloaded Soul still points to the same Genesis Record. Genesis refuses to overwrite an existing Soul identity.
 
 ## What Genesis does not invent
 
@@ -32,4 +32,4 @@ A new Genesis Soul starts with empty self-model, user-model, beliefs, relationsh
 const { state, path } = await persistGenesisSoul(store, genesisRecord)
 ```
 
-`persistGenesisSoul()` depends only on a store port implementing `save(state)` and `load(soulId)`. It has no DSH or model-provider dependency.
+`persistGenesisSoul()` depends only on a store port implementing `exists(soulId)`, `save(state)`, and `load(soulId)`. It has no DSH or model-provider dependency.
