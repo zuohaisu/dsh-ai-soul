@@ -77,9 +77,11 @@ export {
 
 export {
   EXODUS_CLAIM_RELATIONSHIPS,
+  EXODUS_RECONCILIATION_DISPOSITIONS,
   EXODUS_REVIEW_STATES,
   EXODUS_REVIEW_WORKSPACE_VERSION,
   addExodusClaimRelationship,
+  appendExodusReconciliationReview,
   appendExodusReviewDecision,
   createExodusReviewWorkspace,
   getExodusClaimReviewState,
