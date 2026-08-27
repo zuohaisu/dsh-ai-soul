@@ -38,10 +38,14 @@ function latestDecision(workspace, claimId) {
 }
 
 function unresolvedConflicts(workspace, claimId) {
-  return workspace.relationships.filter((relationship) => (
-    relationship.relationship === 'conflict'
-    && (relationship.leftClaimId === claimId || relationship.rightClaimId === claimId)
-  ))
+  return workspace.relationships.filter((relationship) => {
+    if (relationship.relationship !== 'conflict') return false
+    if (relationship.leftClaimId !== claimId && relationship.rightClaimId !== claimId) return false
+    const counterpartId = relationship.leftClaimId === claimId
+      ? relationship.rightClaimId
+      : relationship.leftClaimId
+    return getExodusClaimReviewState(workspace, counterpartId) !== 'rejected'
+  })
 }
 
 function normalizeTargetMapping(mapping) {
@@ -81,11 +85,15 @@ export function createExodusPromotionProposal({
     if (claimById.has(claim.id)) throw new TypeError(`duplicate claim id: ${claim.id}`)
     claimById.set(claim.id, claim)
   }
+  for (const workspaceClaimId of workspace.claimIds) {
+    if (!claimById.has(workspaceClaimId)) {
+      throw new TypeError(`workspace references unknown claim: ${workspaceClaimId}`)
+    }
+  }
 
   const id = nonEmptyString(claimId, 'claimId')
   if (!workspace.claimIds.includes(id)) throw new TypeError(`workspace references no claim: ${id}`)
   const claim = claimById.get(id)
-  if (!claim) throw new TypeError(`unknown claim: ${id}`)
 
   const state = getExodusClaimReviewState(workspace, id)
   if (state !== 'accepted-for-promotion') {
@@ -128,6 +136,7 @@ export function createExodusPromotionProposal({
       },
       reviewDecision: {
         index: review.index,
+        fingerprint: JSON.stringify(review.decision),
         claimId: review.decision.claimId,
         state: review.decision.state,
         reviewer: review.decision.reviewer,
