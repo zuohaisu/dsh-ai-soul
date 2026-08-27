@@ -138,6 +138,14 @@ export async function configureDshProfileDir({
   const profilePackage = JSON.parse(packageText)
   const plan = await planDshProfileConfiguration({ profilePackage, patchText, soulId, storeDir, surface, dependencySpec, contextOrder })
 
+  if (!dryRun && !plan.preflight.ready) {
+    const failedChecks = Object.entries(plan.preflight.checks)
+      .filter(([, passed]) => !passed)
+      .map(([name]) => name)
+      .join(', ')
+    throw new Error(`refusing to write DSH profile because preflight is not ready: ${failedChecks || 'unknown failure'}`)
+  }
+
   if (!dryRun && plan.changed) {
     const nextPackageText = `${JSON.stringify(plan.files.packageJson, null, 2)}\n`
     try {
