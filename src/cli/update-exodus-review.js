@@ -49,7 +49,19 @@ function buildOperation(args) {
       },
     }
   }
-  throw new TypeError('--operation must be relationship or decision')
+  if (type === 'reconciliation-review') {
+    return {
+      type,
+      reconciliationFile: required(args, 'reconciliation-file'),
+      value: {
+        disposition: required(args, 'disposition'),
+        reviewer: required(args, 'reviewer'),
+        reviewedAt: required(args, 'reviewed-at'),
+        rationale: required(args, 'rationale'),
+      },
+    }
+  }
+  throw new TypeError('--operation must be relationship, decision, or reconciliation-review')
 }
 
 try {
