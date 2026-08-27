@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
-import { SURFACE_BUNDLES, parseAiSoulPatch, preflightDshProfile } from './profile-preflight.js'
+import { SURFACE_BUNDLES, preflightDshProfile } from './profile-preflight.js'
 
 const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
 
@@ -52,7 +52,7 @@ function renderAiSoulBlock({ soulId, storeDir, contextOrder = -10, indent = 0 })
   ]
 }
 
-export function configurePackage({ profilePackage, dependencySpec = 'dsh-ai-soul' }) {
+export function configurePackage({ profilePackage, dependencySpec = 'latest' }) {
   if (!profilePackage || typeof profilePackage !== 'object') throw new TypeError('profilePackage is required')
   const next = clone(profilePackage)
 
@@ -99,7 +99,7 @@ export async function planDshProfileConfiguration({
   soulId,
   storeDir,
   surface,
-  dependencySpec = 'dsh-ai-soul',
+  dependencySpec = 'latest',
   contextOrder = -10,
 }) {
   if (!SURFACE_BUNDLES[surface]) throw new TypeError(`surface must be one of: ${Object.keys(SURFACE_BUNDLES).join(', ')}`)
@@ -122,7 +122,7 @@ export async function configureDshProfileDir({
   soulId,
   storeDir,
   surface,
-  dependencySpec = 'dsh-ai-soul',
+  dependencySpec = 'latest',
   contextOrder = -10,
   dryRun = true,
 }) {
@@ -131,17 +131,25 @@ export async function configureDshProfileDir({
   const packagePath = join(resolvedProfileDir, 'package.json')
   const patchPath = join(resolvedProfileDir, 'cordis.patch.yml')
 
-  const packageText = await readFile(packagePath, 'utf8')
-  const patchText = await readFile(patchPath, 'utf8')
+  const [packageText, patchText] = await Promise.all([
+    readFile(packagePath, 'utf8'),
+    readFile(patchPath, 'utf8'),
+  ])
   const profilePackage = JSON.parse(packageText)
   const plan = await planDshProfileConfiguration({ profilePackage, patchText, soulId, storeDir, surface, dependencySpec, contextOrder })
 
   if (!dryRun && plan.changed) {
     const nextPackageText = `${JSON.stringify(plan.files.packageJson, null, 2)}\n`
-    await Promise.all([
-      writeFile(packagePath, nextPackageText, 'utf8'),
-      writeFile(patchPath, plan.files.cordisPatch, 'utf8'),
-    ])
+    try {
+      await writeFile(packagePath, nextPackageText, 'utf8')
+      await writeFile(patchPath, plan.files.cordisPatch, 'utf8')
+    } catch (error) {
+      await Promise.allSettled([
+        writeFile(packagePath, packageText, 'utf8'),
+        writeFile(patchPath, patchText, 'utf8'),
+      ])
+      throw error
+    }
   }
 
   return {
@@ -154,7 +162,9 @@ export async function configureDshProfileDir({
 export function describeConfigurationPlan(plan) {
   return {
     changed: plan.changed,
-    readyAfterDependencyInstall: plan.preflight.runtimeReady && plan.preflight.applicationReady,
+    ready: plan.preflight.ready,
+    runtimeReady: plan.preflight.runtimeReady,
+    applicationReady: plan.preflight.applicationReady,
     checks: plan.preflight.checks,
     packageJson: plan.files.packageJson,
     cordisPatch: plan.files.cordisPatch,
