@@ -87,6 +87,10 @@ export {
 } from './exodus-review-workspace.js'
 
 export {
+  createExodusPromotionProposal,
+} from './exodus-promotion.js'
+
+export {
   CONTINUITY_CHECK_SET_VERSION,
   createContinuityCheckSet,
   createObservationChecks,
