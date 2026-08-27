@@ -14,7 +14,9 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/index.js && node --test"
+    "check": "node --check src/index.js && node --check src/preflight.js && node --test",
+    "bootstrap:samuel": "node examples/bootstrap-samuel.js",
+    "preflight:soul": "node examples/preflight-soul.js"
   },
   "keywords": [
     "deepseek-harness",
