@@ -48,3 +48,10 @@ export {
   renderEvolutionHistory,
   renderSoulEvolutionHistory,
 } from './evolution-history.js'
+
+export {
+  GENESIS_RECORD_VERSION,
+  createGenesisRecord,
+  createSoulFromGenesis,
+  validateGenesisRecord,
+} from './genesis.js'
