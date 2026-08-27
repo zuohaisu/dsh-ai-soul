@@ -64,6 +64,12 @@ export {
 } from './continuity-checks.js'
 
 export {
+  MODEL_SWITCH_COMPARISON_VERSION,
+  MODEL_SWITCH_DIMENSIONS,
+  createModelSwitchComparison,
+} from './model-switch.js'
+
+export {
   projectSoulContext,
   renderSoulContext,
 } from './context-projection.js'
