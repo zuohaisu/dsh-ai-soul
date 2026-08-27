@@ -103,7 +103,7 @@ Exit criterion:
 
 > A fresh DSH session can instantiate Samuel from persistent Soul State.
 
-Engineering implementation: PR #6. Real-runtime verification remains open in #7.
+Engineering implementation is merged in PR #49 (superseding historical PR #6). Real-runtime verification remains open in #7.
 
 ## M3 — Experience Capture
 
@@ -166,12 +166,14 @@ Deliverables:
 
 - [ ] Same Soul State exercised through at least two model adapters/configurations.
 - [ ] Model phenotype vs Soul identity analysis.
-- [ ] Continuity dimensions and regression protocol.
+- [x] Continuity dimensions and regression protocol.
 - [ ] Haisu Test after model switch.
 
 Exit criterion:
 
 > We can state, with evidence, which properties moved with the Soul and which belonged to the model.
+
+The runtime-neutral comparison contract and precommitted regression protocol are implemented in #50. Real two-model evidence remains dependent on the working DSH runtime path and later Haisu judgment.
 
 This milestone may falsify the core thesis. That is an acceptable outcome.
 
