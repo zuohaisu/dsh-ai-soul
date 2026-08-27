@@ -161,3 +161,30 @@ test('validator rejects attempts to smuggle canonical mutation authority into a 
   assert.ok(validation.errors.includes('canonicalStatus must remain candidate'))
   assert.ok(validation.errors.includes('canonicalMutation must remain false'))
 })
+
+test('validator rejects non-finite confidence and malformed serialized counter-evidence', () => {
+  const normalized = normalizedEvidence()
+  const supportUnit = normalized.units.find((entry) => entry.rawText.includes('Mira likes concise summaries'))
+  const counterUnit = normalized.units.find((entry) => entry.rawText.includes('Aster and Mira met'))
+  const claim = createExodusCandidateClaim({
+    normalizedEvidence: normalized,
+    id: 'aster-claim-007',
+    claimType: 'user-model',
+    statement: 'Mira always wants concise output.',
+    evidence: [{ unitId: supportUnit.unitId, support: 'The export says Mira likes concise summaries.' }],
+    counterEvidence: [{ unitId: counterUnit.unitId, support: 'This event record does not establish a universal output preference.' }],
+    confidence: { score: 0.4, rationale: 'Preference is stated, universality is not.' },
+    runtimePhenotypeRisk: 'medium',
+  })
+
+  const tampered = structuredClone(claim)
+  tampered.confidence.score = Number.NaN
+  tampered.counterEvidence[0].digest = ''
+  tampered.counterEvidence[0].headingPath = 'not-an-array'
+
+  const validation = validateExodusCandidateClaim(tampered)
+  assert.equal(validation.valid, false)
+  assert.ok(validation.errors.includes('confidence.score must be between 0 and 1'))
+  assert.ok(validation.errors.includes('counterEvidence[0].digest is required'))
+  assert.ok(validation.errors.includes('counterEvidence[0].headingPath must be an array of strings'))
+})
