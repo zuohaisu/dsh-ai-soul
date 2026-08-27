@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { access, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
 import { validateSoulState } from './soul-state.js'
@@ -13,6 +13,16 @@ export class FileSoulStore {
   constructor({ rootDir }) {
     if (!rootDir || typeof rootDir !== 'string') throw new TypeError('rootDir is required')
     this.rootDir = rootDir
+  }
+
+  async exists(soulId) {
+    try {
+      await access(soulPath(this.rootDir, soulId))
+      return true
+    } catch (error) {
+      if (error?.code === 'ENOENT') return false
+      throw error
+    }
   }
 
   async load(soulId) {
