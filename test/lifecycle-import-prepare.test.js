@@ -8,8 +8,8 @@ import test from 'node:test'
 import { createSoulState, FileSoulStore } from '../src/core/index.js'
 import { prepareMarkdownLifecycleImportWorkspace } from '../src/lifecycle-import-prepare.js'
 
-function digest(state) {
-  return createHash('sha256').update(JSON.stringify(state)).digest('hex')
+function digestBytes(bytes) {
+  return createHash('sha256').update(bytes).digest('hex')
 }
 
 test('binds external evidence to a frozen non-Samuel Soul baseline without mutation', async () => {
@@ -38,15 +38,16 @@ test('binds external evidence to a frozen non-Samuel Soul baseline without mutat
   })
 
   assert.equal(result.target.targetSoulId, 'aster')
-  assert.equal(result.target.baseline.digest, digest(aster))
   assert.equal(result.canonicalMutation, false)
   assert.equal(result.profileMutation, false)
   assert.deepEqual(await readFile(join(soulStoreDir, 'aster.json')), beforeLiveSoul)
 
-  const frozenBaseline = JSON.parse(await readFile(join(outputDir, 'target-baseline.json'), 'utf8'))
+  const baselineBytes = await readFile(join(outputDir, 'target-baseline.json'))
+  const frozenBaseline = JSON.parse(baselineBytes.toString('utf8'))
   assert.deepEqual(frozenBaseline, aster)
   const binding = JSON.parse(await readFile(join(outputDir, 'target.json'), 'utf8'))
-  assert.equal(binding.baseline.digest, digest(frozenBaseline))
+  assert.equal(binding.baseline.digest, digestBytes(baselineBytes))
+  assert.equal(result.target.baseline.digest, digestBytes(baselineBytes))
   await stat(join(outputDir, 'evidence', 'source.json'))
   await stat(join(outputDir, 'evidence', 'evidence.json'))
 
@@ -54,8 +55,8 @@ test('binds external evidence to a frozen non-Samuel Soul baseline without mutat
   evolved.autobiography.push({ id: 'aster-shared-002', at: '2026-08-28T02:00:00.000Z', summary: 'A later local experience.' })
   await store.save(evolved)
 
-  assert.deepEqual(JSON.parse(await readFile(join(outputDir, 'target-baseline.json'), 'utf8')), aster)
-  assert.equal(JSON.parse(await readFile(join(outputDir, 'target.json'), 'utf8')).baseline.digest, digest(aster))
+  assert.deepEqual(await readFile(join(outputDir, 'target-baseline.json')), baselineBytes)
+  assert.equal(JSON.parse(await readFile(join(outputDir, 'target.json'), 'utf8')).baseline.digest, digestBytes(baselineBytes))
 })
 
 test('refuses a missing target Soul before creating the import workspace', async () => {
