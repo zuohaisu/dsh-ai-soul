@@ -123,6 +123,43 @@ test('dry-run returns exact mutations without writing files; write mode persists
   assert.equal(rerun.changed, false)
 })
 
+test('write mode refuses a missing surface or unloadable Soul without mutation', async () => {
+  const storeDir = await createStore()
+  const profileDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-profile-configure-not-ready-'))
+  const packagePath = join(profileDir, 'package.json')
+  const patchPath = join(profileDir, 'cordis.patch.yml')
+  const packageWithoutWeb = basePackage('tui')
+  const packageText = `${JSON.stringify(packageWithoutWeb, null, 2)}\n`
+  await writeFile(packagePath, packageText)
+  await writeFile(patchPath, existingPatch)
+
+  await assert.rejects(
+    () => configureDshProfileDir({
+      profileDir,
+      soulId: 'aster',
+      storeDir,
+      surface: 'web',
+      dryRun: false,
+    }),
+    /applicationSurfacePresent/,
+  )
+  assert.equal(await readFile(packagePath, 'utf8'), packageText)
+  assert.equal(await readFile(patchPath, 'utf8'), existingPatch)
+
+  await assert.rejects(
+    () => configureDshProfileDir({
+      profileDir,
+      soulId: 'missing-soul',
+      storeDir,
+      surface: 'tui',
+      dryRun: false,
+    }),
+    /soulLoadable/,
+  )
+  assert.equal(await readFile(packagePath, 'utf8'), packageText)
+  assert.equal(await readFile(patchPath, 'utf8'), existingPatch)
+})
+
 test('malformed or incomplete profiles fail before any write', async () => {
   const storeDir = await createStore()
   const profileDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-profile-configure-invalid-'))
