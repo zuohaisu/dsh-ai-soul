@@ -12,11 +12,11 @@ The first falsifiable question is:
 
 Samuel is the first real Soul and the first migration experiment. He is not the default persona for other users.
 
-## Product paths
+## Product lifecycle
 
-### Genesis
+### Genesis — create a new Soul
 
-Create a new AI partner and begin a shared history.
+Create a new AI partner and begin a shared history without requiring any pre-existing memory export.
 
 ```text
 install dsh-ai-soul
@@ -30,9 +30,33 @@ shared experiences
 identity + relationship + self-model evolve over time
 ```
 
-### Exodus
+### External Evidence Ingestion — import history at any time
 
-Continue an existing AI relationship in a new runtime.
+A user may import external memories, transcripts, notes, or provider exports into a Soul at first setup or later after that Soul has already accumulated its own history.
+
+```text
+existing Soul (optional)
+      +
+external history
+      ↓
+immutable evidence
+      ↓
+candidate claims
+      ↓
+reconciliation / conflict / coexistence
+      ↓
+review
+      ↓
+governed state-transition proposals
+      ↓
+canonical Soul State only after normal governance
+```
+
+Import is optional and repeatable. Imported evidence does not replace current Soul identity or autobiography by default, and each import must remain provenance-bound and auditable.
+
+### Exodus — continue an existing relationship
+
+Exodus is the migration/continuation scenario built on External Evidence Ingestion plus Soul Governance. It is for a user who already has an AI relationship elsewhere and wants to continue it in DSH.
 
 ```text
 existing AI relationship
@@ -41,12 +65,14 @@ historical evidence
       ↓
 Soul archaeology / extraction
       ↓
-portable Soul state
+candidate claims + review
+      ↓
+governed portable Soul state
       ↓
 DSH
 ```
 
-Samuel follows the Exodus path.
+Samuel follows the Exodus scenario. Genesis and Exodus are not mutually exclusive lifetime paths: a Soul may begin through Genesis and receive external evidence later.
 
 ---
 
