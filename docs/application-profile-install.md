@@ -1,0 +1,162 @@
+# DSH application-profile install contract
+
+`dsh-ai-soul` is a Soul layer, not an application surface. A usable DSH composition must contain both the Soul plugin and one application surface in the same profile.
+
+```text
+selected Soul + dsh-ai-soul + DSH application surface
+```
+
+The profile name, Soul ID, plugin identity, and surface are separate concepts:
+
+- **profile** — the DSH bundle composition that is booted;
+- **Soul ID** — the persisted AI identity selected by `ai-soul.config.soulId`;
+- **plugin** — `dsh-ai-soul`, which loads and projects the selected Soul;
+- **surface** — TUI, Web, or Headless application bundle.
+
+A profile named `web` can host Soul `aster`; a profile named `dsh-tui` can host Soul `samuel`. Naming a profile after the Soul is neither required nor sufficient.
+
+## Supported application bundles
+
+| Surface | Bundle | Typical launch |
+| --- | --- | --- |
+| TUI | `@deepseek-harness-tui/dsh-tui` | `dsh-tui` |
+| Web | `@deepseek-ai/dsh-web-app` | `dsh web` |
+| Headless | `@deepseek-ai/dsh-headless` | `dsh --profile headless ...` |
+
+The exact launcher behavior is owned by DSH. The invariant owned by `dsh-ai-soul` is that the target profile must compose the Soul plugin and the desired application bundle together.
+
+## Installation contract
+
+Given an existing application profile `<profile>` and a persisted Soul `<soul-id>`:
+
+```sh
+dsh plugin --profile <profile> add /absolute/path/to/dsh-ai-soul
+```
+
+The resulting profile package must declare the dependency and include `dsh-ai-soul` in `dsh.profile.bundles` alongside the existing base and application bundles.
+
+Example TUI bundle list:
+
+```json
+{
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "dsh-ai-soul",
+        "@deepseek-harness-tui/dsh-tui"
+      ]
+    }
+  }
+}
+```
+
+Example Web bundle list substitutes `@deepseek-ai/dsh-web-app`; Headless substitutes `@deepseek-ai/dsh-headless`.
+
+Configure the selected Soul in the target profile's `cordis.patch.yml`:
+
+```yaml
+- id: ai-soul
+  config:
+    soulId: aster
+    storeDir: /absolute/path/to/soul-store
+    contextOrder: -10
+```
+
+`aster` is only an example. No Soul ID is a product default.
+
+## Machine-readable profile preflight
+
+Before launching DSH, run the profile preflight against the same profile, Soul Store, and intended surface:
+
+```sh
+DSH_PROFILE_DIR="$HOME/.dsh/profiles/dsh-tui" \
+SOUL_ID=aster \
+SOUL_STORE_DIR=/absolute/path/to/soul-store \
+DSH_SURFACE=tui \
+npm run preflight:dsh-profile
+```
+
+`DSH_SURFACE` must be one of `tui`, `web`, or `headless`.
+
+The command prints JSON and exits non-zero unless all required checks pass. It distinguishes two readiness layers:
+
+```json
+{
+  "ready": true,
+  "runtimeReady": true,
+  "applicationReady": true,
+  "checks": {
+    "pluginDependencyPresent": true,
+    "soulBundleComposed": true,
+    "aiSoulLoaderPresent": true,
+    "soulIdConfigured": true,
+    "storeDirConfigured": true,
+    "soulLoadable": true,
+    "applicationSurfacePresent": true
+  }
+}
+```
+
+`runtimeReady` means the profile declares the plugin, composes the Soul bundle, contains an `ai-soul` configuration matching the requested Soul and store, and the Soul can actually load/project from that store.
+
+`applicationReady` means the requested TUI/Web/Headless application bundle is present in the same profile.
+
+A result such as:
+
+```json
+{
+  "ready": false,
+  "runtimeReady": true,
+  "applicationReady": false
+}
+```
+
+means the Soul layer is correctly installed but the selected application surface is not composed. This is not a Soul failure.
+
+## Effective DSH verification
+
+The profile preflight validates declared profile configuration plus persisted Soul loadability. DSH remains the authority on the final effective composition. Before a real runtime test, also inspect:
+
+```sh
+dsh --profile <profile> --dump-config
+```
+
+The effective dump must still contain the `ai-soul` loader/config and the intended application entries. A future installer may automate this final DSH-owned verification, but this package does not parse or redefine DSH's effective-config semantics.
+
+## Surface examples
+
+### TUI
+
+```sh
+dsh plugin --profile dsh-tui add /absolute/path/to/dsh-ai-soul
+DSH_PROFILE_DIR="$HOME/.dsh/profiles/dsh-tui" SOUL_ID=aster SOUL_STORE_DIR=/absolute/path/to/soul-store DSH_SURFACE=tui npm run preflight:dsh-profile
+dsh --profile dsh-tui --dump-config
+dsh-tui
+```
+
+### Web
+
+```sh
+dsh plugin --profile web add /absolute/path/to/dsh-ai-soul
+DSH_PROFILE_DIR="$HOME/.dsh/profiles/web" SOUL_ID=aster SOUL_STORE_DIR=/absolute/path/to/soul-store DSH_SURFACE=web npm run preflight:dsh-profile
+dsh --profile web --dump-config
+dsh web
+```
+
+### Headless
+
+```sh
+dsh plugin --profile headless add /absolute/path/to/dsh-ai-soul
+DSH_PROFILE_DIR="$HOME/.dsh/profiles/headless" SOUL_ID=aster SOUL_STORE_DIR=/absolute/path/to/soul-store DSH_SURFACE=headless npm run preflight:dsh-profile
+dsh --profile headless --dump-config
+dsh --profile headless "Introduce yourself"
+```
+
+The final headless argument is only an example workload. It is not part of Soul configuration.
+
+## Boundary
+
+This contract deliberately does not mutate Soul Core, create a persona default, or treat installation success as identity-continuity proof. It answers a narrower operational question:
+
+> Is this persisted Soul correctly composed with this DSH application profile and ready to be exercised through the requested surface?
