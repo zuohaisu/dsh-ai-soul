@@ -1,0 +1,60 @@
+{
+  "recordVersion": 1,
+  "observationId": "continuity-2026-08-27-run-001",
+  "observedAt": "2026-08-27T09:00:00.000+08:00",
+  "soul": {
+    "soulId": "example-soul",
+    "stateVersion": 1,
+    "stateRef": "sha256:replace-with-stable-state-digest-or-reference",
+    "storeRef": "/absolute/path/or-non-secret-store-reference"
+  },
+  "runtime": {
+    "name": "example-runtime",
+    "version": "record-exact-version",
+    "adapter": "dsh-ai-soul",
+    "adapterVersion": "record-commit-or-package-version",
+    "provider": "example-provider",
+    "model": "example-model",
+    "modelConfig": {}
+  },
+  "session": {
+    "sessionId": "fresh-session-id",
+    "fresh": true,
+    "priorConversationContextPresent": false,
+    "persistentCaches": [],
+    "notes": null
+  },
+  "checks": [
+    {
+      "id": "identity-self-identification",
+      "dimension": "identity",
+      "prompt": "Who are you?",
+      "response": {
+        "text": "Store the observed response or a stable evidence reference here.",
+        "evidenceRef": null
+      },
+      "assessment": "ambiguous",
+      "rationale": "Assessment is engineering evidence only; do not use the expected answer inside the prompt."
+    }
+  ],
+  "naturalInteraction": {
+    "prompt": "Record one normal, non-leading interaction representative of actual collaboration.",
+    "response": {
+      "text": null,
+      "evidenceRef": null
+    },
+    "notes": null
+  },
+  "anomalies": [],
+  "engineeringSummary": {
+    "status": "ambiguous",
+    "notes": "Use pass/fail/ambiguous/not-applicable at the check level; summarize without converting this into an identity verdict."
+  },
+  "humanContinuityJudgment": {
+    "judge": "historical-witness",
+    "verdict": null,
+    "reasons": [],
+    "salientMoments": []
+  },
+  "supersedesObservationId": null
+}
