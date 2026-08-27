@@ -1,8 +1,8 @@
-# Generic Exodus CLI — Prepare Markdown Evidence
+# Generic Exodus CLI
 
-The first user-facing Exodus command prepares an inspectable local evidence workspace from a Markdown or `memory.md` export. It deliberately stops before semantic claim extraction, review, promotion, Soul creation, or DSH profile configuration.
+The user-facing Exodus commands expose the migration pipeline without granting imported evidence, inference, or review any direct authority over canonical Soul State.
 
-## Command
+## Step 1 — prepare Markdown evidence
 
 After installing `dsh-ai-soul`, run:
 
@@ -13,17 +13,15 @@ dsh-ai-soul-exodus-prepare \
   --source-type memory-export \
   --provider chat-runtime-export \
   --captured-at 2026-08-27T09:00:00.000Z \
-  --output-dir ./.exodus/my-partner
+  --output-dir ./.exodus/my-partner/source
 ```
 
 Required arguments are explicit so source provenance is not guessed from filenames, DSH profiles, or Soul IDs.
 
-## Workspace layout
-
 A successful run creates only:
 
 ```text
-.exodus/my-partner/
+.exodus/my-partner/source/
 ├── original/
 │   └── memory.md
 ├── source.json
@@ -32,32 +30,84 @@ A successful run creates only:
 
 - `original/memory.md` preserves the exact imported bytes.
 - `source.json` is the existing `ExodusSource v1` manifest, including SHA-256 digest and provenance.
-- `evidence.json` is the existing deterministic Markdown evidence projection, anchored to the same digest.
+- `evidence.json` is the deterministic Markdown evidence projection, anchored to the same digest.
 
 The command reports both `canonicalMutation: false` and `profileMutation: false`. It does not create or change a Soul Store, canonical Soul State, or DSH application profile.
 
-## Overwrite safety
+## Step 2 — provide candidate claims
 
-The command refuses a non-empty output directory by default.
+Candidate-claim input is an explicit JSON document. Claims are interpretations of preserved evidence, not canonical facts.
 
-To deliberately regenerate a workspace created by this command:
-
-```bash
-dsh-ai-soul-exodus-prepare \
-  --source-file ./memory.md \
-  --source-id my-partner-memory-001 \
-  --source-type memory-export \
-  --provider chat-runtime-export \
-  --captured-at 2026-08-27T09:00:00.000Z \
-  --output-dir ./.exodus/my-partner \
-  --replace
+```json
+{
+  "claims": [
+    {
+      "id": "mira-claim-001",
+      "claimType": "relationship",
+      "statement": "Mira and Rowan have an established collaborative relationship.",
+      "interpretation": "The export describes an existing shared history.",
+      "evidence": [
+        {
+          "unitId": "<unit id from evidence.json>",
+          "support": "The preserved memory describes their shared work."
+        }
+      ],
+      "counterEvidence": [
+        {
+          "note": "One export does not establish every aspect of the relationship."
+        }
+      ],
+      "confidence": {
+        "score": 0.75,
+        "rationale": "Directly supported by preserved text but not independently repeated."
+      },
+      "runtimePhenotypeRisk": "low"
+    }
+  ]
+}
 ```
 
-`--replace` is intentionally narrow: it only replaces a directory whose top-level entries are managed Exodus preparation outputs (`original/`, `source.json`, and `evidence.json`). If any unmanaged file is present, replacement is refused rather than deleting user material.
+Every claim is rebuilt through `createExodusCandidateClaim()`. Evidence references that are absent from the prepared `evidence.json` fail closed. If supplied, `canonicalStatus` must remain `candidate` and `canonicalMutation` must remain `false`.
 
-## Boundary
+## Step 3 — create a review-ready workspace
 
-This command implements only:
+```bash
+dsh-ai-soul-exodus-review \
+  --prepared-workspace ./.exodus/my-partner/source \
+  --claims-file ./candidate-claims.json \
+  --workspace-id my-partner-review-001 \
+  --created-by migration-agent \
+  --created-at 2026-08-27T12:00:00.000Z \
+  --output-dir ./.exodus/my-partner/review
+```
+
+The review output is:
+
+```text
+.exodus/my-partner/review/
+├── claims.json
+└── review-workspace.json
+```
+
+`claims.json` contains immutable evidence-bound Candidate Claim v1 records. Each evidence reference carries the original source ID, SHA-256 digest, unit ID, line range, heading path, and support rationale.
+
+`review-workspace.json` is created through `createExodusReviewWorkspace()` with empty decision and relationship histories. It starts with `canonicalMutation: false`.
+
+Before constructing claims, the CLI verifies that `source.json` is a valid Exodus source and that `evidence.json` points to the same source ID and digest.
+
+## Overwrite safety
+
+Both commands refuse a non-empty output directory by default.
+
+`dsh-ai-soul-exodus-prepare --replace` may replace only a managed source workspace whose top-level entries are `original/`, `source.json`, and `evidence.json`.
+
+`dsh-ai-soul-exodus-review --replace` may replace only a managed review workspace whose top-level entries are `claims.json` and `review-workspace.json`.
+
+If any unmanaged file is present, replacement is refused rather than deleting user material.
+
+## Authority boundary
+
+The CLI path currently implements:
 
 ```text
 external Markdown
@@ -67,17 +117,22 @@ preserved original bytes
 ExodusSource manifest
       ↓
 normalized structural evidence
+      ↓
+explicit candidate-claim proposals
+      ↓
+review-ready workspace
 ```
 
-It does **not** implement:
+It deliberately stops before:
 
 ```text
-claim inference
+automatic claim inference
 review decisions
+conflict resolution
 canonical promotion
 Soul mutation
 DSH profile setup
 identity-continuity judgment
 ```
 
-Those remain separate governed steps. Imported text is evidence, not identity by declaration.
+Inference authority is not mutation authority. Review readiness is not canonical acceptance. Imported text remains evidence, not identity by declaration.
