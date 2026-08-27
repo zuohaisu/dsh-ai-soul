@@ -158,6 +158,6 @@ test('non-Samuel memory export traverses Generic Exodus into a governed proposal
   assert.equal(proposal.provenance.reviewDecision.state, 'accepted-for-promotion')
   assert.equal(proposal.provenance.candidateClaim.id, conciseClaim.id)
   assert.equal(proposal.evidence[0].sourceId, source.sourceId)
-  assert.equal(proposal.evidence[0].digest, source.digest.value)
+  assert.equal(proposal.evidence[0].digest, source.content.digest)
   assert.deepEqual({ source, normalized, claims, workspace }, before)
 })
