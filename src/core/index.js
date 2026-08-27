@@ -53,5 +53,6 @@ export {
   GENESIS_RECORD_VERSION,
   createGenesisRecord,
   createSoulFromGenesis,
+  persistGenesisSoul,
   validateGenesisRecord,
 } from './genesis.js'

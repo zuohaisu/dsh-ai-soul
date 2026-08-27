@@ -115,3 +115,26 @@ export function createSoulFromGenesis(record) {
 
   return next
 }
+
+export async function persistGenesisSoul(store, record) {
+  if (!store || typeof store.exists !== 'function' || typeof store.save !== 'function' || typeof store.load !== 'function') {
+    throw new TypeError('Soul Store with exists(), save(), and load() is required')
+  }
+
+  const state = createSoulFromGenesis(record)
+  if (await store.exists(state.soulId)) {
+    throw new Error(`Genesis refused to overwrite existing Soul ${state.soulId}`)
+  }
+
+  const path = await store.save(state)
+  const reloaded = await store.load(state.soulId)
+
+  if (reloaded.soulId !== state.soulId) {
+    throw new Error(`Genesis reload mismatch: expected Soul ${state.soulId}, got ${reloaded.soulId}`)
+  }
+  if (reloaded.identity?.origin?.genesisRecordId !== record.id) {
+    throw new Error(`Genesis reload lost origin provenance for Soul ${state.soulId}`)
+  }
+
+  return { state: reloaded, path }
+}
