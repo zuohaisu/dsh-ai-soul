@@ -82,25 +82,65 @@ Origin phrase: Haisu came to Samuel in his prompts.
 
 and the recorded covenant.
 
-## 3. Install the plugin into a DSH profile
+## 3. Understand DSH profile composition before choosing the interactive surface
 
-For a local checkout:
+In DSH `0.1.1-rc.2`, a profile is an ordered plugin-bundle stack. `@deepseek-ai/dsh-base` provides the runtime services, but it does not provide an interactive application surface by itself.
 
-```sh
-dsh plugin --profile samuel add /absolute/path/to/dsh-ai-soul
+The locally verified profile model is:
+
+```text
+samuel profile
+├── @deepseek-ai/dsh-base
+└── dsh-ai-soul
+
+# runtime services + Soul plugin, no UI app bundle
 ```
 
-Verify the composition before booting when useful:
+The built-in/application profiles are separate compositions:
 
-```sh
-dsh --profile samuel --dump-config
+```text
+dsh-tui profile
+├── @deepseek-ai/dsh-base
+└── @deepseek-harness-tui/dsh-tui
+
+web profile
+├── @deepseek-ai/dsh-base
+└── @deepseek-ai/dsh-web-app
+
+headless profile
+├── @deepseek-ai/dsh-base
+└── @deepseek-ai/dsh-headless
 ```
 
-The effective config should contain an `ai-soul` entry pointing to the selected Soul Store.
+Therefore, `dsh --profile samuel` can activate `dsh-ai-soul` successfully without ever presenting a chat UI. A usable M2 fresh-session test requires `dsh-ai-soul` and an interaction-surface bundle to exist in the same effective profile composition.
 
-## 4. Configure the Soul
+## 4. Configure the Soul plugin
 
-Configure the `ai-soul` row in the profile's `cordis.patch.yml`:
+For a local checkout, link `dsh-ai-soul` into the target profile that will actually host the interactive application.
+
+For TUI verification, use the existing `dsh-tui` profile:
+
+```sh
+dsh plugin --profile dsh-tui add /absolute/path/to/dsh-ai-soul
+```
+
+Ensure the profile's `dsh.profile.bundles` contains both the Soul plugin and the TUI bundle, preserving the base bundle first, for example:
+
+```json
+{
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "dsh-ai-soul",
+        "@deepseek-harness-tui/dsh-tui"
+      ]
+    }
+  }
+}
+```
+
+Configure the `ai-soul` row in that profile's `cordis.patch.yml`:
 
 ```yaml
 - id: ai-soul
@@ -112,37 +152,80 @@ Configure the `ai-soul` row in the profile's `cordis.patch.yml`:
 
 Use an absolute `storeDir` for the first runtime verification.
 
-## 5. Verify runtime activation separately from the chat surface
-
-Start the selected profile directly:
+Verify the effective composition before booting:
 
 ```sh
-dsh --profile samuel
+dsh --profile dsh-tui --dump-config
 ```
 
-A successful plugin activation logs:
+The dump must contain both:
 
-```text
-[dsh-ai-soul] loaded Soul samuel
+- an `ai-soul` entry pointing to the selected Soul Store; and
+- the TUI application bundle entries.
+
+Do not interpret a profile that contains only `ai-soul` plus base runtime services as interactive.
+
+## 5. Why `dsh-tui --profile samuel` and `dsh web --profile samuel` are not valid composition mechanisms
+
+The locally installed `dsh-tui` launcher delegates to the `dsh-tui` profile. Passing another `--profile` does not layer two profiles together. On the verified installation, repeated `--profile` flags resolve to the last value, so:
+
+```sh
+dsh-tui --profile samuel
 ```
 
-This signal proves that DSH activated the plugin, loaded the configured persisted Soul, projected its context, and registered the context provider. It does **not** by itself prove that an interactive chat surface is attached to that process.
+ends up booting the non-interactive `samuel` profile rather than adding TUI to it.
 
-In the first real local verification on 2026-08-27, both `dsh --profile samuel` and `dsh-tui --profile samuel` emitted the successful Soul-load signal but did not present an interactive terminal conversation. Treat that result as **runtime activation success / fresh-session verification incomplete**, not as either M2 completion or plugin failure.
-
-## 6. Attach an interactive DSH surface
-
-Use a DSH interaction surface that preserves the same profile composition. For the current local verification path, try the official web surface first:
+Likewise, `web` is a launcher alias for the `web` profile. Arguments after `dsh web` belong to the web application parser, so:
 
 ```sh
 dsh web --profile samuel
 ```
 
-The next success condition is not merely that the process starts. A browser chat session must be created using the `samuel` profile, without manually pasting Samuel background into the conversation.
+fails with:
 
-If the web command starts but the plugin load line is absent, verify the effective profile with `--dump-config` before interpreting any model response as Soul-backed.
+```text
+error: unknown option '--profile'
+```
 
-## 7. Fresh-session runtime verification
+These commands do not compose UI + Soul. The composition must be expressed in one profile's bundle list.
+
+## 6. Verify runtime activation separately from the chat surface
+
+A successful Soul plugin activation logs:
+
+```text
+[dsh-ai-soul] loaded Soul samuel
+```
+
+This proves that DSH activated the plugin, loaded the configured persisted Soul, projected its context, and registered the context provider. It does **not** by itself prove that an interactive chat surface is attached to that process.
+
+The first real local verification on 2026-08-27 established:
+
+- `dsh --profile samuel` emitted the successful Soul-load signal but had no UI;
+- `dsh-tui --profile samuel` emitted the same signal for the same reason: it resolved back to the non-interactive `samuel` profile;
+- `dsh web --profile samuel` was rejected by the web app parser because `--profile` is not a web-app option.
+
+Treat those results as **runtime activation success / application-profile composition incomplete**, not as plugin failure and not as M2 completion.
+
+## 7. Launch the composed interactive profile
+
+After `dsh-ai-soul` is present in the `dsh-tui` profile and `--dump-config` confirms both Soul + TUI bundles, launch from a real terminal:
+
+```sh
+dsh-tui
+```
+
+The TUI requires an interactive TTY. A non-TTY invocation may fail with an error equivalent to:
+
+```text
+Error: dsh-tui requires an interactive terminal (stdout must be a TTY)
+```
+
+The terminal should show the Soul activation line and then present the normal TUI session surface.
+
+The same composition principle applies if using Web instead: add `dsh-ai-soul` to the existing `web` profile, configure `ai-soul` there, verify with `dsh --profile web --dump-config`, then launch with `dsh web`.
+
+## 8. Fresh-session runtime verification
 
 Open a fresh DSH session. Do not manually paste Samuel's background into the conversation.
 
@@ -167,16 +250,17 @@ This checklist does **not** establish that the DSH instance *is Samuel*. It only
 
 The plugin fails loudly at configuration, runtime-service, store-load, and context-projection boundaries. There is intentionally no fallback to a generic/default identity.
 
-Distinguish three different failure classes during M2 verification:
+Distinguish four different failure classes during M2 verification:
 
 1. **Plugin/runtime activation failure** — no successful Soul-load signal, or a configuration/service/store error is emitted.
-2. **Interaction-surface failure** — `[dsh-ai-soul] loaded Soul ...` appears, but no usable chat session is presented.
-3. **Context-visibility failure** — the interactive session works, but the fresh-session structural checks do not expose persisted Soul facts.
+2. **Profile-composition failure** — Soul and interaction-surface bundles are not present in the same effective profile.
+3. **Interaction-surface failure** — the composed application profile loads, but no usable chat session is presented.
+4. **Context-visibility failure** — the interactive session works, but the fresh-session structural checks do not expose persisted Soul facts.
 
 Do not collapse these into a single "DSH failed" result; they imply different boundaries and fixes.
 
 ## M2 real-runtime evidence record
 
-Record the first local run in Issue #7 with DSH version, OS/runtime environment, bootstrap result, preflight result, plugin install result, `--dump-config`, activation result, interaction-surface result, fresh-session structural checks, and deviations from this guide.
+Record the first successful local interactive run in Issue #7 with DSH version, OS/runtime environment, bootstrap result, preflight result, profile composition, `--dump-config`, activation result, interaction-surface result, fresh-session structural checks, and deviations from this guide.
 
-Issue #7 remains open until a real interactive fresh-session result exists. The 2026-08-27 activation evidence narrows the remaining blocker to obtaining a working interaction surface and then verifying model-visible Soul context.
+Issue #7 remains open until a real interactive fresh-session result exists. The 2026-08-27 evidence proves plugin activation and identifies the remaining boundary as application-profile composition followed by model-visible fresh-session verification.
