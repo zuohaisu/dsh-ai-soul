@@ -4,9 +4,11 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 
 import {
   addExodusClaimRelationship,
+  appendExodusReconciliationReview,
   appendExodusReviewDecision,
   validateExodusCandidateClaim,
   validateExodusReviewWorkspace,
+  validateLifecycleImportReconciliation,
 } from './core/index.js'
 
 function parseJson(bytes, label) {
@@ -63,8 +65,16 @@ export async function updateExodusReviewWorkspace({ reviewDir, operation }) {
     updated = addExodusClaimRelationship(workspace, claims, operation.value)
   } else if (operation.type === 'decision') {
     updated = appendExodusReviewDecision(workspace, claims, operation.value)
+  } else if (operation.type === 'reconciliation-review') {
+    if (!operation.reconciliationFile) throw new TypeError('operation.reconciliationFile is required')
+    const reconciliation = parseJson(await readFile(operation.reconciliationFile), 'reconciliation file')
+    const reconciliationValidation = validateLifecycleImportReconciliation(reconciliation)
+    if (!reconciliationValidation.valid) {
+      throw new TypeError(`invalid lifecycle import reconciliation: ${reconciliationValidation.errors.join('; ')}`)
+    }
+    updated = appendExodusReconciliationReview(workspace, claims, reconciliation, operation.value)
   } else {
-    throw new TypeError('operation.type must be relationship or decision')
+    throw new TypeError('operation.type must be relationship, decision, or reconciliation-review')
   }
 
   await atomicReplaceJson(workspacePath, updated)
