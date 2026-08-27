@@ -53,7 +53,11 @@ function validateNormalizedEvidence(evidence) {
     if (unit.canonicalMutation !== false) {
       throw new TypeError(`normalized evidence unit ${unit.unitId} must have canonicalMutation=false`)
     }
-    if (unit.sourceRef?.sourceId !== evidence.sourceRef.sourceId || unit.sourceRef?.digest !== evidence.sourceRef.digest) {
+    if (
+      unit.sourceRef?.sourceId !== evidence.sourceRef.sourceId
+      || unit.sourceRef?.algorithm !== evidence.sourceRef.algorithm
+      || unit.sourceRef?.digest !== evidence.sourceRef.digest
+    ) {
       throw new TypeError(`normalized evidence unit ${unit.unitId} sourceRef does not match document sourceRef`)
     }
     if (!Number.isInteger(unit.lineStart) || !Number.isInteger(unit.lineEnd) || unit.lineStart < 1 || unit.lineEnd < unit.lineStart) {
@@ -120,6 +124,20 @@ function normalizeConfidence(confidence) {
   }
 }
 
+function validateSerializedReference(reference, field, errors) {
+  for (const required of ['sourceId', 'algorithm', 'digest', 'unitId', 'support']) {
+    if (typeof reference?.[required] !== 'string' || reference[required].trim() === '') {
+      errors.push(`${field}.${required} is required`)
+    }
+  }
+  if (!Number.isInteger(reference?.lineStart) || !Number.isInteger(reference?.lineEnd) || reference.lineStart < 1 || reference.lineEnd < reference.lineStart) {
+    errors.push(`${field} has invalid line range`)
+  }
+  if (!Array.isArray(reference?.headingPath) || reference.headingPath.some((entry) => typeof entry !== 'string')) {
+    errors.push(`${field}.headingPath must be an array of strings`)
+  }
+}
+
 export function createExodusCandidateClaim({
   normalizedEvidence,
   id,
@@ -174,18 +192,30 @@ export function validateExodusCandidateClaim(claim) {
   }
   if (!Array.isArray(claim.evidence) || claim.evidence.length === 0) errors.push('evidence must be a non-empty array')
   if (!Array.isArray(claim.counterEvidence)) errors.push('counterEvidence must be an array')
-  if (typeof claim.confidence?.score !== 'number' || claim.confidence.score < 0 || claim.confidence.score > 1) errors.push('confidence.score must be between 0 and 1')
+  if (
+    typeof claim.confidence?.score !== 'number'
+    || !Number.isFinite(claim.confidence.score)
+    || claim.confidence.score < 0
+    || claim.confidence.score > 1
+  ) {
+    errors.push('confidence.score must be between 0 and 1')
+  }
   if (typeof claim.confidence?.rationale !== 'string' || claim.confidence.rationale.trim() === '') errors.push('confidence.rationale is required')
   if (claim.canonicalStatus !== 'candidate') errors.push('canonicalStatus must remain candidate')
   if (claim.canonicalMutation !== false) errors.push('canonicalMutation must remain false')
   if (!RUNTIME_PHENOTYPE_RISKS.includes(claim.runtimePhenotypeRisk)) errors.push('runtimePhenotypeRisk is invalid')
 
   for (const [index, reference] of (Array.isArray(claim.evidence) ? claim.evidence : []).entries()) {
-    for (const field of ['sourceId', 'algorithm', 'digest', 'unitId', 'support']) {
-      if (typeof reference?.[field] !== 'string' || reference[field].trim() === '') errors.push(`evidence[${index}].${field} is required`)
-    }
-    if (!Number.isInteger(reference?.lineStart) || !Number.isInteger(reference?.lineEnd) || reference.lineStart < 1 || reference.lineEnd < reference.lineStart) {
-      errors.push(`evidence[${index}] has invalid line range`)
+    validateSerializedReference(reference, `evidence[${index}]`, errors)
+  }
+
+  for (const [index, entry] of (Array.isArray(claim.counterEvidence) ? claim.counterEvidence : []).entries()) {
+    if (entry?.kind === 'note') {
+      if (typeof entry.note !== 'string' || entry.note.trim() === '') errors.push(`counterEvidence[${index}].note is required`)
+    } else if (entry?.kind === 'evidence') {
+      validateSerializedReference(entry, `counterEvidence[${index}]`, errors)
+    } else {
+      errors.push(`counterEvidence[${index}].kind must be note or evidence`)
     }
   }
 
