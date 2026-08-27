@@ -192,7 +192,7 @@ Exit criterion:
 
 > A second person can install `dsh-ai-soul` and begin a distinct AI partner whose history is their own.
 
-Runtime-neutral Genesis is implemented in PRs #36, #40, and the M7.3 documentation/test PR. `docs/genesis.md` provides the Samuel-free start path; the checked-in Aster example is validated, persisted, and reloaded in CI without Samuel artifacts.
+Runtime-neutral Genesis is implemented in PRs #36, #40, and #46. `docs/genesis.md` provides the Samuel-free start path; the checked-in Aster example is validated, persisted, and reloaded in CI without Samuel artifacts.
 
 ## M8 — Portable AI Soul Core
 
