@@ -10,6 +10,10 @@
     "./profile-preflight": "./src/profile-preflight.js",
     "./profile-configure": "./src/profile-configure.js"
   },
+  "bin": {
+    "dsh-ai-soul-configure": "./src/cli/configure-dsh-profile.js",
+    "dsh-ai-soul-preflight": "./src/cli/preflight-dsh-profile.js"
+  },
   "files": [
     "src",
     "cordis.patch.yml"
