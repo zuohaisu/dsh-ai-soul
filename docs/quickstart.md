@@ -90,12 +90,17 @@ Soul identity ≠ profile name ≠ application surface
 
 ## Verify before launching DSH
 
-Run profile preflight against the exact application profile you configured:
+Run profile preflight against the exact application profile, Soul store, Soul ID, and surface you configured:
 
 ```sh
 dsh-ai-soul-preflight \
-  --profile-dir /absolute/path/to/dsh-tui-profile
+  --profile-dir /absolute/path/to/dsh-tui-profile \
+  --soul-id nova \
+  --store-dir /absolute/path/to/soul-store \
+  --surface tui
 ```
+
+Explicit arguments are the recommended interactive-user form. Existing automation may continue to provide `DSH_PROFILE_DIR`, `SOUL_ID`, `SOUL_STORE_DIR`, and `DSH_SURFACE`; when both forms are present, explicit CLI arguments take precedence.
 
 Preflight distinguishes the following readiness dimensions rather than returning one opaque pass/fail state:
 
