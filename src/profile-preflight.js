@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
@@ -141,6 +142,22 @@ function buildDiagnostics({ checks, soulError, soulId, storeDir, surface, surfac
   return diagnostics
 }
 
+function installedPackageDiagnostic(profileDir, detail) {
+  return {
+    check: 'pluginPackageInstalled',
+    code: 'plugin-package-not-installed',
+    message: 'The DSH profile declares dsh-ai-soul, but the package is not installed/resolvable from that profile.',
+    hint: 'Install the declared dsh-ai-soul package source in the target profile (for example with the DSH plugin/package installation flow), then rerun preflight.',
+    profileDir,
+    ...(detail ? { detail } : {}),
+  }
+}
+
+function resolveInstalledPlugin(profileDir) {
+  const requireFromProfile = createRequire(join(profileDir, 'package.json'))
+  return requireFromProfile.resolve('dsh-ai-soul')
+}
+
 export async function preflightDshProfile({
   profilePackage,
   patchText,
@@ -228,17 +245,45 @@ export async function preflightDshProfileDir({ profileDir, soulId, storeDir, sur
     readFile(join(resolvedProfileDir, 'package.json'), 'utf8'),
     readFile(join(resolvedProfileDir, 'cordis.patch.yml'), 'utf8'),
   ])
+  const profilePackage = JSON.parse(packageText)
 
   const result = await preflightDshProfile({
-    profilePackage: JSON.parse(packageText),
+    profilePackage,
     patchText,
     soulId,
     storeDir,
     surface,
   })
 
+  let pluginPackageInstalled = false
+  let pluginPackagePath = null
+  let pluginPackageError = null
+  if (result.checks.pluginDependencyPresent) {
+    try {
+      pluginPackagePath = resolveInstalledPlugin(resolvedProfileDir)
+      pluginPackageInstalled = true
+    } catch (error) {
+      pluginPackageError = error instanceof Error ? error.message : String(error)
+    }
+  }
+
+  const checks = {
+    ...result.checks,
+    pluginPackageInstalled,
+  }
+  const diagnostics = [...result.diagnostics]
+  if (result.checks.pluginDependencyPresent && !pluginPackageInstalled) {
+    diagnostics.splice(1, 0, installedPackageDiagnostic(resolvedProfileDir, pluginPackageError))
+  }
+  const runtimeReady = result.runtimeReady && pluginPackageInstalled
+
   return {
     ...result,
+    ready: runtimeReady && result.applicationReady,
+    runtimeReady,
+    checks,
+    diagnostics,
+    pluginPackagePath,
     profileDir: resolvedProfileDir,
   }
 }

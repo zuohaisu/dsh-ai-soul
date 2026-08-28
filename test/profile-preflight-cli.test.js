@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -14,7 +14,6 @@ async function fixture({ soulId = 'aster', surface = 'tui' } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-preflight-cli-'))
   const profileDir = join(root, 'profile')
   const storeDir = join(root, 'store')
-  const { mkdir } = await import('node:fs/promises')
   await mkdir(profileDir, { recursive: true })
 
   const store = new FileSoulStore({ rootDir: storeDir })
@@ -25,6 +24,16 @@ async function fixture({ soulId = 'aster', surface = 'tui' } = {}) {
     dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'dsh-ai-soul', SURFACE_BUNDLES[surface]] } },
   }))
   await writeFile(join(profileDir, 'cordis.patch.yml'), `- id: ai-soul\n  config:\n    soulId: ${soulId}\n    storeDir: ${storeDir}\n`)
+
+  const packageDir = join(profileDir, 'node_modules', 'dsh-ai-soul')
+  await mkdir(packageDir, { recursive: true })
+  await writeFile(join(packageDir, 'package.json'), JSON.stringify({
+    name: 'dsh-ai-soul',
+    version: '0.0.1',
+    type: 'module',
+    main: './index.js',
+  }))
+  await writeFile(join(packageDir, 'index.js'), 'export default {}\n')
 
   return { profileDir, storeDir, soulId, surface }
 }
