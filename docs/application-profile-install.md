@@ -96,7 +96,8 @@ The command prints JSON and exits non-zero unless all required checks pass. It d
     "storeDirConfigured": true,
     "soulLoadable": true,
     "applicationSurfacePresent": true
-  }
+  },
+  "diagnostics": []
 }
 ```
 
@@ -104,17 +105,42 @@ The command prints JSON and exits non-zero unless all required checks pass. It d
 
 `applicationReady` means the requested TUI/Web/Headless application bundle is present in the same profile.
 
-A result such as:
+When a check fails, `diagnostics` contains one stable machine-readable entry per failed check. Each entry includes the existing check name, a short code, a human-readable message, and an actionable hint. Soul-load failures also preserve the underlying load error as `detail` while the legacy `errors.soulLoadable` field remains available.
+
+For example, a correctly installed Soul layer without the requested application surface reports:
 
 ```json
 {
   "ready": false,
   "runtimeReady": true,
-  "applicationReady": false
+  "applicationReady": false,
+  "checks": {
+    "applicationSurfacePresent": false
+  },
+  "diagnostics": [
+    {
+      "check": "applicationSurfacePresent",
+      "code": "application-surface-missing",
+      "message": "The DSH profile does not compose the requested tui application surface.",
+      "hint": "Ensure dsh.profile.bundles contains \"@deepseek-harness-tui/dsh-tui\"; Soul identity and application surface are separate configuration axes."
+    }
+  ]
 }
 ```
 
-means the Soul layer is correctly installed but the selected application surface is not composed. This is not a Soul failure.
+This is not a Soul failure. The diagnostic tells the operator to repair application composition rather than changing Soul identity or data.
+
+The current diagnostic codes are:
+
+- `plugin-dependency-missing`
+- `soul-bundle-not-composed`
+- `ai-soul-loader-missing`
+- `soul-id-mismatch`
+- `store-dir-mismatch`
+- `soul-not-loadable`
+- `application-surface-missing`
+
+These codes describe installation facts only. They do not infer whether two Souls are the same identity, whether imported evidence is canonical, or whether a runtime interaction proves continuity.
 
 ## Effective DSH verification
 
