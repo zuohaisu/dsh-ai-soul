@@ -40,6 +40,7 @@ function validateTargetBinding(target) {
     throw new TypeError('target.json must contain a target binding object')
   }
   if (target.bindingVersion !== 1) throw new TypeError('target.json bindingVersion must be 1')
+  if (target.importId !== undefined) nonEmptyString(target.importId, 'target.json importId')
   nonEmptyString(target.targetSoulId, 'target.json targetSoulId')
   if (!target.baseline || typeof target.baseline !== 'object' || Array.isArray(target.baseline)) {
     throw new TypeError('target.json baseline is required')
@@ -95,6 +96,7 @@ export async function createLifecycleImportPromotionProposal({
 
   const lifecycleProposal = structuredClone(proposal)
   lifecycleProposal.provenance.lifecycleImportTarget = {
+    ...(targetBinding.importId === undefined ? {} : { importId: targetBinding.importId }),
     targetSoulId: targetBinding.targetSoulId,
     baseline: structuredClone(targetBinding.baseline),
   }
