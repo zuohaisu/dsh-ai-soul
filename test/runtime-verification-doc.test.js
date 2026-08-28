@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 
 const guide = await readFile(new URL('../docs/runtime-verification.md', import.meta.url), 'utf8')
 const quickstart = await readFile(new URL('../docs/quickstart.md', import.meta.url), 'utf8')
+const applicationProfile = await readFile(new URL('../docs/application-profile-install.md', import.meta.url), 'utf8')
 
 test('runtime verification keeps Soul identity orthogonal to profile and application surface', () => {
   assert.match(guide, /Soul identity ≠ DSH profile ≠ application surface/)
@@ -33,4 +34,12 @@ test('quickstart links preflight to real runtime verification without claiming c
   assert.match(quickstart, /runtime-verification\.md/)
   assert.match(quickstart, /real DSH runtime verification/i)
   assert.match(quickstart, /does not claim interactive runtime verification unless that real run has actually occurred/i)
+})
+
+test('TUI runtime docs use the DSH launcher contract rather than assuming a standalone binary', () => {
+  assert.match(applicationProfile, /TUI \| `@deepseek-harness-tui\/dsh-tui` \| `dsh --profile dsh-tui`/)
+  assert.match(applicationProfile, /currently recognized TUI bundle is an out-of-tree application bundle/i)
+  assert.match(applicationProfile, /Current DSH exposes `dsh` as the supported Node application launcher/i)
+  assert.match(applicationProfile, /^dsh --profile dsh-tui$/m)
+  assert.doesNotMatch(applicationProfile, /^dsh-tui$/m)
 })
