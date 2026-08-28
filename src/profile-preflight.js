@@ -153,9 +153,22 @@ function installedPackageDiagnostic(profileDir, detail) {
   }
 }
 
-function resolveInstalledPlugin(profileDir) {
+function installedSurfacePackageDiagnostic({ profileDir, surface, surfaceBundle, detail }) {
+  return {
+    check: 'applicationSurfacePackageInstalled',
+    code: 'application-surface-package-not-installed',
+    message: `The DSH profile composes the requested ${surface} surface, but ${JSON.stringify(surfaceBundle)} is not installed/resolvable from that profile.`,
+    hint: `Install ${JSON.stringify(surfaceBundle)} in the target profile, then rerun preflight. Soul identity and application surface remain separate configuration axes.`,
+    profileDir,
+    surface,
+    surfaceBundle,
+    ...(detail ? { detail } : {}),
+  }
+}
+
+function resolveInstalledPackage(profileDir, packageName) {
   const requireFromProfile = createRequire(join(profileDir, 'package.json'))
-  return requireFromProfile.resolve('dsh-ai-soul')
+  return requireFromProfile.resolve(packageName)
 }
 
 export async function preflightDshProfile({
@@ -260,30 +273,54 @@ export async function preflightDshProfileDir({ profileDir, soulId, storeDir, sur
   let pluginPackageError = null
   if (result.checks.pluginDependencyPresent) {
     try {
-      pluginPackagePath = resolveInstalledPlugin(resolvedProfileDir)
+      pluginPackagePath = resolveInstalledPackage(resolvedProfileDir, 'dsh-ai-soul')
       pluginPackageInstalled = true
     } catch (error) {
       pluginPackageError = error instanceof Error ? error.message : String(error)
     }
   }
 
+  let applicationSurfacePackageInstalled = false
+  let applicationSurfacePackagePath = null
+  let applicationSurfacePackageError = null
+  if (result.checks.applicationSurfacePresent) {
+    try {
+      applicationSurfacePackagePath = resolveInstalledPackage(resolvedProfileDir, result.surfaceBundle)
+      applicationSurfacePackageInstalled = true
+    } catch (error) {
+      applicationSurfacePackageError = error instanceof Error ? error.message : String(error)
+    }
+  }
+
   const checks = {
     ...result.checks,
     pluginPackageInstalled,
+    applicationSurfacePackageInstalled,
   }
   const diagnostics = [...result.diagnostics]
   if (result.checks.pluginDependencyPresent && !pluginPackageInstalled) {
     diagnostics.splice(1, 0, installedPackageDiagnostic(resolvedProfileDir, pluginPackageError))
   }
+  if (result.checks.applicationSurfacePresent && !applicationSurfacePackageInstalled) {
+    diagnostics.push(installedSurfacePackageDiagnostic({
+      profileDir: resolvedProfileDir,
+      surface: result.surface,
+      surfaceBundle: result.surfaceBundle,
+      detail: applicationSurfacePackageError,
+    }))
+  }
   const runtimeReady = result.runtimeReady && pluginPackageInstalled
+  const applicationReady = result.applicationReady && applicationSurfacePackageInstalled
 
   return {
     ...result,
-    ready: runtimeReady && result.applicationReady,
+    ready: runtimeReady && applicationReady,
     runtimeReady,
+    applicationReady,
     checks,
     diagnostics,
     pluginPackagePath,
+    applicationSurfacePackagePath,
     profileDir: resolvedProfileDir,
   }
 }
