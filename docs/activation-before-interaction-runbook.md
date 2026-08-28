@@ -21,6 +21,14 @@ The examples use:
 
 Replace these values with the real paths and profile you are testing. TUI and Headless are equally valid supported surfaces; changing surface must not require changing Soul identity.
 
+The canonical setup sequence is:
+
+```text
+Genesis → DSH plugin install → Soul/profile configure → installed-package preflight → DSH effective config → real runtime
+```
+
+DSH owns package installation. `dsh-ai-soul-configure` owns Soul/profile configuration and does not invoke a package manager.
+
 ## 1. Activate an unnamed Soul
 
 Create `genesis.json` before DSH starts:
@@ -57,9 +65,17 @@ Checkpoint before DSH launch:
 
 Do not send a conversation or add a naming/encounter event.
 
-## 2. Compose the Soul with an existing DSH application profile
+## 2. Install and compose the Soul with an existing DSH application profile
 
-Configure the chosen application profile:
+Install `dsh-ai-soul` through DSH into the exact profile that will be used for the runtime proof:
+
+```sh
+dsh plugin --profile clean-web-profile add /absolute/path/to/dsh-ai-soul
+```
+
+This is the canonical ordinary-user install path because DSH owns the target profile and its package installation. The existing profile must already provide the desired Web application surface; `dsh-ai-soul` does not install or select Web, TUI, or Headless for you.
+
+Then configure the selected Soul independently of the profile name and surface:
 
 ```sh
 dsh-ai-soul-configure \
@@ -67,11 +83,10 @@ dsh-ai-soul-configure \
   --soul-id ember-001 \
   --store-dir /absolute/path/to/soul-store \
   --surface web \
-  --dependency-spec file:/absolute/path/to/dsh-ai-soul \
   --write
 ```
 
-`configure` edits the profile; it does not install packages. Run the package-management step required by that DSH profile so `dsh-ai-soul` is actually resolvable from the profile directory.
+Because DSH has already installed/declared `dsh-ai-soul`, configure preserves the existing dependency source and does not need `--dependency-spec` in this canonical path. If you intentionally maintain profile source by hand, `--dependency-spec <npm-compatible-source>` remains available as an advanced manual/source-controlled editing path; it does not replace actual package installation.
 
 Then run preflight against the exact profile that DSH will launch:
 
@@ -83,7 +98,7 @@ dsh-ai-soul-preflight \
   --surface web
 ```
 
-Preflight must pass, including actual plugin-package resolution. This is still static/profile evidence, not real-runtime proof.
+Preflight must pass, including actual plugin-package and application-surface-package resolution. This is still static/profile evidence, not real-runtime proof.
 
 ## 3. Inspect DSH effective configuration
 
