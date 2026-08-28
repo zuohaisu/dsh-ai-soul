@@ -50,6 +50,28 @@ test('configure CLI reports missing inputs as structured JSON without a stack tr
   assert.doesNotMatch(result.stderr, /\n\s+at /)
 })
 
+test('configure CLI rejects unknown options instead of silently ignoring typos', () => {
+  const result = run(configureCli, ['--surfaec', 'web'])
+
+  assert.notEqual(result.status, 0)
+  const output = JSON.parse(result.stderr)
+  assert.equal(output.ready, false)
+  assert.match(output.error, /unknown option: --surfaec/)
+  assert.match(output.hint, /--help/)
+  assert.doesNotMatch(result.stderr, /\n\s+at /)
+})
+
+test('preflight CLI rejects unknown options instead of silently ignoring typos', () => {
+  const result = run(preflightCli, ['--surfaec', 'web'])
+
+  assert.notEqual(result.status, 0)
+  const output = JSON.parse(result.stderr)
+  assert.equal(output.ready, false)
+  assert.match(output.error, /unknown option: --surfaec/)
+  assert.match(output.hint, /--help/)
+  assert.doesNotMatch(result.stderr, /\n\s+at /)
+})
+
 test('configure CLI rejects non-numeric context order as a concise usage failure', () => {
   const result = run(configureCli, [
     '--profile-dir', '/tmp/profile',
