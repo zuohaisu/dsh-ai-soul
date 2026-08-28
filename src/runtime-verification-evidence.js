@@ -1,4 +1,5 @@
 const SURFACES = new Set(['tui', 'web', 'headless'])
+const SCENARIOS = new Set(['general', 'activation-before-interaction'])
 
 const REQUIRED_OBSERVATIONS = [
   'packagePreflight',
@@ -9,12 +10,32 @@ const REQUIRED_OBSERVATIONS = [
   'freshSessionContextVisible',
 ]
 
+const ACTIVATION_BEFORE_INTERACTION_OBSERVATIONS = [
+  'genesisPersistedBeforeInteraction',
+  'pluginActivationBeforeInteraction',
+  'shutdownBeforeInteraction',
+  'restartLoadedSameSoul',
+  'genesisProvenancePreserved',
+  'unnamedStatePreserved',
+  'emptyParticipantsPreserved',
+  'noPriorEncounterFabricated',
+]
+
 function requiredString(record, key) {
   const value = record?.[key]
   if (typeof value !== 'string' || value.trim() === '') {
     throw new TypeError(`${key} must be a non-empty string`)
   }
   return value.trim()
+}
+
+function optionalScenario(record) {
+  if (record?.scenario === undefined) return 'general'
+  const scenario = requiredString(record, 'scenario').toLowerCase()
+  if (!SCENARIOS.has(scenario)) {
+    throw new TypeError('scenario must be one of: general, activation-before-interaction')
+  }
+  return scenario
 }
 
 export function evaluateRuntimeVerificationEvidence(record) {
@@ -27,6 +48,7 @@ export function evaluateRuntimeVerificationEvidence(record) {
     throw new TypeError('surface must be one of: tui, web, headless')
   }
 
+  const scenario = optionalScenario(record)
   const identity = {
     recordedAt: requiredString(record, 'recordedAt'),
     dshVersion: requiredString(record, 'dshVersion'),
@@ -34,6 +56,7 @@ export function evaluateRuntimeVerificationEvidence(record) {
     soulId: requiredString(record, 'soulId'),
     profile: requiredString(record, 'profile'),
     surface,
+    scenario,
   }
 
   const observations = record.observations
@@ -41,11 +64,15 @@ export function evaluateRuntimeVerificationEvidence(record) {
     throw new TypeError('observations must be an object')
   }
 
+  const requiredObservations = scenario === 'activation-before-interaction'
+    ? [...REQUIRED_OBSERVATIONS, ...ACTIVATION_BEFORE_INTERACTION_OBSERVATIONS]
+    : REQUIRED_OBSERVATIONS
+
   const missing = []
   const failures = []
   const checks = {}
 
-  for (const key of REQUIRED_OBSERVATIONS) {
+  for (const key of requiredObservations) {
     const value = observations[key]
     checks[key] = value === true ? 'pass' : value === false ? 'fail' : 'missing'
     if (value !== true && value !== false) missing.push(key)
