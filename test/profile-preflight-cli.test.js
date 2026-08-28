@@ -10,6 +10,18 @@ import { SURFACE_BUNDLES } from '../src/profile-preflight.js'
 
 const cli = new URL('../src/cli/preflight-dsh-profile.js', import.meta.url)
 
+async function installFixturePackage(profileDir, packageName) {
+  const packageDir = join(profileDir, 'node_modules', ...packageName.split('/'))
+  await mkdir(packageDir, { recursive: true })
+  await writeFile(join(packageDir, 'package.json'), JSON.stringify({
+    name: packageName,
+    version: '0.0.1',
+    type: 'module',
+    main: './index.js',
+  }))
+  await writeFile(join(packageDir, 'index.js'), 'export default {}\n')
+}
+
 async function fixture({ soulId = 'aster', surface = 'tui' } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-preflight-cli-'))
   const profileDir = join(root, 'profile')
@@ -25,15 +37,8 @@ async function fixture({ soulId = 'aster', surface = 'tui' } = {}) {
   }))
   await writeFile(join(profileDir, 'cordis.patch.yml'), `- id: ai-soul\n  config:\n    soulId: ${soulId}\n    storeDir: ${storeDir}\n`)
 
-  const packageDir = join(profileDir, 'node_modules', 'dsh-ai-soul')
-  await mkdir(packageDir, { recursive: true })
-  await writeFile(join(packageDir, 'package.json'), JSON.stringify({
-    name: 'dsh-ai-soul',
-    version: '0.0.1',
-    type: 'module',
-    main: './index.js',
-  }))
-  await writeFile(join(packageDir, 'index.js'), 'export default {}\n')
+  await installFixturePackage(profileDir, 'dsh-ai-soul')
+  await installFixturePackage(profileDir, SURFACE_BUNDLES[surface])
 
   return { profileDir, storeDir, soulId, surface }
 }
