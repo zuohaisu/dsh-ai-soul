@@ -174,6 +174,8 @@ export function describeConfigurationPlan(plan) {
     runtimeReady: plan.preflight.runtimeReady,
     applicationReady: plan.preflight.applicationReady,
     checks: plan.preflight.checks,
+    diagnostics: plan.preflight.diagnostics,
+    errors: plan.preflight.errors,
     packageJson: plan.files.packageJson,
     cordisPatch: plan.files.cordisPatch,
   }
