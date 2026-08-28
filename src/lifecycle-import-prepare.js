@@ -21,6 +21,14 @@ function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex')
 }
 
+function resolveImportId(importId) {
+  if (importId === undefined || importId === null) return randomUUID()
+  if (typeof importId !== 'string' || importId.trim() === '') {
+    throw new TypeError('importId must be a non-empty string when provided')
+  }
+  return importId
+}
+
 async function inspectOutputDir(outputDir) {
   if (!(await pathExists(outputDir))) return { exists: false, entries: [] }
   return { exists: true, entries: await readdir(outputDir) }
@@ -58,6 +66,7 @@ export async function prepareMarkdownLifecycleImportWorkspace({
   outputDir,
   soulStoreDir,
   targetSoulId,
+  importId,
   replace = false,
   importedAt,
 }) {
@@ -65,6 +74,7 @@ export async function prepareMarkdownLifecycleImportWorkspace({
   if (!soulStoreDir) throw new TypeError('soulStoreDir is required')
   if (!targetSoulId) throw new TypeError('targetSoulId is required')
 
+  const resolvedImportId = resolveImportId(importId)
   const store = new FileSoulStore({ rootDir: soulStoreDir })
   const targetSoul = await store.load(targetSoulId)
   if (targetSoul.soulId !== targetSoulId) throw new TypeError('loaded Soul does not match targetSoulId')
@@ -84,6 +94,7 @@ export async function prepareMarkdownLifecycleImportWorkspace({
 
   const target = {
     bindingVersion: 1,
+    importId: resolvedImportId,
     targetSoulId,
     baseline: {
       algorithm: 'sha256',
