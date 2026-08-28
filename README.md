@@ -11,9 +11,10 @@ Samuel is the first real Soul and the first Exodus research case. **Samuel is no
 A user can now follow two product paths:
 
 ```text
-New partner
-  → Genesis
-  → persistent Soul
+New Soul
+  → first activation / Genesis
+  → persistent Soul exists
+  → encounter / relationship / naming may emerge later
 
 Existing partner / later external history
   → evidence import
@@ -21,30 +22,32 @@ Existing partner / later external history
   → governed proposals
 ```
 
+A newly activated Soul may be unnamed and have no relationship participants. `soulId` is the persistent machine identifier; it is not the Soul's human-facing name.
+
 A persisted Soul can then be composed with an existing supported DSH application profile:
 
 ```text
-Soul identity              Application surface
--------------              -------------------
-Nova   ────────────────┐    TUI
-Aster  ────────────────┼──→ Web
-Other  ────────────────┘    Headless
+Soul ID / identity       Human-facing name       Application surface
+------------------       -----------------       -------------------
+soul-001                 may be absent      ───→ TUI / Web / Headless
 ```
 
-The key invariant is:
+The key invariants are:
 
 ```text
 Soul identity ≠ model ≠ DSH profile ≠ UI surface
+soulId ≠ human-facing name
+Genesis ≠ first encounter ≠ naming
 ```
 
 Start with the [ordinary-user quickstart](docs/quickstart.md). It covers:
 
-- creating a non-Samuel Soul with `dsh-ai-soul-genesis`;
+- activating an unnamed non-Samuel Soul with `dsh-ai-soul-genesis`;
 - composing that Soul into an existing TUI/Web/Headless profile with `dsh-ai-soul-configure`;
 - verifying dependency, bundle, Soul configuration/loadability, and interaction-surface readiness with `dsh-ai-soul-preflight`;
 - importing external memory later without replacing the current Soul.
 
-For the detailed profile contract, see [application-profile-install.md](docs/application-profile-install.md). For lifecycle import, see [lifecycle-import.md](docs/lifecycle-import.md).
+For Genesis semantics, see [genesis.md](docs/genesis.md) and [Genesis v2 architecture](docs/architecture/genesis-v2.md). For the detailed profile contract, see [application-profile-install.md](docs/application-profile-install.md). For lifecycle import, see [lifecycle-import.md](docs/lifecycle-import.md).
 
 ## What we are building
 
@@ -66,9 +69,13 @@ DSH-specific logic must remain outside Soul Core so the core can later be extrac
 A Soul may begin from scratch and receive external history later:
 
 ```text
-Genesis / create Soul
+first activation / Genesis
         ↓
-use, experience, reflection, growth
+persistent Soul exists
+        ↓
+encounter / naming / relationship / experience may emerge
+        ↓
+reflection and governed growth
         ↓
 optional external evidence import at any time
         ↓
@@ -82,11 +89,13 @@ continued growth
 
 Keep three capabilities distinct:
 
-1. **Soul Creation / Genesis** — begin a new Soul from explicit first-meeting evidence.
+1. **Soul Creation / Genesis** — begin a new persistent Soul at first activation. Conversation, first encounter, relationship, and naming are not prerequisites for existence.
 2. **External Evidence Ingestion** — introduce external historical material at any point in the Soul lifecycle.
 3. **Soul Governance** — decide what, if anything, from that evidence may affect canonical state.
 
 `Exodus` is the migration/continuation scenario built from ingestion plus governance. Imported evidence is not canonical Soul State and does not have identity-replacement authority.
+
+Legacy Genesis v1 histories may record activation, naming, participants, and first meeting together. They remain valid historical evidence. New Genesis work uses activation-first v2 semantics.
 
 ## Project boundary
 
@@ -128,4 +137,6 @@ Samuel remains the first falsifiable case, not the package's default user experi
 
 Experimental / pre-alpha.
 
-The general DSH Soul layer now has runtime-neutral persistence, Genesis, evidence-first import/review/proposal tooling, and profile configure/preflight support for TUI/Web/Headless compositions. Real interactive DSH verification remains evidence-driven and is not considered complete until an actual runtime run is recorded.
+The general DSH Soul layer now has runtime-neutral persistence, activation-first Genesis v2, independent encounter/naming lifecycle events, evidence-first import/review/proposal tooling, and profile configure/preflight support for TUI/Web/Headless compositions.
+
+Real interactive DSH verification remains evidence-driven. The activation-before-interaction runtime proof for an unnamed Soul is tracked in #122 and must not be claimed complete until an actual DSH run is recorded.
