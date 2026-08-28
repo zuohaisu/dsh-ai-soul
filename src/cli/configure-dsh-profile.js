@@ -4,8 +4,11 @@ import { configureDshProfileDir, describeConfigurationPlan } from '../profile-co
 
 const HELP = `Usage: dsh-ai-soul-configure --profile-dir <path> --soul-id <id> --store-dir <path> --surface <tui|web|headless> [options]
 
-Compose dsh-ai-soul into an existing DeepSeek Harness application profile.
+Configure dsh-ai-soul in an existing DeepSeek Harness application profile.
 Soul identity, profile name, and application surface remain independent.
+
+Install the plugin through DSH first when possible:
+  dsh plugin --profile <profile> add /absolute/path/to/dsh-ai-soul
 
 Required:
   --profile-dir <path>       Existing DSH application-profile directory
@@ -14,8 +17,8 @@ Required:
   --surface <surface>        One of: tui, web, headless
 
 Options:
-  --dependency-spec <spec>   npm-compatible dependency source for dsh-ai-soul.
-                             Required only when the profile does not already declare it.
+  --dependency-spec <spec>   npm-compatible dependency source for manual/source-controlled profile editing.
+                             Required only when the profile does not already declare dsh-ai-soul.
                              Example: file:/absolute/path/to/dsh-ai-soul
   --context-order <number>   Context injection order (default: -10)
   --write                    Apply changes; otherwise dry-run only
@@ -90,7 +93,7 @@ try {
     ready: false,
     error: message,
     hint: dependencySourceMissing
-      ? 'Pass --dependency-spec with the same npm-compatible source used for dsh-ai-soul (for example file:/absolute/path/to/dsh-ai-soul), or install it in the profile first.'
+      ? 'Install dsh-ai-soul into the target profile first with `dsh plugin --profile <profile> add <source>`, or pass --dependency-spec for manual/source-controlled profile editing (for example file:/absolute/path/to/dsh-ai-soul).'
       : 'Run dsh-ai-soul-configure --help for usage.',
   }, null, 2)}\n`)
   process.exitCode = 1
