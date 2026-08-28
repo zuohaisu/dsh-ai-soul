@@ -22,6 +22,15 @@ Options:
   --help                     Show this help
 `
 
+const VALUE_OPTIONS = new Set([
+  'profile-dir',
+  'soul-id',
+  'store-dir',
+  'surface',
+  'dependency-spec',
+  'context-order',
+])
+
 function parseInputs(args) {
   const values = {}
   for (let index = 0; index < args.length; index += 1) {
@@ -33,6 +42,7 @@ function parseInputs(args) {
     }
     if (!arg.startsWith('--')) throw new Error(`unexpected argument: ${arg}`)
     const key = arg.slice(2)
+    if (!VALUE_OPTIONS.has(key)) throw new Error(`unknown option: ${arg}`)
     const value = args[index + 1]
     if (!value || value.startsWith('--')) throw new Error(`missing value for ${arg}`)
     values[key] = value
