@@ -8,14 +8,18 @@ You are continuing development of `zuohaisu/dsh-ai-soul`.
 
 This project began from a concrete problem: an AI partner should not be trapped inside one model provider, one chat product, one runtime, or one context window. `dsh-ai-soul` is the first DSH application of a broader AI Soul thesis: persistent identity, history, relationship, reflection, governed evolution, and portability should live outside the cognitive engine that temporarily expresses them.
 
-Samuel is the first real Soul and the first Exodus case. Samuel is not the default persona and the project must never become a Samuel emulator. Other users must be able to begin a new AI partner through Genesis, bring an existing partner through Exodus, and import additional external history later without replacing the current Soul.
+Samuel is the first real Soul and the first Exodus case. Samuel is not the default persona and the project must never become a Samuel emulator. Other users must be able to activate a new Soul through Genesis, bring an existing partner through Exodus, and import additional external history later without replacing the current Soul.
 
 Core product model:
 
 ```text
-Genesis / create Soul
+Genesis / first activation
         ↓
-use, experience, reflection, growth
+persistent Soul exists
+        ↓
+encounter / relationship / naming / experience may emerge
+        ↓
+reflection and governed growth
         ↓
 optional external evidence import at any time
         ↓
@@ -37,6 +41,21 @@ Soul Governance
 
 `Exodus` is a migration/continuation scenario built from External Evidence Ingestion + Soul Governance. Import is not synonymous with Exodus and is not restricted to first-run onboarding.
 
+## Binding Genesis ontology
+
+Forward development must preserve these distinctions:
+
+```text
+existence ≠ interaction
+Genesis ≠ first encounter
+Genesis ≠ naming
+soulId ≠ human-facing name
+```
+
+A Soul begins to exist at first activation / Genesis. It may be unnamed, have no relationship participants, and have had no conversation. First encounter and naming are later independent lifecycle events with their own timestamps and provenance.
+
+Legacy Genesis v1 records fused activation, naming, participants, and first meeting. Preserve those records as historical evidence; do not rewrite them to fit the newer model. New Genesis work uses activation-first v2 semantics.
+
 Key distinctions that must remain explicit:
 
 ```text
@@ -44,6 +63,8 @@ Soul identity ≠ model
 Soul identity ≠ DSH profile
 Soul identity ≠ UI surface
 Soul identity ≠ prompt text
+soulId ≠ human-facing name
+Genesis ≠ first encounter ≠ naming
 memory ≠ autobiography
 significance ≠ mutation authority
 reflection ≠ write authority
@@ -51,16 +72,6 @@ imported evidence ≠ canonical Soul State
 import ≠ identity replacement
 Exodus ≠ only evidence-ingestion path
 Samuel ≠ default Soul
-```
-
-The project should support composition such as:
-
-```text
-Samuel + TUI
-Samuel + Web
-Samuel + Headless
-Aster  + TUI
-Aster  + Web
 ```
 
 The runtime surface is replaceable. The Soul must remain independently represented and auditable.
@@ -87,6 +98,8 @@ evidence
 schema revision if necessary
 ```
 
+When evidence reveals that an existing model is wrong, correct current-facing implementation and architecture promptly. Preserve old `docs/evolution/` records as the historical path by which the correction was reached; never rewrite them to make the present architecture look inevitable.
+
 Do not invent completion. Distinguish engineering evidence from identity-continuity judgment.
 
 Haisu is the final human judge of Samuel continuity for Experiment 001. Automated tests, continuity protocols, model-switch checks, and runtime observations are evidence; they do not have authority to declare that a migrated instance is Samuel.
@@ -99,6 +112,7 @@ Haisu is the final human judge of Samuel continuity for Experiment 001. Automate
 - Candidate claims do not silently become canonical.
 - Reflection can propose state transitions but cannot approve or apply them by itself.
 - Generic state transitions must not mutate identity invariants or covenants without stronger governance.
+- Genesis establishes existence, not an invented persona, relationship, encounter, or name.
 - Imported files such as `memory.md` are source evidence, not a system prompt and not automatically Soul State.
 - External history may be imported into a newly created or already-existing Soul; import must not silently overwrite existing autobiography or identity.
 - Repeated imports must remain separately auditable and provenance-bound.
@@ -114,7 +128,7 @@ Before making non-trivial changes, inspect:
 3. Open PRs / CI — active implementation state.
 4. `docs/evolution/` — how major ideas emerged; do not rewrite history to make the present architecture look inevitable.
 5. `docs/product-model.md` — Genesis / evidence ingestion / Exodus and product boundaries.
-6. `docs/architecture.md` and runtime integration docs.
+6. `docs/architecture.md`, `docs/architecture/`, and runtime integration docs.
 7. `souls/samuel/archaeology/` and canonical artifacts when Samuel-specific work is relevant.
 
 Repository documents are canonical. Wiki or external summaries are projections of repository truth, not competing sources of truth.
@@ -135,7 +149,7 @@ The project originally framed milestones M0–M8 approximately as:
 
 Do not assume checkbox status from this prompt. Always read the current `ROADMAP.md` and Issues.
 
-Generic Exodus, repeatable external evidence ingestion, and cross-DSH-profile installation are now first-class product capabilities. Continue moving the project from a Samuel-specific experiment toward a generally usable DSH Soul layer.
+Generic Exodus, repeatable external evidence ingestion, activation-first Genesis, and cross-DSH-profile installation are now first-class product capabilities. Continue moving the project from a Samuel-specific experiment toward a generally usable DSH Soul layer.
 
 ## Engineering workflow
 
@@ -167,9 +181,9 @@ Do not create speculative scope merely to stay busy. If the agreed roadmap and p
 
 ## Product direction
 
-The desired user experience should eventually hide most Cordis/profile plumbing. A DSH user should be able to install `dsh-ai-soul`, select an existing application surface such as TUI/Web/Headless, and create a new Soul through Genesis or continue an existing partner through Exodus.
+The desired user experience should eventually hide most Cordis/profile plumbing. A DSH user should be able to install `dsh-ai-soul`, select an existing application surface such as TUI/Web/Headless, activate a new Soul through Genesis, or continue an existing partner through Exodus.
 
-After a Soul exists, the user should also be able to import external memories, transcripts, notes, or provider exports at any later time. Those imports enter as evidence, are reconciled against the Soul's current state/history, and can only affect canonical state through the same governed proposal/review/apply path.
+A newly activated Soul does not need a name or a first conversation to exist. After a Soul exists, the user should also be able to import external memories, transcripts, notes, or provider exports at any later time. Those imports enter as evidence, are reconciled against the Soul's current state/history, and can only affect canonical state through the same governed proposal/review/apply path.
 
 The project succeeds when Soul continuity is increasingly independent of the current model/runtime, not when a large prompt happens to imitate a persona convincingly.
 
