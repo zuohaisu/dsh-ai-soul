@@ -51,11 +51,17 @@ export {
 
 export {
   GENESIS_RECORD_VERSION,
+  LEGACY_GENESIS_RECORD_VERSION,
   createGenesisRecord,
   createSoulFromGenesis,
   persistGenesisSoul,
   validateGenesisRecord,
 } from './genesis.js'
+
+export {
+  recordFirstEncounter,
+  recordNamingEvent,
+} from './lifecycle-events.js'
 
 export {
   EXODUS_SOURCE_VERSION,
