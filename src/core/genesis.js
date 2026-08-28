@@ -58,7 +58,7 @@ export function createGenesisRecord({
   firstMeetingNote,
 } = {}) {
   const inferredVersion = version ?? (
-    participants !== undefined || firstMeetingNote !== undefined
+    name != null || participants !== undefined || firstMeetingNote !== undefined
       ? LEGACY_GENESIS_RECORD_VERSION
       : GENESIS_RECORD_VERSION
   )
