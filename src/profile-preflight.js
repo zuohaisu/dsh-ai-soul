@@ -71,6 +71,76 @@ function profileBundles(profilePackage) {
   return Array.isArray(bundles) ? bundles : []
 }
 
+function buildDiagnostics({ checks, soulError, soulId, storeDir, surface, surfaceBundle }) {
+  const diagnostics = []
+
+  if (!checks.pluginDependencyPresent) {
+    diagnostics.push({
+      check: 'pluginDependencyPresent',
+      code: 'plugin-dependency-missing',
+      message: 'The DSH profile does not declare dsh-ai-soul as a dependency.',
+      hint: 'Install dsh-ai-soul into the target profile with `dsh plugin --profile <profile> add <package-path-or-spec>`.',
+    })
+  }
+
+  if (!checks.soulBundleComposed) {
+    diagnostics.push({
+      check: 'soulBundleComposed',
+      code: 'soul-bundle-not-composed',
+      message: 'The DSH profile does not compose the dsh-ai-soul bundle.',
+      hint: 'Ensure `dsh.profile.bundles` contains `dsh-ai-soul` in the target profile package.json.',
+    })
+  }
+
+  if (!checks.aiSoulLoaderPresent) {
+    diagnostics.push({
+      check: 'aiSoulLoaderPresent',
+      code: 'ai-soul-loader-missing',
+      message: 'cordis.patch.yml does not contain an `ai-soul` loader entry.',
+      hint: 'Configure an `- id: ai-soul` entry with explicit `soulId` and `storeDir` values.',
+    })
+  }
+
+  if (!checks.soulIdConfigured) {
+    diagnostics.push({
+      check: 'soulIdConfigured',
+      code: 'soul-id-mismatch',
+      message: `The ai-soul loader is not configured for requested Soul ID ${JSON.stringify(soulId)}.`,
+      hint: `Set ai-soul.config.soulId to ${JSON.stringify(soulId)}; do not infer Soul identity from the DSH profile name.`,
+    })
+  }
+
+  if (!checks.storeDirConfigured) {
+    diagnostics.push({
+      check: 'storeDirConfigured',
+      code: 'store-dir-mismatch',
+      message: `The ai-soul loader is not configured for requested Soul Store ${JSON.stringify(storeDir)}.`,
+      hint: `Set ai-soul.config.storeDir to ${JSON.stringify(storeDir)} or rerun preflight with the store actually used by this profile.`,
+    })
+  }
+
+  if (!checks.soulLoadable) {
+    diagnostics.push({
+      check: 'soulLoadable',
+      code: 'soul-not-loadable',
+      message: `Soul ${JSON.stringify(soulId)} could not be loaded from ${JSON.stringify(storeDir)}.`,
+      hint: 'Verify that the Soul exists in this store and that its persisted Soul State is valid.',
+      ...(soulError ? { detail: soulError } : {}),
+    })
+  }
+
+  if (!checks.applicationSurfacePresent) {
+    diagnostics.push({
+      check: 'applicationSurfacePresent',
+      code: 'application-surface-missing',
+      message: `The DSH profile does not compose the requested ${surface} application surface.`,
+      hint: `Ensure dsh.profile.bundles contains ${JSON.stringify(surfaceBundle)}; Soul identity and application surface are separate configuration axes.`,
+    })
+  }
+
+  return diagnostics
+}
+
 export async function preflightDshProfile({
   profilePackage,
   patchText,
@@ -124,17 +194,27 @@ export async function preflightDshProfile({
   ].every(Boolean)
 
   const applicationReady = checks.applicationSurfacePresent
+  const surfaceBundle = SURFACE_BUNDLES[surface]
+  const diagnostics = buildDiagnostics({
+    checks,
+    soulError,
+    soulId,
+    storeDir: resolvedStoreDir,
+    surface,
+    surfaceBundle,
+  })
 
   return {
     ready: runtimeReady && applicationReady,
     runtimeReady,
     applicationReady,
     surface,
-    surfaceBundle: SURFACE_BUNDLES[surface],
+    surfaceBundle,
     soulId,
     storeDir: resolvedStoreDir,
     checks,
     errors: soulError ? { soulLoadable: soulError } : {},
+    diagnostics,
   }
 }
 
