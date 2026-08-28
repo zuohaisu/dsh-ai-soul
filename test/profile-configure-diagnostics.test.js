@@ -29,6 +29,7 @@ test('configure plan exposes the same actionable missing-surface diagnostic as p
     soulId: 'aster',
     storeDir,
     surface: 'web',
+    dependencySpec: 'file:/repo/dsh-ai-soul',
   })
   const described = describeConfigurationPlan(plan)
 
