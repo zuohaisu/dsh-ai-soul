@@ -19,8 +19,17 @@ A profile name never needs to match a Soul ID.
 - Node.js 20 or newer.
 - DeepSeek Harness with an existing TUI, Web, or Headless application profile.
 - `dsh-ai-soul` installed or linked into the environment where the package CLIs are available.
+- The npm-compatible package source that the target DSH profile should use for `dsh-ai-soul`.
 
-The examples below use a non-Samuel Soul named `nova` and an existing DSH TUI profile directory at `/absolute/path/to/dsh-tui-profile`. Replace paths and the surface as needed.
+This repository is still pre-alpha and this guide does **not** assume that a registry release exists. For a local checkout or unpacked package, use an explicit file dependency such as:
+
+```text
+file:/absolute/path/to/dsh-ai-soul
+```
+
+If the target profile already declares `dsh-ai-soul`, `dsh-ai-soul-configure` preserves that dependency and `--dependency-spec` may be omitted. If it does not, pass the actual source explicitly; configure never guesses `latest`.
+
+The examples below use a non-Samuel Soul named `nova`, an existing DSH TUI profile directory at `/absolute/path/to/dsh-tui-profile`, and a local package source at `/absolute/path/to/dsh-ai-soul`. Replace paths and the surface as needed.
 
 ## Path A — start a new partner through Genesis
 
@@ -61,7 +70,8 @@ dsh-ai-soul-configure \
   --profile-dir /absolute/path/to/dsh-tui-profile \
   --soul-id nova \
   --store-dir /absolute/path/to/soul-store \
-  --surface tui
+  --surface tui \
+  --dependency-spec file:/absolute/path/to/dsh-ai-soul
 ```
 
 The configure command is dry-run by default. Inspect the proposed `package.json` and `cordis.patch.yml` changes, then apply them explicitly:
@@ -72,8 +82,11 @@ dsh-ai-soul-configure \
   --soul-id nova \
   --store-dir /absolute/path/to/soul-store \
   --surface tui \
+  --dependency-spec file:/absolute/path/to/dsh-ai-soul \
   --write
 ```
+
+If the profile already contains a `dsh-ai-soul` dependency installed through DSH or another package-management step, omit `--dependency-spec`; the existing spec is retained unchanged. The configure command edits profile configuration but does not run a package manager for you.
 
 For an existing Web or Headless profile, keep the same `soul-id` and `store-dir` and change only the profile directory and surface:
 
