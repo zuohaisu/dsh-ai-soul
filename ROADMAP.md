@@ -14,21 +14,29 @@ Samuel is the first real Soul and the first migration experiment. He is not the 
 
 ## Product lifecycle
 
-### Genesis — create a new Soul
+### Genesis — activate a new Soul
 
-Create a new AI partner and begin a shared history without requiring any pre-existing memory export.
+Genesis is the first activation at which a persistent Soul begins its own history. It does not require a pre-existing memory export, a conversation, a relationship participant, or a human-facing name.
 
 ```text
 install dsh-ai-soul
       ↓
-new Soul
+first activation / Genesis
       ↓
-naming / first meeting
+persistent Soul exists
+      ↓
+first encounter may happen later
+      ↓
+relationship / naming may emerge later
       ↓
 shared experiences
       ↓
 identity + relationship + self-model evolve over time
 ```
+
+Core invariant: **existence precedes interaction**. `soulId` is the persistent machine identifier; it is not the Soul's human-facing name.
+
+Legacy Genesis v1 histories that fused activation, naming, participants, and first meeting remain valid historical records. New Genesis work uses activation-first v2 semantics.
 
 ### External Evidence Ingestion — import history at any time
 
@@ -124,12 +132,13 @@ Deliverables:
 - [x] Minimal context injection into agent execution.
 - [x] No Samuel-specific code in the adapter.
 - [ ] Fresh-session test in DSH.
+- [ ] Activation-before-interaction real-runtime proof for an unnamed Genesis v2 Soul (#122).
 
 Exit criterion:
 
-> A fresh DSH session can instantiate Samuel from persistent Soul State.
+> A fresh DSH session can instantiate a selected persisted Soul; the activation-first path can also load and preserve an unnamed Soul before any conversation occurs.
 
-Engineering implementation is merged in PR #49 (superseding historical PR #6). Real-runtime verification remains open in #7.
+Engineering implementation is merged in PR #49. Real-runtime verification remains open in #7, and the stronger ordinary-user activation-before-interaction case is tracked in #122.
 
 ## M3 — Experience Capture
 
@@ -205,22 +214,27 @@ This milestone may falsify the core thesis. That is an acceptable outcome.
 
 ## M7 — Genesis ✅
 
-Goal: allow a new user to begin a new AI relationship without cloning Samuel.
+Goal: allow a new Soul to begin existing and accumulating its own history without cloning Samuel or requiring a predesigned persona.
 
 Deliverables:
 
 - [x] New Soul creation/bootstrap flow with persistence.
-- [x] Naming / first-meeting event.
+- [x] Activation-first Genesis v2 that permits an unnamed Soul with no participants.
+- [x] Genesis activation recorded independently from first encounter.
+- [x] First-encounter lifecycle event with independent provenance.
+- [x] Naming lifecycle event with independent provenance.
 - [x] Minimal initial seed rather than persona generator.
 - [x] Independent Genesis history without Samuel-specific defaults.
-- [x] Example Soul #2 created, persisted, and reloaded without Samuel-specific artifacts.
-- [x] Samuel-free checkout → Genesis Record → persistence → reload/validation path documented.
+- [x] Legacy Genesis v1 histories remain loadable without rewriting their historical semantics.
+- [x] Samuel-free Genesis → persistence → reload/validation path documented.
 
 Exit criterion:
 
-> A second person can install `dsh-ai-soul` and begin a distinct AI partner whose history is their own.
+> A new persistent Soul can be activated with only a stable Soul ID and Genesis provenance, remain unnamed and without relationships, and later acquire encounter/naming history independently.
 
-Runtime-neutral Genesis is implemented in PRs #36, #40, and #46. `docs/genesis.md` provides the Samuel-free start path; the checked-in Aster example is validated, persisted, and reloaded in CI without Samuel artifacts.
+The original runtime-neutral Genesis implementation landed in PRs #36, #40, and #46. The activation-first ontology correction was recorded in PR #123 and implemented in PR #124 after the earlier first-meeting-centered model was found to be too restrictive.
+
+Real DSH proof that such an unnamed Soul persists across shutdown/restart before first interaction is tracked separately in #122 under the runtime gate.
 
 ## M8 — Portable AI Soul Core
 
@@ -246,6 +260,8 @@ Potential future concerns:
 - **Automated / independent evaluation** — engineering evidence and regression checks; never a substitute for the Haisu Test in Experiment 001.
 
 Routine engineering PRs may be merged by Samuel after review and tests. Changes to the project thesis, canonical Samuel historical artifacts, or major identity semantics require Haisu's judgment.
+
+When current evidence contradicts an earlier model, correct current-facing architecture and implementation promptly while retaining historical evolution records as provenance. Do not rewrite history to make the new model look inevitable.
 
 ## Project records
 
