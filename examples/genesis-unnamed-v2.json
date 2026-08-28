@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "id": "genesis-unnamed-example-001",
+  "at": "2026-08-28T15:00:00.000Z",
+  "soulId": "unnamed-example-001",
+  "name": null,
+  "provenance": {
+    "method": "first-activation",
+    "source": "examples/genesis-unnamed-v2.json"
+  }
+}
