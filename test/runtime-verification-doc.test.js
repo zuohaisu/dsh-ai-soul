@@ -32,8 +32,9 @@ test('fresh-session checks derive expected answers from the selected Soul rather
 
 test('quickstart links preflight to real runtime verification without claiming completion', () => {
   assert.match(quickstart, /runtime-verification\.md/)
-  assert.match(quickstart, /real DSH runtime verification/i)
-  assert.match(quickstart, /does not claim interactive runtime verification unless that real run has actually occurred/i)
+  assert.match(quickstart, /real.*runtime.*verification/i)
+  assert.match(quickstart, /does not claim real runtime verification unless that real run has actually occurred/i)
+  assert.match(quickstart, /#122/)
 })
 
 test('TUI runtime docs use the DSH launcher contract rather than assuming a standalone binary', () => {
