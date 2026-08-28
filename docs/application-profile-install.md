@@ -19,11 +19,13 @@ A profile named `web` can host Soul `aster`; a profile named `dsh-tui` can host 
 
 | Surface | Bundle | Typical launch |
 | --- | --- | --- |
-| TUI | `@deepseek-harness-tui/dsh-tui` | `dsh-tui` |
+| TUI | `@deepseek-harness-tui/dsh-tui` | `dsh --profile dsh-tui` |
 | Web | `@deepseek-ai/dsh-web-app` | `dsh web` |
 | Headless | `@deepseek-ai/dsh-headless` | `dsh --profile headless ...` |
 
-The exact launcher behavior is owned by DSH. The invariant owned by `dsh-ai-soul` is that the target profile must compose the Soul plugin and the desired application bundle together.
+Web and Headless are shipped DSH profiles that can auto-initialize from DSH templates. The currently recognized TUI bundle is an out-of-tree application bundle, so its containing profile must already exist and include that bundle before `dsh-ai-soul` can compose into it. `dsh-ai-soul` does not provide or install a TUI implementation.
+
+The exact launcher behavior is owned by DSH. Current DSH exposes `dsh` as the supported Node application launcher, including for named out-of-tree profiles. The invariant owned by `dsh-ai-soul` is that the target profile must compose the Soul plugin and the desired application bundle together.
 
 ## Installation contract
 
@@ -132,7 +134,7 @@ The effective dump must still contain the `ai-soul` loader/config and the intend
 dsh plugin --profile dsh-tui add /absolute/path/to/dsh-ai-soul
 DSH_PROFILE_DIR="$HOME/.dsh/profiles/dsh-tui" SOUL_ID=aster SOUL_STORE_DIR=/absolute/path/to/soul-store DSH_SURFACE=tui npm run preflight:dsh-profile
 dsh --profile dsh-tui --dump-config
-dsh-tui
+dsh --profile dsh-tui
 ```
 
 ### Web
