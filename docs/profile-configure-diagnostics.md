@@ -11,18 +11,32 @@ The configure command plans profile changes and evaluates whether the **planned 
 - `diagnostics`
 - `errors`
 
-That planning result intentionally does not prove that a package manager has installed the declared dependency. `dsh-ai-soul-configure --write` edits `package.json` and `cordis.patch.yml`; it does not run npm, pnpm, yarn, or the DSH plugin installer.
+That planning result intentionally does not prove that a package manager has installed the declared dependencies. `dsh-ai-soul-configure --write` edits `package.json` and `cordis.patch.yml`; it does not run npm, pnpm, yarn, or the DSH plugin installer.
 
-After writing configuration and installing dependencies, run `dsh-ai-soul-preflight` against the actual profile directory. Directory preflight adds the `pluginPackageInstalled` check and resolves `dsh-ai-soul` from the target profile. If `package.json` declares the dependency but the package is not actually resolvable, preflight returns:
+After writing configuration and installing dependencies, run `dsh-ai-soul-preflight` against the actual profile directory. Directory preflight verifies two independent installation facts:
+
+- `pluginPackageInstalled` resolves `dsh-ai-soul` from the target profile.
+- `applicationSurfacePackageInstalled` resolves the requested TUI/Web/Headless bundle from the same profile.
+
+If `package.json` declares the Soul dependency but the package is not actually resolvable, preflight returns:
 
 ```text
 code: plugin-package-not-installed
 check: pluginPackageInstalled
 ```
 
-This prevents a declared-but-uninstalled dependency from being mistaken for runtime readiness.
+If the requested application bundle is composed but its package is not resolvable, preflight returns:
+
+```text
+code: application-surface-package-not-installed
+check: applicationSurfacePackageInstalled
+```
+
+This prevents declared-but-uninstalled packages from being mistaken for startup readiness. The Soul package affects `runtimeReady`; the requested application package affects `applicationReady`, so failures remain attributable to the correct axis.
 
 A configuration plan that successfully composes the Soul layer but targets an application surface that is absent from the profile is not a Soul failure. For example, requesting `web` against a TUI-only profile reports `application-surface-missing` with a hint to add `@deepseek-ai/dsh-web-app`.
+
+Preflight is still a startup-time static check. Successful package resolution does **not** prove that a real DSH process activated the plugin, served the surface, or exposed Soul context in a fresh session; those observations belong to the runtime-evidence gate.
 
 Neither command infers Soul identity from the DSH profile or application surface. Soul identity, profile composition, dependency installation, and TUI/Web/Headless surface remain separate configuration facts.
 
