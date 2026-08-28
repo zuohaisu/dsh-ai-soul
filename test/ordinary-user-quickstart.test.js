@@ -28,10 +28,10 @@ test('quickstart exposes activation-first Genesis install configure preflight pa
   assert.doesNotMatch(quickstart, /--soul-id samuel/)
 })
 
-test('quickstart orders DSH-owned install before configure and installed-package preflight', () => {
+test('quickstart orders DSH-owned install before executable configure and preflight commands', () => {
   const installAt = quickstart.indexOf('dsh plugin --profile dsh-tui add /absolute/path/to/dsh-ai-soul')
-  const configureAt = quickstart.indexOf('dsh-ai-soul-configure')
-  const preflightAt = quickstart.indexOf('dsh-ai-soul-preflight')
+  const configureAt = quickstart.indexOf('dsh-ai-soul-configure \\\n  --profile-dir', installAt)
+  const preflightAt = quickstart.indexOf('dsh-ai-soul-preflight \\\n  --profile-dir', configureAt)
 
   assert.ok(installAt >= 0)
   assert.ok(configureAt > installAt)
