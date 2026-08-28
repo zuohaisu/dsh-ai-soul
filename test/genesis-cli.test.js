@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { execFile } from 'node:child_process'
+import { execFile, spawnSync } from 'node:child_process'
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -10,6 +10,7 @@ import { bootstrapGenesisSoul } from '../src/genesis-bootstrap.js'
 import { FileSoulStore } from '../src/core/index.js'
 
 const execFileAsync = promisify(execFile)
+const cliFile = new URL('../src/cli/bootstrap-genesis.js', import.meta.url)
 
 function independentRecord(overrides = {}) {
   return {
@@ -29,6 +30,13 @@ async function writeRecord(rootDir, record, filename = 'genesis.json') {
   const path = join(rootDir, filename)
   await writeFile(path, `${JSON.stringify(record, null, 2)}\n`)
   return path
+}
+
+function runCli(args = []) {
+  return spawnSync(process.execPath, [cliFile.pathname, ...args], {
+    encoding: 'utf8',
+    env: { PATH: process.env.PATH },
+  })
 }
 
 test('Genesis package helper creates and reloads an independent Soul', async () => {
@@ -52,7 +60,6 @@ test('published Genesis CLI creates a Soul without repository example code', asy
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-genesis-cli-'))
   const storeDir = join(rootDir, 'souls')
   const recordFile = await writeRecord(rootDir, independentRecord({ soulId: 'orion-cli', name: 'Orion', id: 'genesis-orion-cli-001' }))
-  const cliFile = new URL('../src/cli/bootstrap-genesis.js', import.meta.url)
 
   const { stdout, stderr } = await execFileAsync(process.execPath, [
     cliFile.pathname,
@@ -68,6 +75,33 @@ test('published Genesis CLI creates a Soul without repository example code', asy
   const persisted = JSON.parse(await readFile(join(storeDir, 'orion-cli.json'), 'utf8'))
   assert.equal(persisted.soulId, 'orion-cli')
   assert.equal(persisted.identity.origin.genesisRecordId, 'genesis-orion-cli-001')
+})
+
+test('Genesis CLI help describes evidence/store inputs without Samuel defaults', () => {
+  const result = runCli(['--help'])
+
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(result.stdout, /--record <path>/)
+  assert.match(result.stdout, /--store-dir <path>/)
+  assert.match(result.stdout, /first-meeting evidence/i)
+  assert.match(result.stdout, /does not .*choose a DSH profile/i)
+})
+
+test('Genesis CLI reports missing and unknown inputs as structured usage failures', () => {
+  const missing = runCli([])
+  assert.notEqual(missing.status, 0)
+  const missingOutput = JSON.parse(missing.stderr)
+  assert.equal(missingOutput.ready, false)
+  assert.equal(missingOutput.kind, 'usage')
+  assert.match(missingOutput.error, /--record is required/)
+  assert.match(missingOutput.hint, /--help/)
+  assert.doesNotMatch(missing.stderr, /\n\s+at /)
+
+  const unknown = runCli(['--soul-id', 'aster'])
+  assert.notEqual(unknown.status, 0)
+  const unknownOutput = JSON.parse(unknown.stderr)
+  assert.equal(unknownOutput.kind, 'usage')
+  assert.match(unknownOutput.error, /unknown argument: --soul-id/)
 })
 
 test('Genesis helper fails closed for malformed input and duplicate Soul IDs', async () => {
