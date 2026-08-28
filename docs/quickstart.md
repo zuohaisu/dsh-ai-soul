@@ -115,6 +115,8 @@ dsh --profile <your-existing-profile-name> --dump-config
 
 Then launch the normal application surface using that profile's documented DSH command. This repository does not claim interactive runtime verification unless that real run has actually occurred.
 
+For the complete Samuel-free path from preflight through plugin activation, application-surface availability, and fresh-session context visibility, follow [`runtime-verification.md`](./runtime-verification.md). Real DSH runtime verification is a separate evidence gate from package CI and static preflight.
+
 ## Path B — bring an existing partner or import history later
 
 External history is optional and repeatable. A user may start through Genesis and import evidence later, or use the Generic Exodus flow when continuing an existing AI relationship.
