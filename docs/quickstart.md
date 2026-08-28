@@ -16,18 +16,17 @@ A profile name never needs to match a Soul ID. A Soul ID is also not the Soul's 
 
 - Node.js 20 or newer.
 - DeepSeek Harness with an existing TUI, Web, or Headless application profile.
-- `dsh-ai-soul` installed or linked into the environment where the package CLIs are available.
-- The npm-compatible package source that the target DSH profile should use for `dsh-ai-soul`.
+- A local checkout, unpacked package, or other npm-compatible source for `dsh-ai-soul`.
 
-This repository is still pre-alpha and this guide does **not** assume that a registry release exists. For a local checkout or unpacked package, use an explicit file dependency such as:
+This repository is still pre-alpha and this guide does **not** assume that a registry release exists. The examples below use a newly activated, unnamed Soul whose machine identifier is `soul-001`, an existing DSH TUI profile named `dsh-tui` whose directory is `/absolute/path/to/dsh-tui-profile`, and a local package source at `/absolute/path/to/dsh-ai-soul`.
+
+The canonical ordinary-user sequence is:
 
 ```text
-file:/absolute/path/to/dsh-ai-soul
+Genesis → DSH plugin install → Soul/profile configure → installed-package preflight → DSH effective config → real runtime
 ```
 
-If the target profile already declares `dsh-ai-soul`, `dsh-ai-soul-configure` preserves that dependency and `--dependency-spec` may be omitted. If it does not, pass the actual source explicitly; configure never guesses `latest`.
-
-The examples below use a newly activated, unnamed Soul whose machine identifier is `soul-001`, an existing DSH TUI profile directory at `/absolute/path/to/dsh-tui-profile`, and a local package source at `/absolute/path/to/dsh-ai-soul`.
+DSH owns package installation. `dsh-ai-soul-configure` owns Soul/profile configuration and does not invoke a package manager.
 
 ## Path A — activate a new Soul through Genesis
 
@@ -59,17 +58,28 @@ At this point the Soul exists. No conversation, first encounter, relationship pa
 
 Genesis creates and persists the Soul. It does not choose a DSH profile or UI surface. First encounter and naming are later independent lifecycle events.
 
-## Compose the Soul with an existing DSH application profile
+## Install the Soul layer into the DSH application profile
 
-Choose the application surface independently of the Soul. For TUI:
+Install `dsh-ai-soul` through DSH before configuring the selected Soul:
+
+```sh
+dsh plugin --profile dsh-tui add /absolute/path/to/dsh-ai-soul
+```
+
+This is the canonical install path because DSH owns the target profile and its package installation. The existing profile must already provide the desired application surface; `dsh-ai-soul` does not install TUI, Web, or Headless for you.
+
+If you intentionally maintain the target profile source by hand instead of using DSH's plugin command, `dsh-ai-soul-configure --dependency-spec <npm-compatible-source>` can declare the dependency while editing the profile. That is an explicit manual/source-controlled path, not a replacement for actually installing the package before installed-package preflight.
+
+## Compose the Soul with the installed DSH application profile
+
+Choose the application surface independently of the Soul. After the DSH install step, configure the TUI profile:
 
 ```sh
 dsh-ai-soul-configure \
   --profile-dir /absolute/path/to/dsh-tui-profile \
   --soul-id soul-001 \
   --store-dir /absolute/path/to/soul-store \
-  --surface tui \
-  --dependency-spec file:/absolute/path/to/dsh-ai-soul
+  --surface tui
 ```
 
 The configure command is dry-run by default. Inspect the proposed `package.json` and `cordis.patch.yml` changes, then apply them explicitly:
@@ -80,13 +90,12 @@ dsh-ai-soul-configure \
   --soul-id soul-001 \
   --store-dir /absolute/path/to/soul-store \
   --surface tui \
-  --dependency-spec file:/absolute/path/to/dsh-ai-soul \
   --write
 ```
 
-If the profile already contains a `dsh-ai-soul` dependency installed through DSH or another package-management step, omit `--dependency-spec`; the existing spec is retained unchanged. The configure command edits profile configuration but does not run a package manager for you.
+Because DSH has already installed/declared `dsh-ai-soul`, configure preserves the existing dependency source and does not need `--dependency-spec` in this canonical path.
 
-For an existing Web or Headless profile, keep the same `soul-id` and `store-dir` and change only the profile directory and surface:
+For an existing Web or Headless profile, install the plugin into that profile and keep the same `soul-id` and `store-dir`; change only the profile directory and surface:
 
 ```sh
 --surface web
@@ -117,7 +126,7 @@ dsh-ai-soul-preflight \
   --surface tui
 ```
 
-Preflight distinguishes dependency installation, bundle composition, Soul configuration, Soul loadability, and interaction-surface availability rather than returning one opaque pass/fail state.
+Preflight distinguishes declared dependency, actual installed-package resolution, bundle composition, Soul configuration, Soul loadability, and interaction-surface availability rather than returning one opaque pass/fail state. A dependency merely written into `package.json` is not enough; real profile-directory preflight must be able to resolve the installed `dsh-ai-soul` package and the requested surface package.
 
 After preflight, use DSH's own effective-config inspection as the final authority for runtime composition:
 

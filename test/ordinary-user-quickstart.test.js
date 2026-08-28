@@ -14,17 +14,31 @@ test('ordinary-user quickstart keeps Soul identity orthogonal to DSH profile and
   assert.match(quickstart, /--surface headless/)
 })
 
-test('quickstart exposes activation-first Genesis configure preflight path', () => {
+test('quickstart exposes activation-first Genesis install configure preflight path', () => {
   assert.match(quickstart, /"version": 2/)
   assert.match(quickstart, /"name": null/)
   assert.match(quickstart, /first-activation/)
   assert.match(quickstart, /No conversation, first encounter, relationship participant, or human-facing name is required/)
   assert.match(quickstart, /dsh-ai-soul-genesis/)
+  assert.match(quickstart, /dsh plugin --profile dsh-tui add \/absolute\/path\/to\/dsh-ai-soul/)
   assert.match(quickstart, /dsh-ai-soul-configure/)
   assert.match(quickstart, /dsh-ai-soul-preflight/)
   assert.match(quickstart, /--soul-id soul-001/)
   assert.match(quickstart, /--profile-dir \/absolute\/path\/to\/dsh-tui-profile/)
   assert.doesNotMatch(quickstart, /--soul-id samuel/)
+})
+
+test('quickstart orders DSH-owned install before executable configure and preflight commands', () => {
+  const installAt = quickstart.indexOf('dsh plugin --profile dsh-tui add /absolute/path/to/dsh-ai-soul')
+  const configureAt = quickstart.indexOf('dsh-ai-soul-configure \\\n  --profile-dir', installAt)
+  const preflightAt = quickstart.indexOf('dsh-ai-soul-preflight \\\n  --profile-dir', configureAt)
+
+  assert.ok(installAt >= 0)
+  assert.ok(configureAt > installAt)
+  assert.ok(preflightAt > configureAt)
+  assert.match(quickstart, /DSH owns package installation/)
+  assert.match(quickstart, /configure preserves the existing dependency source and does not need `--dependency-spec`/)
+  assert.match(quickstart, /A dependency merely written into `package\.json` is not enough/)
 })
 
 test('quickstart presents later import as evidence governance rather than identity replacement', () => {
