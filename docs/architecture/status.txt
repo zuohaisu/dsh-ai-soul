@@ -1,1 +1,0 @@
-activation-first Genesis v2; see #121 and #122
