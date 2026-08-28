@@ -8,23 +8,28 @@ const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8')
 test('ordinary-user quickstart keeps Soul identity orthogonal to DSH profile and surface', () => {
   assert.match(quickstart, /A profile name never needs to match a Soul ID\./)
   assert.match(quickstart, /Soul identity ≠ profile name ≠ application surface/)
+  assert.match(quickstart, /soulId ≠ human-facing name/)
   assert.match(quickstart, /--surface tui/)
   assert.match(quickstart, /--surface web/)
   assert.match(quickstart, /--surface headless/)
 })
 
-test('quickstart exposes the supported Genesis configure preflight path without Samuel defaults', () => {
+test('quickstart exposes activation-first Genesis configure preflight path', () => {
+  assert.match(quickstart, /"version": 2/)
+  assert.match(quickstart, /"name": null/)
+  assert.match(quickstart, /first-activation/)
+  assert.match(quickstart, /No conversation, first encounter, relationship participant, or human-facing name is required/)
   assert.match(quickstart, /dsh-ai-soul-genesis/)
   assert.match(quickstart, /dsh-ai-soul-configure/)
   assert.match(quickstart, /dsh-ai-soul-preflight/)
-  assert.match(quickstart, /--soul-id nova/)
+  assert.match(quickstart, /--soul-id soul-001/)
   assert.match(quickstart, /--profile-dir \/absolute\/path\/to\/dsh-tui-profile/)
   assert.doesNotMatch(quickstart, /--soul-id samuel/)
 })
 
 test('quickstart presents later import as evidence governance rather than identity replacement', () => {
   assert.match(quickstart, /dsh-ai-soul-import-prepare/)
-  assert.match(quickstart, /--target-soul-id nova/)
+  assert.match(quickstart, /--target-soul-id soul-001/)
   assert.match(quickstart, /--soul-store \/absolute\/path\/to\/soul-store/)
   assert.match(quickstart, /does \*\*not\*\* replace the current Soul/)
   assert.match(quickstart, /StateTransitionProposal/)

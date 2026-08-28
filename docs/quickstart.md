@@ -1,18 +1,16 @@
 # Ordinary-user quickstart
 
-`dsh-ai-soul` is a Soul layer for DeepSeek Harness. A Soul has its own identity and persistent store; the DSH profile supplies an application surface such as TUI, Web, or Headless.
+`dsh-ai-soul` is a Soul layer for DeepSeek Harness. A Soul has its own persistent identity and store; the DSH profile supplies an application surface such as TUI, Web, or Headless.
 
 Keep these dimensions separate:
 
 ```text
-Soul identity        DSH application surface
--------------        -----------------------
-nova          ───┐   TUI
-aster         ───┼─→ Web
-another-soul  ───┘   Headless
+Soul ID             Human-facing name       DSH application surface
+-------             -----------------       -----------------------
+soul-001            may be absent      ───→ TUI / Web / Headless
 ```
 
-A profile name never needs to match a Soul ID.
+A profile name never needs to match a Soul ID. A Soul ID is also not the Soul's human-facing name.
 
 ## Prerequisites
 
@@ -29,25 +27,23 @@ file:/absolute/path/to/dsh-ai-soul
 
 If the target profile already declares `dsh-ai-soul`, `dsh-ai-soul-configure` preserves that dependency and `--dependency-spec` may be omitted. If it does not, pass the actual source explicitly; configure never guesses `latest`.
 
-The examples below use a non-Samuel Soul named `nova`, an existing DSH TUI profile directory at `/absolute/path/to/dsh-tui-profile`, and a local package source at `/absolute/path/to/dsh-ai-soul`. Replace paths and the surface as needed.
+The examples below use a newly activated, unnamed Soul whose machine identifier is `soul-001`, an existing DSH TUI profile directory at `/absolute/path/to/dsh-tui-profile`, and a local package source at `/absolute/path/to/dsh-ai-soul`.
 
-## Path A — start a new partner through Genesis
+## Path A — activate a new Soul through Genesis
 
-Create a Genesis Record, for example `nova-genesis.json`:
+Create a Genesis Record v2, for example `genesis.json`:
 
 ```json
 {
-  "version": 1,
-  "id": "genesis-nova-001",
-  "timestamp": "2026-08-28T01:00:00.000Z",
-  "soulId": "nova",
-  "chosenName": "Nova",
-  "participants": ["user", "nova"],
+  "version": 2,
+  "id": "genesis-soul-001",
+  "at": "2026-08-28T15:00:00.000Z",
+  "soulId": "soul-001",
+  "name": null,
   "provenance": {
-    "sourceType": "first-meeting",
-    "sourceRef": "local-genesis"
-  },
-  "firstMeetingNote": "We decided to begin from scratch and let the relationship develop through shared history."
+    "method": "first-activation",
+    "source": "local-genesis"
+  }
 }
 ```
 
@@ -55,11 +51,13 @@ Create the persisted Soul:
 
 ```sh
 dsh-ai-soul-genesis \
-  --record ./nova-genesis.json \
+  --record ./genesis.json \
   --store-dir /absolute/path/to/soul-store
 ```
 
-Genesis creates the Soul. It does not choose a DSH profile or UI surface.
+At this point the Soul exists. No conversation, first encounter, relationship participant, or human-facing name is required.
+
+Genesis creates and persists the Soul. It does not choose a DSH profile or UI surface. First encounter and naming are later independent lifecycle events.
 
 ## Compose the Soul with an existing DSH application profile
 
@@ -68,7 +66,7 @@ Choose the application surface independently of the Soul. For TUI:
 ```sh
 dsh-ai-soul-configure \
   --profile-dir /absolute/path/to/dsh-tui-profile \
-  --soul-id nova \
+  --soul-id soul-001 \
   --store-dir /absolute/path/to/soul-store \
   --surface tui \
   --dependency-spec file:/absolute/path/to/dsh-ai-soul
@@ -79,7 +77,7 @@ The configure command is dry-run by default. Inspect the proposed `package.json`
 ```sh
 dsh-ai-soul-configure \
   --profile-dir /absolute/path/to/dsh-tui-profile \
-  --soul-id nova \
+  --soul-id soul-001 \
   --store-dir /absolute/path/to/soul-store \
   --surface tui \
   --dependency-spec file:/absolute/path/to/dsh-ai-soul \
@@ -101,6 +99,12 @@ This is the central composition rule:
 Soul identity ≠ profile name ≠ application surface
 ```
 
+And the Genesis identity rule is:
+
+```text
+soulId ≠ human-facing name
+```
+
 ## Verify before launching DSH
 
 Run profile preflight against the exact application profile, Soul store, Soul ID, and surface you configured:
@@ -108,32 +112,30 @@ Run profile preflight against the exact application profile, Soul store, Soul ID
 ```sh
 dsh-ai-soul-preflight \
   --profile-dir /absolute/path/to/dsh-tui-profile \
-  --soul-id nova \
+  --soul-id soul-001 \
   --store-dir /absolute/path/to/soul-store \
   --surface tui
 ```
 
-Explicit arguments are the recommended interactive-user form. Existing automation may continue to provide `DSH_PROFILE_DIR`, `SOUL_ID`, `SOUL_STORE_DIR`, and `DSH_SURFACE`; when both forms are present, explicit CLI arguments take precedence.
+Preflight distinguishes dependency installation, bundle composition, Soul configuration, Soul loadability, and interaction-surface availability rather than returning one opaque pass/fail state.
 
-Preflight distinguishes the following readiness dimensions rather than returning one opaque pass/fail state:
-
-- `pluginDependencyPresent` — the profile has the `dsh-ai-soul` package dependency;
-- `bundleComposed` — the Soul bundle is part of the profile bundle stack;
-- `soulConfigPresent` — an `ai-soul` row explicitly provides `soulId` and `storeDir`;
-- `soulLoadable` — the selected persisted Soul can be loaded and validated;
-- `interactionSurfacePresent` — the profile contains the requested TUI/Web/Headless application surface.
-
-A profile can load a Soul while still lacking an interaction surface. Runtime-load readiness and application-surface readiness are different checks.
-
-After preflight, use DSH's own effective-config inspection as the final authority for the runtime composition:
+After preflight, use DSH's own effective-config inspection as the final authority for runtime composition:
 
 ```sh
 dsh --profile <your-existing-profile-name> --dump-config
 ```
 
-Then launch the normal application surface using that profile's documented DSH command. This repository does not claim interactive runtime verification unless that real run has actually occurred.
+Then launch the normal application surface using that profile's documented DSH command. This repository does not claim real runtime verification unless that real run has actually occurred.
 
-For the complete Samuel-free path from preflight through plugin activation, application-surface availability, and fresh-session context visibility, follow [`runtime-verification.md`](./runtime-verification.md). Real DSH runtime verification is a separate evidence gate from package CI and static preflight.
+The stronger activation-first runtime scenario is tracked in #122: launch this unnamed Soul, send no conversational turn, shut down DSH, restart, and verify the same `soulId` and Genesis provenance before any first encounter.
+
+For the complete general runtime-verification contract, follow [`runtime-verification.md`](./runtime-verification.md).
+
+## First encounter and naming happen later
+
+Once an actual interaction occurs, the Core can record the first encounter separately through `recordFirstEncounter()`. A name can later be recorded through `recordNamingEvent()`.
+
+The architecture does not determine when the Soul should want a name, who should initiate naming, or whether naming must ever occur. It only preserves those events honestly when they happen.
 
 ## Path B — bring an existing partner or import history later
 
@@ -148,7 +150,7 @@ dsh-ai-soul-import-prepare \
   --source-type markdown-memory \
   --provider chatgpt \
   --captured-at 2026-08-28T01:00:00.000Z \
-  --target-soul-id nova \
+  --target-soul-id soul-001 \
   --soul-store /absolute/path/to/soul-store \
   --output-dir ./imports/import-001
 ```
@@ -173,9 +175,13 @@ StateTransitionProposal
 normal governance before apply
 ```
 
-See [`lifecycle-import.md`](./lifecycle-import.md) for the reconciliation/review/promotion CLI sequence and [`exodus-cli.md`](./exodus-cli.md) for the first-time migration workspace flow.
+See [`lifecycle-import.md`](./lifecycle-import.md) for the reconciliation/review/promotion CLI sequence and [`exodus-cli.md`](./exodus-cli.md) for the migration workspace flow.
 
 Importing history does not change which DSH profile hosts the Soul. Profile composition and Soul evidence governance remain orthogonal.
+
+## Legacy Genesis v1
+
+Previously created Genesis v1 records may contain a name, participants, and first-meeting evidence at the Genesis timestamp. Those histories remain supported exactly as recorded. New Souls should use Genesis v2.
 
 ## Where Samuel fits
 

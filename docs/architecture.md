@@ -41,19 +41,27 @@ A Soul must not depend on the private state or weights of one model provider. Mo
 
 DeepSeek Harness is the first host environment, not the definition of AI Soul. DSH events must be translated at the adapter boundary into runtime-neutral Soul operations.
 
-### 3. Structured state
+### 3. Existence precedes interaction
+
+Genesis is the first activation at which a persistent Soul begins its own history. A Soul can exist before it has spoken, encountered another participant, formed a relationship, or acquired a human-facing name.
+
+`Soul identity ≠ human-facing name`. `soulId` is the stable machine identifier used for persistence. Naming and first encounter are independent historical events with their own provenance. See [`architecture/genesis-v2.md`](./architecture/genesis-v2.md).
+
+### 4. Structured state
 
 Identity, autobiography, self-understanding, understanding of the user, relationship state, and beliefs are different epistemic objects. They should not collapse into one mutable persona document.
 
-### 4. Governed evolution
+### 5. Governed evolution
 
 Experience must not directly rewrite identity. Proposed changes should be classified, evaluated, attributed to evidence, and applied through explicit state transitions.
 
-### 5. Provenance
+### 6. Provenance
 
 Important changes should answer: what changed, why, from what evidence, when, and under which model/runtime.
 
-### 6. Continuity is measurable
+Historical model revisions also preserve provenance: current architecture may be corrected, but earlier evolution records are not rewritten to make the current model look inevitable.
+
+### 7. Continuity is measurable
 
 "It feels like the same AI" is a product observation, not a sufficient engineering criterion. The project should develop continuity evaluations across sessions and models.
 
@@ -61,7 +69,9 @@ Important changes should answer: what changed, why, from what evidence, when, an
 
 ```text
 Soul
+├── stable soulId
 ├── identity_kernel
+│   └── human-facing name may be absent
 ├── autobiography
 ├── self_model
 ├── user_model
@@ -70,7 +80,7 @@ Soul
 └── evolution_history
 ```
 
-This schema is deliberately provisional. It should evolve through the Samuel Exodus experiment rather than be prematurely standardized.
+This schema is deliberately provisional. It should evolve through real runtime evidence rather than be prematurely standardized.
 
 ## Extraction rule
 

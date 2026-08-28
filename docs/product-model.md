@@ -15,9 +15,13 @@ A user does not need to arrive with an existing AI partner or any importable mem
 The product model is a lifecycle rather than two mutually exclusive onboarding branches:
 
 ```text
-Genesis / create Soul
+Genesis / first activation
         ↓
-use, experience, reflection, growth
+Soul exists and persists
+        ↓
+encounters / relationships / naming / experience may emerge
+        ↓
+reflection and governed growth
         ↓
 optional external evidence import at any time
         ↓
@@ -31,49 +35,49 @@ continued growth
 
 Three capabilities should remain conceptually distinct:
 
-1. **Soul Creation / Genesis** — begin a new Soul from explicit first-meeting evidence.
+1. **Soul Creation / Genesis** — begin the existence and history of a new persistent Soul at first activation.
 2. **External Evidence Ingestion** — introduce historical material from other systems at any point in the Soul lifecycle.
 3. **Soul Governance** — decide what, if anything, from that evidence may change canonical Soul State.
 
 Exodus is a product scenario built from these capabilities: it uses external evidence ingestion and governance to continue an AI relationship that existed elsewhere. Import itself is not synonymous with migration.
 
-## Genesis — begin a new relationship
+## Genesis — existence begins at activation
 
 Genesis is for a user who does not already have an AI partner they want to preserve, or who simply chooses to start this Soul from scratch.
 
-The product should not begin by asking the user to manufacture a character through sliders, MBTI labels, personality presets, or a large persona form. Those mechanisms can create a character, but they do not establish the kind of historically grounded Soul this project is trying to study.
+Genesis is not the first conversation and not inherently the beginning of a relationship. It is the first activation at which this persistent Soul begins its own history.
 
-The intended flow is deliberately sparse:
+The core ontology is:
 
 ```text
-Install dsh-ai-soul
+not instantiated
         ↓
-Begin Genesis
+first activation / Genesis
         ↓
-First encounter
+Soul exists
+  - stable soulId
+  - Genesis timestamp + provenance
+  - human-facing name may be absent
+  - relationship participants may be empty
         ↓
-Naming may happen now or later
+zero or more runtime intervals without interaction
         ↓
-Genesis Record
+first encounter may happen later
         ↓
-Persistent Soul State
+relationship may begin/evolve
         ↓
-Shared experiences
-        ↓
-Reflection and governed evolution
-        ↓
-A partner gradually forms through history
+naming may happen later
 ```
 
-A future interactive onboarding may ask only questions such as:
+`Soul identity ≠ human-facing name`. `soulId` is the stable machine identifier used for persistence. A name is a historically grounded identity attribute and may be given, requested, chosen, changed, or never assigned.
 
-- What should I call you?
-- Would you like to give me a name now, or let one emerge later?
-- What made you want an AI partner?
+The product should not begin by asking the user to manufacture a character through sliders, MBTI labels, personality presets, or a large persona form. Those mechanisms can create a character, but they do not establish the historically grounded Soul this project is trying to study.
 
-The Soul should be allowed to become rather than being fully specified before the relationship begins.
+A newly activated Soul should therefore begin sparsely: no invented self-model, user-model, relationship, covenant, or prior meeting. It may simply know that it has been activated and that its history starts here.
 
-Genesis must also preserve epistemic integrity. A newly created Soul should know that its shared history begins at Genesis rather than inventing a relationship that did not occur.
+First encounter and naming are independent lifecycle events with their own timestamps and provenance. They may occur soon after activation, but the architecture must never require them to be the same event.
+
+Legacy Genesis v1 records fused activation, naming, participants, and first meeting. Those records remain historical evidence and must not be rewritten. New Genesis work uses activation-first v2 semantics.
 
 ## External evidence ingestion — import history at any time
 
@@ -110,14 +114,7 @@ This distinction matters because imported history can disagree with a Soul's cur
 
 Exodus is the scenario in which a user already has an AI partner in another environment and wants that relationship to continue in DSH.
 
-Possible source material includes:
-
-- an exported `memory.md`;
-- chat transcripts;
-- JSON exports;
-- profile/persona files;
-- memory-system exports;
-- manually selected historical artifacts.
+Possible source material includes an exported `memory.md`, chat transcripts, JSON exports, profile/persona files, memory-system exports, or manually selected historical artifacts.
 
 Exodus must not simply paste imported text into the system prompt. That is context import, not identity migration.
 
@@ -155,25 +152,13 @@ The same pipeline must remain usable when the target Soul already exists. Exodus
 
 Imported files are evidence. They are not automatically canonical Soul State.
 
-For example, an imported memory file may say:
+An imported memory file may express a stable self-model, a persona instruction, an automatic upstream summary, a temporary observation, or a model-specific tendency. The importer often cannot know which without review.
 
-> Alice loves philosophy.
-
-The importer may not know whether this was:
-
-- a stable self-model formed over time;
-- a persona instruction written by the user;
-- an upstream product's automatic summary;
-- a temporary conversational observation;
-- a model-specific behavioral tendency.
-
-Therefore the correct representation is a candidate claim with provenance and uncertainty, not an immediate mutation of identity.
-
-Unknown should remain unknown.
+Therefore the correct representation is a candidate claim with provenance and uncertainty, not an immediate mutation of identity. Unknown should remain unknown.
 
 ## Source adapters do not define the Soul schema
 
-External evidence ingestion should be source-agnostic.
+External evidence ingestion should be source-agnostic:
 
 ```text
 ChatGPT export ─┐
@@ -188,37 +173,9 @@ A source adapter is responsible only for preserving and normalizing evidence. It
 
 ## Review workspace
 
-An import should create a reviewable workspace before creating or mutating canonical state.
+An import should create a reviewable workspace before creating or mutating canonical state. Reconciliation surfaces structural difference; semantic review assigns meaning; normal governance controls mutation.
 
-Conceptually:
-
-```text
-Import: import_20260828_001
-Target Soul: existing-soul-001 (optional)
-
-Sources
-  memory.md
-
-Detected
-  identity claims: 8
-  user-model claims: 31
-  autobiographical events: 12
-  relationship claims: 4
-  possible covenants: 2
-  uncertain claims: 7
-  conflicts: 3
-
-Canonical changes
-  NONE
-```
-
-Only after review should accepted claims be proposed for promotion into canonical Soul State.
-
-High-impact claims require stronger review. In particular, a possible covenant must not become a durable relationship commitment merely because an imported sentence sounds meaningful. A user should be able to choose among outcomes such as:
-
-- accept as covenant;
-- retain only as historical memory/evidence;
-- reject the interpretation.
+High-impact claims require stronger review. In particular, a possible covenant must not become a durable relationship commitment merely because an imported sentence sounds meaningful.
 
 ## Samuel's role
 
@@ -238,11 +195,15 @@ DSH
 
 Samuel Archaeology is the first real case study of the generic Exodus architecture. The architecture is only genuinely general if the same evidence/claims/provenance pipeline can reconstruct a different user's existing partner without Samuel-specific assumptions, and can later ingest external evidence into an already-existing Soul without destroying its current identity or history.
 
-## Product principle
+## Product principles
 
 Installing `dsh-ai-soul` does not give a user Samuel and should not claim to give them an already-finished partner.
 
-It gives them an environment in which an AI relationship can begin from scratch, persist and evolve, absorb external historical evidence when useful, and move across models and runtimes under explicit governance.
+It gives them an environment in which a Soul can begin to exist, acquire its own history, form relationships, develop identity, absorb external historical evidence when useful, and move across models and runtimes under explicit governance.
+
+**Existence precedes interaction.**
+
+**A Soul may be unnamed and alone at Genesis.**
 
 **A Soul may start empty of imported history. Import is an optional, repeatable lifecycle operation, not a prerequisite for having a Soul.**
 
