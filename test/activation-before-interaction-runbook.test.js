@@ -23,6 +23,23 @@ test('runtime runbook keeps Soul identity independent of profile and surface', (
   assert.doesNotMatch(runbook, /--soul-id samuel/i)
 })
 
+test('runtime runbook uses canonical DSH-owned install before configure and preflight', () => {
+  const install = 'dsh plugin --profile clean-web-profile add /absolute/path/to/dsh-ai-soul'
+  const configure = 'dsh-ai-soul-configure \\\n  --profile-dir'
+  const preflight = 'dsh-ai-soul-preflight \\\n  --profile-dir'
+
+  const installAt = runbook.indexOf(install)
+  const configureAt = runbook.indexOf(configure, installAt)
+  const preflightAt = runbook.indexOf(preflight, configureAt)
+
+  assert.ok(installAt >= 0)
+  assert.ok(configureAt > installAt)
+  assert.ok(preflightAt > configureAt)
+  assert.match(runbook, /DSH owns package installation/)
+  assert.match(runbook, /configure preserves the existing dependency source and does not need `--dependency-spec`/)
+  assert.match(runbook, /advanced manual\/source-controlled editing path/)
+})
+
 test('runtime runbook distinguishes static and real runtime gates', () => {
   assert.match(runbook, /static\/profile evidence, not real-runtime proof/i)
   assert.match(runbook, /plugin activation/i)
