@@ -31,11 +31,13 @@ const result = await prepareMarkdownLifecycleImportWorkspace({
   outputDir: values['output-dir'],
   soulStoreDir: values['soul-store'],
   targetSoulId: values['target-soul-id'],
+  importId: values['import-id'],
   replace: Boolean(values.replace),
 })
 
 process.stdout.write(`${JSON.stringify({
   workspace: result.outputDir,
+  importId: result.target.importId,
   evidenceWorkspace: result.evidenceDir,
   targetSoulId: result.target.targetSoulId,
   baselineDigest: result.target.baseline.digest,
