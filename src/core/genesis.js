@@ -35,9 +35,7 @@ export function validateGenesisRecord(record) {
   }
 
   if (record.version === GENESIS_RECORD_VERSION) {
-    if (record.name != null && (typeof record.name !== 'string' || record.name.trim() === '')) {
-      errors.push('name must be a non-empty string when provided')
-    }
+    if (record.name != null) errors.push('Genesis Record v2 does not assign a name')
     if (record.participants != null && (!Array.isArray(record.participants) || record.participants.length !== 0)) {
       errors.push('Genesis Record v2 does not create relationship participants')
     }
@@ -50,7 +48,7 @@ export function validateGenesisRecord(record) {
 }
 
 export function createGenesisRecord({
-  version = GENESIS_RECORD_VERSION,
+  version,
   id = crypto.randomUUID(),
   at = new Date().toISOString(),
   soulId,
@@ -59,8 +57,14 @@ export function createGenesisRecord({
   provenance,
   firstMeetingNote,
 } = {}) {
+  const inferredVersion = version ?? (
+    participants !== undefined || firstMeetingNote !== undefined
+      ? LEGACY_GENESIS_RECORD_VERSION
+      : GENESIS_RECORD_VERSION
+  )
+
   const record = {
-    version,
+    version: inferredVersion,
     id,
     at,
     soulId,
@@ -68,12 +72,9 @@ export function createGenesisRecord({
     provenance: clone(provenance),
   }
 
-  if (version === LEGACY_GENESIS_RECORD_VERSION) {
+  if (inferredVersion === LEGACY_GENESIS_RECORD_VERSION) {
     record.participants = clone(participants ?? [])
     record.firstMeetingNote = firstMeetingNote ?? null
-  } else {
-    if (participants != null) record.participants = clone(participants)
-    if (firstMeetingNote != null) record.firstMeetingNote = firstMeetingNote
   }
 
   const validation = validateGenesisRecord(record)
@@ -115,7 +116,7 @@ export function createSoulFromGenesis(record) {
 
   const state = createSoulState({
     soulId: record.soulId,
-    name: record.name ?? null,
+    name: record.version === LEGACY_GENESIS_RECORD_VERSION ? record.name : null,
     createdAt: record.at,
     origin: createOrigin(record),
   })
@@ -146,7 +147,7 @@ export function createSoulFromGenesis(record) {
         autobiography: ['first-meeting'],
       }
     : {
-        identity: ['origin', ...(record.name ? ['name'] : [])],
+        identity: ['origin'],
         autobiography: ['genesis'],
       }
 
