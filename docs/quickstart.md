@@ -129,7 +129,7 @@ dsh-ai-soul-import-prepare \
   --provider chatgpt \
   --captured-at 2026-08-28T01:00:00.000Z \
   --target-soul-id nova \
-  --store-dir /absolute/path/to/soul-store \
+  --soul-store /absolute/path/to/soul-store \
   --output-dir ./imports/import-001
 ```
 
