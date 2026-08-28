@@ -6,15 +6,15 @@ function clone(value) {
 
 export function createSoulState({
   soulId,
-  name,
+  name = null,
   createdAt = new Date().toISOString(),
   origin = null,
 } = {}) {
   if (!soulId || typeof soulId !== 'string') {
     throw new TypeError('soulId is required')
   }
-  if (!name || typeof name !== 'string') {
-    throw new TypeError('name is required')
+  if (name != null && (typeof name !== 'string' || name.trim() === '')) {
+    throw new TypeError('name must be a non-empty string when provided')
   }
 
   return {
@@ -45,7 +45,9 @@ export function validateSoulState(state) {
   if (!state || typeof state !== 'object') errors.push('state must be an object')
   if (state?.schemaVersion !== SOUL_STATE_VERSION) errors.push(`schemaVersion must be ${SOUL_STATE_VERSION}`)
   if (!state?.soulId || typeof state.soulId !== 'string') errors.push('soulId is required')
-  if (!state?.identity?.name || typeof state.identity.name !== 'string') errors.push('identity.name is required')
+  if (state?.identity?.name != null && (typeof state.identity.name !== 'string' || state.identity.name.trim() === '')) {
+    errors.push('identity.name must be a non-empty string when provided')
+  }
 
   for (const key of ['autobiography', 'selfModel', 'userModel', 'beliefs', 'evolution']) {
     if (!Array.isArray(state?.[key])) errors.push(`${key} must be an array`)

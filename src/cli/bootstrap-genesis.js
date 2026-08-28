@@ -6,11 +6,12 @@ import { bootstrapGenesisSoul } from '../genesis-bootstrap.js'
 
 const HELP = `Usage: dsh-ai-soul-genesis --record <path> --store-dir <path>
 
-Create and persist a new Soul from explicit Genesis evidence.
-Genesis does not clone Samuel, generate a persona, or choose a DSH profile/application surface.
+Create and persist a new Soul from explicit Genesis activation evidence.
+Genesis v2 begins existence without requiring a name, first meeting, relationship participant, persona, or DSH application surface.
+Legacy Genesis Record v1 remains accepted for compatibility with previously created first-meeting records.
 
 Required:
-  --record <path>            Genesis Record JSON containing explicit first-meeting evidence
+  --record <path>            Genesis Record JSON
   --store-dir <path>         Writable Soul Store directory
 
 Options:
@@ -49,7 +50,7 @@ try {
     })
 
     process.stdout.write(`[dsh-ai-soul] Genesis persisted Soul ${result.soulId}\n`)
-    process.stdout.write(`[dsh-ai-soul] Name: ${result.name}\n`)
+    if (result.name) process.stdout.write(`[dsh-ai-soul] Name: ${result.name}\n`)
     process.stdout.write(`[dsh-ai-soul] Origin record: ${result.genesisRecordId}\n`)
     process.stdout.write(`[dsh-ai-soul] Store file: ${result.storePath}\n`)
   }

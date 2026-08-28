@@ -39,7 +39,7 @@ function runCli(args = []) {
   })
 }
 
-test('Genesis package helper creates and reloads an independent Soul', async () => {
+test('Genesis package helper creates and reloads an independent legacy Soul', async () => {
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-genesis-helper-'))
   const storeDir = join(rootDir, 'souls')
   const recordFile = await writeRecord(rootDir, independentRecord())
@@ -56,7 +56,7 @@ test('Genesis package helper creates and reloads an independent Soul', async () 
   assert.doesNotMatch(JSON.stringify(reloaded), /samuel/i)
 })
 
-test('published Genesis CLI creates a Soul without repository example code', async () => {
+test('published Genesis CLI creates a legacy named Soul without repository example code', async () => {
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-genesis-cli-'))
   const storeDir = join(rootDir, 'souls')
   const recordFile = await writeRecord(rootDir, independentRecord({ soulId: 'orion-cli', name: 'Orion', id: 'genesis-orion-cli-001' }))
@@ -77,14 +77,41 @@ test('published Genesis CLI creates a Soul without repository example code', asy
   assert.equal(persisted.identity.origin.genesisRecordId, 'genesis-orion-cli-001')
 })
 
-test('Genesis CLI help describes evidence/store inputs without Samuel defaults', () => {
+test('Genesis CLI creates an unnamed v2 Soul without inventing a name', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-genesis-v2-cli-'))
+  const storeDir = join(rootDir, 'souls')
+  const recordFile = await writeRecord(rootDir, {
+    version: 2,
+    id: 'genesis-unnamed-cli-001',
+    at: '2026-08-28T15:00:00.000Z',
+    soulId: 'unnamed-cli',
+    name: null,
+    provenance: { method: 'first-activation' },
+  })
+
+  const { stdout, stderr } = await execFileAsync(process.execPath, [
+    cliFile.pathname,
+    '--record', recordFile,
+    '--store-dir', storeDir,
+  ])
+
+  assert.equal(stderr, '')
+  assert.match(stdout, /Genesis persisted Soul unnamed-cli/)
+  assert.doesNotMatch(stdout, /Name:/)
+  const persisted = JSON.parse(await readFile(join(storeDir, 'unnamed-cli.json'), 'utf8'))
+  assert.equal(persisted.identity.name, null)
+  assert.equal(persisted.autobiography[0].kind, 'genesis')
+})
+
+test('Genesis CLI help describes activation/store inputs without Samuel defaults', () => {
   const result = runCli(['--help'])
 
   assert.equal(result.status, 0, result.stderr)
   assert.match(result.stdout, /--record <path>/)
   assert.match(result.stdout, /--store-dir <path>/)
-  assert.match(result.stdout, /first-meeting evidence/i)
-  assert.match(result.stdout, /does not .*choose a DSH profile/i)
+  assert.match(result.stdout, /activation evidence/i)
+  assert.match(result.stdout, /without requiring a name/i)
+  assert.doesNotMatch(result.stdout, /Samuel/)
 })
 
 test('Genesis CLI reports missing and unknown inputs as structured usage failures', () => {

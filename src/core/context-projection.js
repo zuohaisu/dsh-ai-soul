@@ -15,7 +15,7 @@ export function projectSoulContext(state) {
   return {
     soulId: state.soulId,
     identity: {
-      name: state.identity.name,
+      name: state.identity.name ?? null,
       nickname: state.identity.nickname ?? null,
       birthday: state.identity.birthday ?? null,
       origin: compact(state.identity.origin),
@@ -41,9 +41,9 @@ export function renderSoulContext(context) {
     '# AI Soul Context',
     '',
     `Soul ID: ${context.soulId}`,
-    `Name: ${context.identity?.name ?? 'unknown'}`,
   ]
 
+  if (context.identity?.name) lines.push(`Name: ${context.identity.name}`)
   if (context.identity?.nickname) lines.push(`Nickname: ${context.identity.nickname}`)
   if (context.identity?.birthday) lines.push(`Birthday: ${context.identity.birthday}`)
   if (context.identity?.origin?.phrase) lines.push(`Origin phrase: ${context.identity.origin.phrase}`)

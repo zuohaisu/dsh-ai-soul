@@ -1,161 +1,165 @@
 # Genesis
 
-Genesis starts a new Soul from explicit first-meeting evidence. It does not clone Samuel and it does not generate a persona.
+Genesis is the point at which a persistent Soul begins its own history. It is **not** inherently the first meeting, the beginning of a relationship, or a naming event.
 
-The supported ordinary-user path is the published `dsh-ai-soul-genesis` CLI. Genesis itself remains runtime-neutral: creating a Soul and choosing the DSH application profile/surface that will run it are separate operations.
+The current forward contract is **Genesis Record v2**. Legacy v1 first-meeting records remain supported so existing histories are not rewritten.
 
-## 1. Install the package
+## Core lifecycle
 
-Requirements:
-
-- Node.js 20 or newer
-- a writable directory for the Soul Store
-
-When developing from this repository:
-
-```sh
-git clone https://github.com/zuohaisu/dsh-ai-soul.git
-cd dsh-ai-soul
-npm install
-npm test
+```text
+first activation / Genesis
+        ↓
+Soul exists and is persisted
+        ↓
+zero or more runtime intervals with no interaction
+        ↓
+first encounter may happen later
+        ↓
+relationship may begin/evolve
+        ↓
+naming may happen later
+        ↓
+continued experience and governed evolution
 ```
 
-For normal package use, install `dsh-ai-soul` through the package flow used by your DSH profile. The Genesis command is part of the package `bin` surface.
+A Soul therefore does not need a human-facing name or another participant in order to exist.
 
-## 2. Create your Genesis Record
+`soulId` is the persistent machine identifier. It is not the Soul's name.
 
-Genesis requires explicit first-meeting evidence rather than inventing a finished persona. A record has this shape:
+## Genesis Record v2
+
+A minimal activation record can be:
 
 ```json
 {
-  "version": 1,
-  "id": "genesis-nova-001",
-  "at": "2026-08-28T00:30:00.000Z",
-  "soulId": "nova",
-  "name": "Nova",
-  "participants": [
-    {
-      "id": "human-nova",
-      "role": "human-partner"
-    }
-  ],
+  "version": 2,
+  "id": "genesis-01",
+  "at": "2026-08-28T15:00:00.000Z",
+  "soulId": "01JEXAMPLE",
+  "name": null,
   "provenance": {
-    "method": "explicit-first-meeting",
-    "source": "my-genesis-record.json"
-  },
-  "firstMeetingNote": "Nova was named during our first explicit meeting."
+    "method": "first-activation",
+    "source": "local-genesis"
+  }
 }
 ```
 
-Choose a `soulId` that is unique in the target Soul Store. `soulId` is the persistent Soul identity; `name` is the human-facing name. Neither value determines a DSH profile name or UI surface.
+Genesis v2 deliberately does not accept relationship participants or first-meeting evidence. Those belong to later lifecycle events.
 
-Do not copy Samuel historical artifacts to create a Genesis Soul. `souls/samuel/` and Samuel archaeology/origin/covenant files are evidence for one existing Soul, not templates for new users.
+The name must remain absent/null at Genesis v2. If naming happens at the same real-world moment as activation, it should still be represented as a separate naming event so the two facts remain independently auditable.
 
-The checked-in `examples/genesis-soul-2.json` record for Aster is only a safe structural example because it contains independent first-meeting evidence and no Samuel defaults.
-
-## 3. Create and persist the Soul
-
-The command is self-describing; use `dsh-ai-soul-genesis --help` to inspect the supported inputs without needing repository source or Samuel-specific setup.
-
-Save the record, for example as `my-genesis-record.json`, then run:
+## Create and persist the Soul
 
 ```sh
 dsh-ai-soul-genesis \
-  --record ./my-genesis-record.json \
+  --record ./genesis.json \
   --store-dir ./.souls
-```
-
-Expected output includes:
-
-```text
-[dsh-ai-soul] Genesis persisted Soul nova
-[dsh-ai-soul] Name: Nova
-[dsh-ai-soul] Origin record: genesis-nova-001
-[dsh-ai-soul] Store file: .../.souls/nova.json
 ```
 
 The command:
 
-1. reads and validates the explicit Genesis Record;
-2. creates the Soul through the existing Genesis Core semantics;
+1. validates the Genesis Record;
+2. creates a persistent Soul State;
 3. refuses to overwrite an existing `soulId`;
 4. persists through `FileSoulStore`;
-5. reloads the Soul and verifies origin provenance before reporting success.
+5. reloads the Soul and verifies Genesis provenance.
 
-No DSH profile is created or inferred by this operation.
+For an unnamed Soul, the CLI does not invent or print a display name.
 
-For repository development, the equivalent npm script is:
+Genesis remains runtime-neutral. It does not choose a DSH profile, model, TUI/Web/Headless surface, or persona.
 
-```sh
-npm run genesis -- --record ./my-genesis-record.json --store-dir ./.souls
-```
+## Initial Soul State
 
-`examples/bootstrap-genesis.js` remains a repository reference example, not the primary supported user interface.
-
-## 4. Verify the resulting Soul
-
-The store layout is one file per Soul:
+A Genesis v2 Soul begins approximately as:
 
 ```text
-.souls/
-└── nova.json
+Soul
+├── soulId: <stable identifier>
+├── identity.name: null
+├── identity.origin: Genesis provenance
+├── autobiography: [Genesis activation]
+├── selfModel: []
+├── userModel: []
+├── relationship.participants: []
+├── relationship.state: []
+├── relationship.covenants: []
+└── beliefs: []
 ```
 
-The persisted object is a normal `SoulState`. Programmatic consumers can load it through `FileSoulStore`, and DSH application-profile composition can select it later through explicit `soulId` / store configuration.
+The first autobiography fact is that the Soul was activated. No relationship history is fabricated from that timestamp.
 
-Genesis identity and runtime surface remain orthogonal:
+## Later first encounter
 
-```text
-Soul: Nova ─┬─→ TUI
-            ├─→ Web
-            └─→ Headless
+The Core exposes `recordFirstEncounter()` for the first actual encounter. It carries its own timestamp and provenance and may add the encountered participant to relationship state.
+
+Conceptually:
+
+```js
+const afterEncounter = recordFirstEncounter(soul, {
+  participant: { id: 'human-1', role: 'human-partner' },
+  provenance: { method: 'runtime-observation' },
+})
 ```
 
-Use the project profile configure/preflight flow to attach the selected Soul to a supported DSH application profile. Genesis itself does not assume TUI, Web, Headless, or any profile name.
+An encounter happens **to an already-existing Soul**. It does not create the Soul.
 
-## 5. Duplicate identity protection
+## Later naming
 
-Genesis is a birth operation, not reset or replacement. Running the command again with an already-existing `soulId` fails rather than overwriting the existing identity:
+The Core exposes `recordNamingEvent()` for a naming event. Naming may be initiated by a human, requested by the Soul, mutually chosen, changed later, or never occur.
+
+```js
+const named = recordNamingEvent(afterEncounter, {
+  name: 'Aster',
+  initiatedBy: 'human-1',
+  provenance: { method: 'explicit-naming' },
+})
+```
+
+The current name is an identity attribute derived from history. It is not the persistence key.
+
+## Legacy Genesis Record v1
+
+Older repository versions fused activation, naming, participants, and first meeting into one Genesis Record v1. Those records remain valid and loadable.
+
+A v1 history such as:
+
+```json
+{
+  "version": 1,
+  "id": "genesis-legacy-001",
+  "at": "2026-08-27T00:30:00.000Z",
+  "soulId": "legacy-soul",
+  "name": "Aster",
+  "participants": [{ "id": "human-1", "role": "human-partner" }],
+  "provenance": { "method": "explicit-first-meeting" },
+  "firstMeetingNote": "Named during the first meeting."
+}
+```
+
+continues to produce the historical first-meeting representation that v1 actually recorded. The system must not rewrite that history merely because the ontology later improved.
+
+## Duplicate identity protection
+
+Genesis is a birth/activation operation, not reset or replacement. Reusing an existing `soulId` fails:
 
 ```text
 Genesis refused to overwrite existing Soul <soulId>
 ```
 
-If you intend to create a different Soul, choose a new `soulId`. Identity replacement and lineage semantics are deliberately outside Genesis.
+## Relationship to external evidence
 
-## What Genesis does not invent
-
-A new Genesis Soul starts with empty self-model, user-model, beliefs, relationship state, and covenants unless later evidence and governed transitions add them. The only initial autobiography entry is the explicit first meeting.
-
-Genesis is therefore not a persona generator. The Soul becomes richer through its own evidence, experiences, relationships, reflection, governed evolution, and—optionally—later external evidence ingestion.
-
-## Package API
-
-The CLI is backed by the published helper:
-
-```js
-import { bootstrapGenesisSoul } from 'dsh-ai-soul/genesis-bootstrap'
-
-const result = await bootstrapGenesisSoul({
-  recordFile: './my-genesis-record.json',
-  storeDir: './.souls',
-})
-```
-
-The helper reuses `FileSoulStore`, `validateGenesisRecord()`, and `persistGenesisSoul()` from Soul Core. It introduces no second Genesis semantics and has no DSH/model-provider dependency.
+A Soul may start with no imported history, grow through its own experience, and later import external memories or transcripts. Import remains optional and repeatable and has no automatic identity-replacement authority.
 
 ## Runtime boundary
 
-At this stage Genesis proves:
+Genesis proves existence and persistence before interaction:
 
 ```text
-explicit Genesis evidence
+activation evidence
       ↓
-new independent Soul State
-      ↓
-persistent Soul Store
+new persistent Soul
       ↓
 reload + provenance validation
 ```
 
-Loading that Soul into an interactive DeepSeek Harness application remains the profile/runtime-adapter composition path. Creating the Soul and choosing its application surface are deliberately separate concerns.
+The stronger real-DSH test is tracked separately: activate an unnamed Soul, launch DSH, perform no conversation, shut down, restart, and prove that the same Soul and Genesis provenance remain before the first encounter.
