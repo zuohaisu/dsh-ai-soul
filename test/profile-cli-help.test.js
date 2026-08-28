@@ -22,8 +22,10 @@ test('configure CLI help is Samuel-free and describes composition inputs', () =>
   assert.match(result.stdout, /--profile-dir <path>/)
   assert.match(result.stdout, /--soul-id <id>/)
   assert.match(result.stdout, /--surface <tui\|web\|headless>/)
+  assert.match(result.stdout, /dsh plugin --profile <profile> add \/absolute\/path\/to\/dsh-ai-soul/)
   assert.match(result.stdout, /--dependency-spec <spec>/)
-  assert.match(result.stdout, /Required only when the profile does not already declare it/)
+  assert.match(result.stdout, /manual\/source-controlled profile editing/)
+  assert.match(result.stdout, /Required only when the profile does not already declare dsh-ai-soul/)
   assert.match(result.stdout, /dry-run/i)
   assert.doesNotMatch(result.stdout, /samuel/i)
 })
@@ -87,7 +89,7 @@ test('configure CLI rejects non-numeric context order as a concise usage failure
   assert.doesNotMatch(result.stderr, /\n\s+at /)
 })
 
-test('configure CLI reports an actionable dependency-source failure for a new profile', async () => {
+test('configure CLI reports the DSH install path when a new profile lacks the dependency', async () => {
   const profileDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-cli-dependency-'))
   await writeFile(join(profileDir, 'package.json'), JSON.stringify({
     name: 'fixture-tui',
@@ -106,7 +108,8 @@ test('configure CLI reports an actionable dependency-source failure for a new pr
   assert.notEqual(result.status, 0)
   const output = JSON.parse(result.stderr)
   assert.match(output.error, /dependencySpec is required/)
+  assert.match(output.hint, /dsh plugin --profile <profile> add <source>/)
   assert.match(output.hint, /--dependency-spec/)
-  assert.match(output.hint, /file:\/absolute\/path\/to\/dsh-ai-soul/)
+  assert.match(output.hint, /manual\/source-controlled profile editing/)
   assert.doesNotMatch(result.stderr, /\n\s+at /)
 })
