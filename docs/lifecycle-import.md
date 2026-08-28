@@ -4,6 +4,18 @@ External evidence ingestion is a repeatable Soul lifecycle operation. A Soul may
 
 The first lifecycle-import boundary binds one import workspace to an explicit existing Soul and freezes the target Soul state that existed when the import began.
 
+## CLI discovery and usage diagnostics
+
+The lifecycle-import commands are self-describing. Before preparing or reviewing an import, inspect the accepted options with:
+
+```bash
+dsh-ai-soul-import-prepare --help
+dsh-ai-soul-import-reconcile --help
+dsh-ai-soul-import-promote --help
+```
+
+Unknown options, missing required values, and invalid JSON arguments fail as concise usage errors and point back to `--help`; they do not silently infer identity, DSH profile, application surface, target path, or mutation intent. These diagnostics do not change the governance boundary below: imported evidence, reconciliation, and proposal creation still have no direct canonical mutation authority.
+
 ```text
 existing Soul
     +
