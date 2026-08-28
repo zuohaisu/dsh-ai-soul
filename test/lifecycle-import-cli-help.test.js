@@ -28,7 +28,7 @@ test('lifecycle import CLIs expose Samuel-free self-describing help', () => {
   const prepare = runCli(prepareCli, ['--help'])
   assert.equal(prepare.status, 0, prepare.stderr)
   assert.match(prepare.stdout, /--target-soul-id <id>/)
-  assert.match(prepare.stdout, /does not mutate canonical Soul State/i)
+  assert.match(prepare.stdout, /does\s+not mutate canonical Soul State/i)
 
   const reconcile = runCli(reconcileCli, ['--help'])
   assert.equal(reconcile.status, 0, reconcile.stderr)
@@ -38,7 +38,7 @@ test('lifecycle import CLIs expose Samuel-free self-describing help', () => {
   const promote = runCli(promoteCli, ['--help'])
   assert.equal(promote.status, 0, promote.stderr)
   assert.match(promote.stdout, /--value <json>/)
-  assert.match(promote.stdout, /does not mutate canonical Soul State/i)
+  assert.match(promote.stdout, /does\s+not mutate canonical Soul State/i)
 
   assert.doesNotMatch(`${prepare.stdout}${reconcile.stdout}${promote.stdout}`, /samuel/i)
 })
