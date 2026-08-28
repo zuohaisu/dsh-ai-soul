@@ -14,7 +14,9 @@ Required:
   --surface <surface>        One of: tui, web, headless
 
 Options:
-  --dependency-spec <spec>   Package dependency specifier (default: latest)
+  --dependency-spec <spec>   npm-compatible dependency source for dsh-ai-soul.
+                             Required only when the profile does not already declare it.
+                             Example: file:/absolute/path/to/dsh-ai-soul
   --context-order <number>   Context injection order (default: -10)
   --write                    Apply changes; otherwise dry-run only
   --help                     Show this help
@@ -58,7 +60,7 @@ try {
       soulId: values['soul-id'],
       storeDir: values['store-dir'],
       surface: values.surface,
-      dependencySpec: values['dependency-spec'] || 'latest',
+      dependencySpec: values['dependency-spec'],
       contextOrder,
       dryRun: !values.write,
     })
@@ -73,10 +75,13 @@ try {
   }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error)
+  const dependencySourceMissing = /dependencySpec is required/.test(message)
   process.stderr.write(`${JSON.stringify({
     ready: false,
     error: message,
-    hint: 'Run dsh-ai-soul-configure --help for usage.',
+    hint: dependencySourceMissing
+      ? 'Pass --dependency-spec with the same npm-compatible source used for dsh-ai-soul (for example file:/absolute/path/to/dsh-ai-soul), or install it in the profile first.'
+      : 'Run dsh-ai-soul-configure --help for usage.',
   }, null, 2)}\n`)
   process.exitCode = 1
 }

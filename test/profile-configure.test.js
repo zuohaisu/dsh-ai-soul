@@ -45,13 +45,13 @@ for (const surface of ['tui', 'web', 'headless']) {
       soulId: 'aster',
       storeDir,
       surface,
-      dependencySpec: 'link:/repo/dsh-ai-soul',
+      dependencySpec: 'file:/repo/dsh-ai-soul',
     })
 
     assert.equal(plan.preflight.ready, true)
     assert.deepEqual(plan.files.packageJson.custom, { keep: true })
     assert.equal(plan.files.packageJson.dependencies.existing, '1.2.3')
-    assert.equal(plan.files.packageJson.dependencies['dsh-ai-soul'], 'link:/repo/dsh-ai-soul')
+    assert.equal(plan.files.packageJson.dependencies['dsh-ai-soul'], 'file:/repo/dsh-ai-soul')
     assert.deepEqual(plan.files.packageJson.dsh.profile.bundles, [
       '@deepseek-ai/dsh-base',
       'existing-bundle',
@@ -64,10 +64,31 @@ for (const surface of ['tui', 'web', 'headless']) {
   })
 }
 
+test('new profile dependency requires an explicit source and preserves it exactly', () => {
+  assert.throws(
+    () => configurePackage({ profilePackage: basePackage('tui') }),
+    /dependencySpec is required when the profile does not already declare dsh-ai-soul/,
+  )
+
+  const configured = configurePackage({
+    profilePackage: basePackage('tui'),
+    dependencySpec: 'file:/absolute/path/to/dsh-ai-soul',
+  })
+  assert.equal(configured.dependencies['dsh-ai-soul'], 'file:/absolute/path/to/dsh-ai-soul')
+})
+
+test('existing dsh-ai-soul dependency is preserved when dependency spec is omitted', () => {
+  const profilePackage = basePackage('web')
+  profilePackage.dependencies['dsh-ai-soul'] = 'file:/already/installed/dsh-ai-soul'
+
+  const configured = configurePackage({ profilePackage })
+  assert.equal(configured.dependencies['dsh-ai-soul'], 'file:/already/installed/dsh-ai-soul')
+})
+
 test('package and patch transforms are idempotent and update only the ai-soul block', async () => {
   const storeDir = await createStore()
-  const oncePackage = configurePackage({ profilePackage: basePackage('tui'), dependencySpec: 'latest' })
-  const twicePackage = configurePackage({ profilePackage: oncePackage, dependencySpec: 'latest' })
+  const oncePackage = configurePackage({ profilePackage: basePackage('tui'), dependencySpec: 'file:/repo/dsh-ai-soul' })
+  const twicePackage = configurePackage({ profilePackage: oncePackage })
   assert.deepEqual(twicePackage, oncePackage)
 
   const firstPatch = configurePatch({
@@ -95,7 +116,7 @@ test('dry-run returns exact mutations without writing files; write mode persists
     soulId: 'aster',
     storeDir,
     surface: 'web',
-    dependencySpec: 'latest',
+    dependencySpec: 'file:/repo/dsh-ai-soul',
   })
   assert.equal(dryRun.dryRun, true)
   assert.equal(dryRun.changed, true)
@@ -107,7 +128,7 @@ test('dry-run returns exact mutations without writing files; write mode persists
     soulId: 'aster',
     storeDir,
     surface: 'web',
-    dependencySpec: 'latest',
+    dependencySpec: 'file:/repo/dsh-ai-soul',
     dryRun: false,
   })
   assert.equal(written.preflight.ready, true)
@@ -118,7 +139,6 @@ test('dry-run returns exact mutations without writing files; write mode persists
     soulId: 'aster',
     storeDir,
     surface: 'web',
-    dependencySpec: 'latest',
   })
   assert.equal(rerun.changed, false)
 })
@@ -139,6 +159,7 @@ test('write mode refuses a missing surface or unloadable Soul without mutation',
       soulId: 'aster',
       storeDir,
       surface: 'web',
+      dependencySpec: 'file:/repo/dsh-ai-soul',
       dryRun: false,
     }),
     /applicationSurfacePresent/,
@@ -152,6 +173,7 @@ test('write mode refuses a missing surface or unloadable Soul without mutation',
       soulId: 'missing-soul',
       storeDir,
       surface: 'tui',
+      dependencySpec: 'file:/repo/dsh-ai-soul',
       dryRun: false,
     }),
     /soulLoadable/,

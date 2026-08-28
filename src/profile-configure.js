@@ -52,14 +52,18 @@ function renderAiSoulBlock({ soulId, storeDir, contextOrder = -10, indent = 0 })
   ]
 }
 
-export function configurePackage({ profilePackage, dependencySpec = 'latest' }) {
+export function configurePackage({ profilePackage, dependencySpec }) {
   if (!profilePackage || typeof profilePackage !== 'object') throw new TypeError('profilePackage is required')
   const next = clone(profilePackage)
 
   const existingField = DEPENDENCY_FIELDS.find((field) => next?.[field]?.['dsh-ai-soul'])
-  const dependencyField = existingField || 'dependencies'
-  next[dependencyField] ||= {}
-  next[dependencyField]['dsh-ai-soul'] ||= dependencySpec
+  if (!existingField) {
+    if (!dependencySpec || typeof dependencySpec !== 'string') {
+      throw new TypeError('dependencySpec is required when the profile does not already declare dsh-ai-soul')
+    }
+    next.dependencies ||= {}
+    next.dependencies['dsh-ai-soul'] = dependencySpec
+  }
 
   next.dsh ||= {}
   next.dsh.profile ||= {}
@@ -99,7 +103,7 @@ export async function planDshProfileConfiguration({
   soulId,
   storeDir,
   surface,
-  dependencySpec = 'latest',
+  dependencySpec,
   contextOrder = -10,
 }) {
   if (!SURFACE_BUNDLES[surface]) throw new TypeError(`surface must be one of: ${Object.keys(SURFACE_BUNDLES).join(', ')}`)
@@ -122,7 +126,7 @@ export async function configureDshProfileDir({
   soulId,
   storeDir,
   surface,
-  dependencySpec = 'latest',
+  dependencySpec,
   contextOrder = -10,
   dryRun = true,
 }) {
