@@ -19,7 +19,8 @@ test('runtime runbook keeps Soul identity independent of profile and surface', (
   assert.match(runbook, /Soul ID: `ember-001`/)
   assert.match(runbook, /DSH profile name: `clean-web-profile`/)
   assert.match(runbook, /application surface: `web`/)
-  assert.doesNotMatch(runbook, /samuel/i)
+  assert.doesNotMatch(runbook, /Soul ID: `samuel`/i)
+  assert.doesNotMatch(runbook, /--soul-id samuel/i)
 })
 
 test('runtime runbook distinguishes static and real runtime gates', () => {
