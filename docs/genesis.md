@@ -55,6 +55,8 @@ The checked-in `examples/genesis-soul-2.json` record for Aster is only a safe st
 
 ## 3. Create and persist the Soul
 
+The command is self-describing; use `dsh-ai-soul-genesis --help` to inspect the supported inputs without needing repository source or Samuel-specific setup.
+
 Save the record, for example as `my-genesis-record.json`, then run:
 
 ```sh
