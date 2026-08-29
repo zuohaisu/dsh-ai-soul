@@ -140,3 +140,9 @@ Experimental / pre-alpha.
 The general DSH Soul layer now has runtime-neutral persistence, activation-first Genesis v2, independent encounter/naming lifecycle events, evidence-first import/review/proposal tooling, and profile configure/preflight support for TUI/Web/Headless compositions.
 
 Real interactive DSH verification remains evidence-driven. The activation-before-interaction runtime proof for an unnamed Soul is tracked in #122 and must not be claimed complete until an actual DSH run is recorded.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).
+
+Copyright © 2026 Haisu Zuo
