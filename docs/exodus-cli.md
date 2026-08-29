@@ -2,6 +2,20 @@
 
 The user-facing Exodus commands expose the migration pipeline without granting imported evidence, inference, or review any direct authority over canonical Soul State.
 
+## Discover the commands
+
+Each public Exodus command is self-describing:
+
+```bash
+dsh-ai-soul-exodus-prepare --help
+dsh-ai-soul-exodus-review --help
+dsh-ai-soul-exodus-review-update --help
+```
+
+The help text lists only supported inputs and repeats the authority boundary for that stage. The generic path does not infer a Soul identity from a source file, DSH profile, or application surface, and it never assumes Samuel.
+
+Invocation mistakes fail closed as structured JSON with `kind: "usage"` and a command-specific `--help` hint. Unknown options are rejected instead of being silently ignored. Execution/domain failures remain distinguishable from usage failures so automation can diagnose the correct boundary without treating a malformed command as migration evidence.
+
 ## Step 1 — prepare Markdown evidence
 
 After installing `dsh-ai-soul`, run:
@@ -95,9 +109,19 @@ The review output is:
 
 Before constructing claims, the CLI verifies that `source.json` is a valid Exodus source and that `evidence.json` points to the same source ID and digest.
 
+## Step 4 — record review operations explicitly
+
+`dsh-ai-soul-exodus-review-update` records one explicit operation in an existing review workspace. Use `--help` to see the required fields for each supported operation:
+
+- `relationship`
+- `decision`
+- `reconciliation-review`
+
+For example, a claim decision is recorded with an explicit claim ID, review state, reviewer, timestamp, and rationale. A recorded review decision remains review evidence; it is not itself canonical promotion or Soul mutation.
+
 ## Overwrite safety
 
-Both commands refuse a non-empty output directory by default.
+Both workspace-creation commands refuse a non-empty output directory by default.
 
 `dsh-ai-soul-exodus-prepare --replace` may replace only a managed source workspace whose top-level entries are `original/`, `source.json`, and `evidence.json`.
 
@@ -121,18 +145,19 @@ normalized structural evidence
 explicit candidate-claim proposals
       ↓
 review-ready workspace
+      ↓
+explicit review operations
 ```
 
 It deliberately stops before:
 
 ```text
 automatic claim inference
-review decisions
-conflict resolution
+automatic conflict resolution
 canonical promotion
 Soul mutation
 DSH profile setup
 identity-continuity judgment
 ```
 
-Inference authority is not mutation authority. Review readiness is not canonical acceptance. Imported text remains evidence, not identity by declaration.
+Inference authority is not mutation authority. Review acceptance is not mutation authority. Imported text remains evidence, not identity by declaration.
