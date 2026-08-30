@@ -79,6 +79,7 @@ test('configure CLI rejects non-numeric context order as a concise usage failure
     '--profile-dir', '/tmp/profile',
     '--soul-id', 'aster',
     '--store-dir', '/tmp/store',
+    '--participant-id', 'human-partner-147',
     '--surface', 'tui',
     '--context-order', 'not-a-number',
   ])
@@ -102,6 +103,7 @@ test('configure CLI reports the DSH install path when a new profile lacks the de
     '--profile-dir', profileDir,
     '--soul-id', 'aster',
     '--store-dir', '/tmp/store',
+    '--participant-id', 'human-partner-147',
     '--surface', 'tui',
   ])
 
