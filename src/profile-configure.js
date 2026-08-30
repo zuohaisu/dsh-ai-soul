@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
+import { analyzeProfilePatchShape } from './profile-patch.js'
 import { SURFACE_BUNDLES, preflightDshProfile } from './profile-preflight.js'
 
 const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
@@ -88,11 +89,18 @@ export function configurePatch({ patchText = '', soulId, storeDir, contextOrder 
   const lines = normalized.split(/\r?\n/)
   if (trailingNewline && lines.at(-1) === '') lines.pop()
 
+  const shape = analyzeProfilePatchShape(lines.join('\n'))
+  if (!shape.valid) {
+    throw new TypeError('cordis.patch.yml cannot combine the root empty sequence [] with profile entries')
+  }
+
   const block = locateAiSoulBlock(lines)
   const rendered = renderAiSoulBlock({ soulId, storeDir, contextOrder, indent: block.start >= 0 ? block.indent : 0 })
   const nextLines = block.start >= 0
     ? [...lines.slice(0, block.start), ...rendered, ...lines.slice(block.end)]
-    : [...lines, ...(lines.length && lines.at(-1).trim() ? [''] : []), ...rendered]
+    : shape.emptySequenceIndex >= 0
+      ? [...lines.slice(0, shape.emptySequenceIndex), ...rendered, ...lines.slice(shape.emptySequenceIndex + 1)]
+      : [...lines, ...(lines.length && lines.at(-1).trim() ? [''] : []), ...rendered]
 
   return `${nextLines.join('\n')}\n`
 }

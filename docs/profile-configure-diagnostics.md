@@ -13,6 +13,15 @@ The configure command plans profile changes and evaluates whether the **planned 
 
 That planning result intentionally does not prove that a package manager has installed the declared dependencies. `dsh-ai-soul-configure --write` edits `package.json` and `cordis.patch.yml`; it does not run npm, pnpm, yarn, or the DSH plugin installer.
 
+DSH initializes a new profile patch as the root empty sequence `[]`. Configure replaces that placeholder with the `ai-soul` entry sequence. If `[]` already coexists with profile entries, configure fails closed and preflight reports:
+
+```text
+code: profile-patch-invalid
+check: patchDocumentValid
+```
+
+This prevents a line-oriented configuration match from being mistaken for a DSH-parseable patch document.
+
 After writing configuration and installing dependencies, run `dsh-ai-soul-preflight` against the actual profile directory. Directory preflight verifies two independent installation facts:
 
 - `pluginPackageInstalled` resolves `dsh-ai-soul` from the target profile.

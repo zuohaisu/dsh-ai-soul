@@ -132,6 +132,7 @@ This is not a Soul failure. The diagnostic tells the operator to repair applicat
 
 The current diagnostic codes are:
 
+- `profile-patch-invalid`
 - `plugin-dependency-missing`
 - `soul-bundle-not-composed`
 - `ai-soul-loader-missing`

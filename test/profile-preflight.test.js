@@ -46,8 +46,25 @@ test('parseAiSoulPatch extracts only ai-soul configuration', () => {
   const result = parseAiSoulPatch(`- id: another-plugin\n  config:\n    soulId: wrong\n- id: ai-soul\n  config:\n    soulId: aster\n    storeDir: /tmp/aster\n- id: trailing-plugin\n`)
 
   assert.equal(result.loaderPresent, true)
+  assert.equal(result.documentValid, true)
   assert.equal(result.config.soulId, 'aster')
   assert.equal(result.config.storeDir, '/tmp/aster')
+})
+
+test('profile preflight rejects an empty root sequence followed by profile entries', async () => {
+  const storeDir = await createStore()
+  const result = await preflightDshProfile({
+    profilePackage: profilePackage('web'),
+    patchText: `[]\n${patch(storeDir)}`,
+    soulId: 'aster',
+    storeDir,
+    surface: 'web',
+  })
+
+  assert.equal(result.checks.patchDocumentValid, false)
+  assert.equal(result.runtimeReady, false)
+  assert.equal(result.ready, false)
+  assert.equal(result.diagnostics[0].code, 'profile-patch-invalid')
 })
 
 for (const surface of ['tui', 'web', 'headless']) {
