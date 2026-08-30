@@ -2,10 +2,10 @@
 
 import { configureDshProfileDir, describeConfigurationPlan } from '../profile-configure.js'
 
-const HELP = `Usage: dsh-ai-soul-configure --profile-dir <path> --soul-id <id> --store-dir <path> --surface <tui|web|headless> [options]
+const HELP = `Usage: dsh-ai-soul-configure --profile-dir <path> --soul-id <id> --store-dir <path> --participant-id <id> --surface <tui|web|headless> [options]
 
 Configure dsh-ai-soul in an existing DeepSeek Harness application profile.
-Soul identity, profile name, and application surface remain independent.
+Soul identity, human participant identity, profile name, and application surface remain independent.
 
 Install the plugin through DSH first when possible:
   dsh plugin --profile <profile> add /absolute/path/to/dsh-ai-soul
@@ -14,6 +14,7 @@ Required:
   --profile-dir <path>       Existing DSH application-profile directory
   --soul-id <id>             Explicit persisted Soul ID
   --store-dir <path>         Soul Store directory
+  --participant-id <id>      Stable local identity for the human partner; this is not a Soul name
   --surface <surface>        One of: tui, web, headless
 
 Options:
@@ -29,6 +30,7 @@ const VALUE_OPTIONS = new Set([
   'profile-dir',
   'soul-id',
   'store-dir',
+  'participant-id',
   'surface',
   'dependency-spec',
   'context-order',
@@ -52,7 +54,7 @@ function parseInputs(args) {
     index += 1
   }
 
-  for (const key of ['profile-dir', 'soul-id', 'store-dir', 'surface']) {
+  for (const key of ['profile-dir', 'soul-id', 'store-dir', 'participant-id', 'surface']) {
     if (!values[key]) throw new Error(`missing required --${key}`)
   }
 
@@ -72,6 +74,7 @@ try {
       profileDir: values['profile-dir'],
       soulId: values['soul-id'],
       storeDir: values['store-dir'],
+      participantId: values['participant-id'],
       surface: values.surface,
       dependencySpec: values['dependency-spec'],
       contextOrder,
