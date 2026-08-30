@@ -64,3 +64,41 @@ export function mapRuntimeEventToExperience(event) {
     payload: clone(event.payload),
   })
 }
+
+/**
+ * Normalize the one DSH durable fact that proves a human prompt entered a turn.
+ * Synthetic/plugin messages are deliberately ignored: existence, injected context,
+ * and human encounter are separate lifecycle facts.
+ */
+export function normalizeDshHumanInteraction(session, event, { participant } = {}) {
+  if (!isObject(event) || event.type !== 'user/message') return null
+  if (event.data?.source?.kind !== 'user') return null
+
+  if (!session?.id || typeof session.id !== 'string') {
+    throw new TypeError('DSH human interaction requires session.id')
+  }
+  if (!Number.isInteger(event.seq) || event.seq < 0) {
+    throw new TypeError('DSH human interaction requires a non-negative event.seq')
+  }
+  if (!Number.isFinite(event.time)) {
+    throw new TypeError('DSH human interaction requires numeric event.time')
+  }
+  if (!isObject(participant) || !participant.id || typeof participant.id !== 'string') {
+    throw new TypeError('DSH human interaction requires participant.id')
+  }
+
+  return {
+    id: `dsh:${encodeIdentityPart(session.id)}:user-message:${event.seq}`,
+    at: new Date(event.time).toISOString(),
+    participant: clone(participant),
+    provenance: {
+      source: 'deepseek-harness',
+      captureBoundary: 'dsh-session-event-v1',
+      sessionId: session.id,
+      eventType: event.type,
+      eventSeq: event.seq,
+      eventTime: event.time,
+      userSource: clone(event.data.source),
+    },
+  }
+}
