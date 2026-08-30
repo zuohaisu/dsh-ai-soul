@@ -4,50 +4,172 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
-import { apply, createSoulState, FileSoulStore } from '../src/index.js'
+import {
+  apply,
+  createGenesisRecord,
+  FileSoulStore,
+  persistGenesisSoul,
+} from '../src/index.js'
 
-test('loads configured Soul and registers DSH dynamic context', async () => {
-  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-adapter-'))
-  const store = new FileSoulStore({ rootDir })
-  const state = createSoulState({ soulId: 'soul-2', name: 'Second Soul' })
-  await store.save(state)
-
+function runtimeContext() {
   const registrations = []
-  const ctx = {
-    systemPrompt: {
-      context(definition) {
-        registrations.push(definition)
-        return () => {}
+  const listeners = new Map()
+  return {
+    registrations,
+    listeners,
+    ctx: {
+      systemPrompt: {
+        context(definition) {
+          registrations.push(definition)
+          return () => {}
+        },
+      },
+      on(name, listener) {
+        listeners.set(name, listener)
+        return () => listeners.delete(name)
       },
     },
   }
+}
 
-  await apply(ctx, { soulId: 'soul-2', storeDir: rootDir })
+async function unnamedGenesis(rootDir, soulId = 'ember-147') {
+  const store = new FileSoulStore({ rootDir })
+  await persistGenesisSoul(store, createGenesisRecord({
+    id: `${soulId}-genesis`,
+    at: '2026-08-30T06:00:00.000Z',
+    soulId,
+    provenance: { source: 'genesis-onboarding' },
+  }))
+  return store
+}
 
-  assert.equal(registrations.length, 1)
-  assert.equal(registrations[0].name, 'ai-soul:soul-2')
-  assert.equal(registrations[0].order, -10)
-  assert.match(registrations[0].text, /Name: Second Soul/)
+const participant = { id: 'human-partner-147', kind: 'human' }
+
+test('loads configured unnamed Soul and registers DSH dynamic context', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-adapter-'))
+  await unnamedGenesis(rootDir)
+  const runtime = runtimeContext()
+
+  await apply(runtime.ctx, {
+    soulId: 'ember-147',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+  })
+
+  assert.equal(runtime.registrations.length, 1)
+  assert.equal(runtime.registrations[0].name, 'ai-soul:ember-147')
+  assert.equal(runtime.registrations[0].order, -10)
+  assert.match(runtime.registrations[0].text, /Soul ID: ember-147/)
+  assert.doesNotMatch(runtime.registrations[0].text, /\bName:/)
+  assert.equal(typeof runtime.listeners.get('session/event'), 'function')
 })
 
-test('adapter has no Samuel-specific default', async () => {
-  const ctx = { systemPrompt: { context() {} } }
+test('records first human DSH user/message once and survives reload', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-first-encounter-'))
+  const store = await unnamedGenesis(rootDir)
+  const runtime = runtimeContext()
+  await apply(runtime.ctx, {
+    soulId: 'ember-147',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+  })
+
+  const listener = runtime.listeners.get('session/event')
+  const session = { id: 'session-ordinary-user' }
+  const event = {
+    type: 'user/message',
+    seq: 4,
+    time: Date.parse('2026-08-30T06:05:00.000Z'),
+    data: {
+      role: 'user',
+      source: { kind: 'user', via: 'web' },
+      content: [{ type: 'text', text: 'hello' }],
+    },
+  }
+
+  const first = await listener(session, event)
+  assert.equal(first.status, 'recorded')
+  const duplicate = await listener(session, event)
+  assert.equal(duplicate.status, 'duplicate')
+
+  const reloaded = await store.load('ember-147')
+  assert.equal(reloaded.identity.name, null)
+  assert.equal(reloaded.identity.origin.at, '2026-08-30T06:00:00.000Z')
+  assert.deepEqual(reloaded.relationship.participants, [participant])
+  const encounters = reloaded.autobiography.filter((item) => item.kind === 'first-encounter')
+  assert.equal(encounters.length, 1)
+  assert.equal(encounters[0].experiencedAt, '2026-08-30T06:05:00.000Z')
+  assert.equal(encounters[0].provenance.sessionId, 'session-ordinary-user')
+  assert.equal(encounters[0].provenance.eventSeq, 4)
+  assert.equal(encounters[0].provenance.captureBoundary, 'dsh-session-event-v1')
+  assert.equal(reloaded.autobiography.some((item) => item.kind === 'naming'), false)
+})
+
+test('ignores synthetic DSH user/message sources', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-synthetic-'))
+  const store = await unnamedGenesis(rootDir)
+  const runtime = runtimeContext()
+  await apply(runtime.ctx, {
+    soulId: 'ember-147',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+  })
+
+  const result = await runtime.listeners.get('session/event')(
+    { id: 'session-synthetic' },
+    {
+      type: 'user/message',
+      seq: 1,
+      time: Date.parse('2026-08-30T06:01:00.000Z'),
+      data: { source: { kind: 'plugin', via: 'fixture' }, content: [] },
+    },
+  )
+  assert.equal(result.status, 'ignored')
+  const reloaded = await store.load('ember-147')
+  assert.equal(reloaded.autobiography.some((item) => item.kind === 'first-encounter'), false)
+})
+
+test('adapter has no Samuel-specific default and requires explicit participant identity', async () => {
+  const ctx = runtimeContext().ctx
   await assert.rejects(() => apply(ctx, {}), /config\.soulId is required/)
+  await assert.rejects(
+    () => apply(ctx, { soulId: 'ember-147', storeDir: '.souls' }),
+    /config\.firstEncounterParticipant\.id is required/,
+  )
 })
 
 test('adapter reports missing systemPrompt service at the runtime boundary', async () => {
   await assert.rejects(
-    () => apply({}, { soulId: 'soul-2', storeDir: '.souls' }),
+    () => apply({ on() {} }, {
+      soulId: 'ember-147',
+      storeDir: '.souls',
+      firstEncounterParticipant: participant,
+    }),
     /required DSH systemPrompt service is unavailable/,
+  )
+})
+
+test('adapter reports missing DSH event API at the runtime boundary', async () => {
+  await assert.rejects(
+    () => apply({ systemPrompt: { context() {} } }, {
+      soulId: 'ember-147',
+      storeDir: '.souls',
+      firstEncounterParticipant: participant,
+    }),
+    /required DSH event API is unavailable/,
   )
 })
 
 test('adapter reports store-load failures without dumping Soul state', async () => {
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-adapter-missing-'))
-  const ctx = { systemPrompt: { context() {} } }
+  const runtime = runtimeContext()
 
   await assert.rejects(
-    () => apply(ctx, { soulId: 'missing-soul', storeDir: rootDir }),
+    () => apply(runtime.ctx, {
+      soulId: 'missing-soul',
+      storeDir: rootDir,
+      firstEncounterParticipant: participant,
+    }),
     (error) => {
       assert.match(error.message, /store-load error/)
       assert.match(error.message, /soulId=missing-soul/)

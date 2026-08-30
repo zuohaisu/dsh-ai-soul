@@ -42,13 +42,19 @@ function locateAiSoulBlock(lines) {
   return { start, end, indent }
 }
 
-function renderAiSoulBlock({ soulId, storeDir, contextOrder = -10, indent = 0 }) {
+function renderAiSoulBlock({ soulId, storeDir, participantId, contextOrder = -10, indent = 0 }) {
   const pad = ' '.repeat(indent)
+  const participantLines = participantId == null ? [] : [
+    `${pad}    firstEncounterParticipant:`,
+    `${pad}      id: ${quoteYaml(participantId)}`,
+    `${pad}      kind: "human"`,
+  ]
   return [
     `${pad}- id: ai-soul`,
     `${pad}  config:`,
     `${pad}    soulId: ${quoteYaml(soulId)}`,
     `${pad}    storeDir: ${quoteYaml(resolve(storeDir))}`,
+    ...participantLines,
     `${pad}    contextOrder: ${contextOrder}`,
   ]
 }
@@ -79,9 +85,10 @@ export function configurePackage({ profilePackage, dependencySpec }) {
   return next
 }
 
-export function configurePatch({ patchText = '', soulId, storeDir, contextOrder = -10 }) {
+export function configurePatch({ patchText = '', soulId, storeDir, participantId, contextOrder = -10 }) {
   assertString('soulId', soulId)
   assertString('storeDir', storeDir)
+  if (participantId != null) assertString('participantId', participantId)
   if (!Number.isFinite(contextOrder)) throw new TypeError('contextOrder must be a finite number')
 
   const normalized = String(patchText)
@@ -95,7 +102,7 @@ export function configurePatch({ patchText = '', soulId, storeDir, contextOrder 
   }
 
   const block = locateAiSoulBlock(lines)
-  const rendered = renderAiSoulBlock({ soulId, storeDir, contextOrder, indent: block.start >= 0 ? block.indent : 0 })
+  const rendered = renderAiSoulBlock({ soulId, storeDir, participantId, contextOrder, indent: block.start >= 0 ? block.indent : 0 })
   const nextLines = block.start >= 0
     ? [...lines.slice(0, block.start), ...rendered, ...lines.slice(block.end)]
     : shape.emptySequenceIndex >= 0
@@ -110,13 +117,14 @@ export async function planDshProfileConfiguration({
   patchText,
   soulId,
   storeDir,
+  participantId,
   surface,
   dependencySpec,
   contextOrder = -10,
 }) {
   if (!SURFACE_BUNDLES[surface]) throw new TypeError(`surface must be one of: ${Object.keys(SURFACE_BUNDLES).join(', ')}`)
   const nextPackage = configurePackage({ profilePackage, dependencySpec })
-  const nextPatch = configurePatch({ patchText, soulId, storeDir, contextOrder })
+  const nextPatch = configurePatch({ patchText, soulId, storeDir, participantId, contextOrder })
   const preflight = await preflightDshProfile({ profilePackage: nextPackage, patchText: nextPatch, soulId, storeDir, surface })
 
   return {
@@ -133,6 +141,7 @@ export async function configureDshProfileDir({
   profileDir,
   soulId,
   storeDir,
+  participantId,
   surface,
   dependencySpec,
   contextOrder = -10,
@@ -148,7 +157,7 @@ export async function configureDshProfileDir({
     readFile(patchPath, 'utf8'),
   ])
   const profilePackage = JSON.parse(packageText)
-  const plan = await planDshProfileConfiguration({ profilePackage, patchText, soulId, storeDir, surface, dependencySpec, contextOrder })
+  const plan = await planDshProfileConfiguration({ profilePackage, patchText, soulId, storeDir, participantId, surface, dependencySpec, contextOrder })
 
   if (!dryRun && !plan.preflight.ready) {
     const failedChecks = Object.entries(plan.preflight.checks)
