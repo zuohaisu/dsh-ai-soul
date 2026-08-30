@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
 import { preflightSoul } from './preflight.js'
+import { analyzeProfilePatchShape } from './profile-patch.js'
 
 const SURFACE_BUNDLES = Object.freeze({
   tui: '@deepseek-harness-tui/dsh-tui',
@@ -19,6 +20,7 @@ function parseScalar(value) {
 }
 
 export function parseAiSoulPatch(patchText = '') {
+  const shape = analyzeProfilePatchShape(patchText)
   const lines = String(patchText).split(/\r?\n/)
   let inAiSoul = false
   let inConfig = false
@@ -57,6 +59,7 @@ export function parseAiSoulPatch(patchText = '') {
   }
 
   return {
+    documentValid: shape.valid,
     loaderPresent: inAiSoul,
     config,
   }
@@ -74,6 +77,15 @@ function profileBundles(profilePackage) {
 
 function buildDiagnostics({ checks, soulError, soulId, storeDir, surface, surfaceBundle }) {
   const diagnostics = []
+
+  if (!checks.patchDocumentValid) {
+    diagnostics.push({
+      check: 'patchDocumentValid',
+      code: 'profile-patch-invalid',
+      message: 'cordis.patch.yml combines the root empty sequence [] with profile entries and cannot be parsed by DSH.',
+      hint: 'Replace the root [] placeholder with the profile entry sequence; do not append entries after [].',
+    })
+  }
 
   if (!checks.pluginDependencyPresent) {
     diagnostics.push({
@@ -197,6 +209,7 @@ export async function preflightDshProfile({
   const configuredStoreDir = parsedPatch.config.storeDir ? resolve(parsedPatch.config.storeDir) : null
 
   const checks = {
+    patchDocumentValid: parsedPatch.documentValid,
     pluginDependencyPresent: dependencyPresent(profilePackage),
     soulBundleComposed: bundles.includes('dsh-ai-soul'),
     aiSoulLoaderPresent: parsedPatch.loaderPresent,
@@ -215,6 +228,7 @@ export async function preflightDshProfile({
   }
 
   const runtimeReady = [
+    checks.patchDocumentValid,
     checks.pluginDependencyPresent,
     checks.soulBundleComposed,
     checks.aiSoulLoaderPresent,

@@ -85,6 +85,30 @@ test('existing dsh-ai-soul dependency is preserved when dependency spec is omitt
   assert.equal(configured.dependencies['dsh-ai-soul'], 'file:/already/installed/dsh-ai-soul')
 })
 
+test('canonical DSH empty patch is replaced with one valid profile entry sequence', () => {
+  const initialPatch = `# DSH initialized profile patch\n[]\n`
+  const configured = configurePatch({
+    patchText: initialPatch,
+    soulId: 'aster',
+    storeDir: '/tmp/aster',
+  })
+
+  assert.match(configured, /^# DSH initialized profile patch\n- id: ai-soul\n/)
+  assert.doesNotMatch(configured, /^\[\]$/m)
+  assert.equal(configurePatch({ patchText: configured, soulId: 'aster', storeDir: '/tmp/aster' }), configured)
+})
+
+test('configure fails closed when an empty root sequence already coexists with profile entries', () => {
+  assert.throws(
+    () => configurePatch({
+      patchText: `[]\n- id: existing-plugin\n`,
+      soulId: 'aster',
+      storeDir: '/tmp/aster',
+    }),
+    /cannot combine the root empty sequence \[\] with profile entries/,
+  )
+})
+
 test('package and patch transforms are idempotent and update only the ai-soul block', async () => {
   const storeDir = await createStore()
   const oncePackage = configurePackage({ profilePackage: basePackage('tui'), dependencySpec: 'file:/repo/dsh-ai-soul' })
