@@ -44,14 +44,17 @@ function locateAiSoulBlock(lines) {
 
 function renderAiSoulBlock({ soulId, storeDir, participantId, contextOrder = -10, indent = 0 }) {
   const pad = ' '.repeat(indent)
+  const participantLines = participantId == null ? [] : [
+    `${pad}    firstEncounterParticipant:`,
+    `${pad}      id: ${quoteYaml(participantId)}`,
+    `${pad}      kind: "human"`,
+  ]
   return [
     `${pad}- id: ai-soul`,
     `${pad}  config:`,
     `${pad}    soulId: ${quoteYaml(soulId)}`,
     `${pad}    storeDir: ${quoteYaml(resolve(storeDir))}`,
-    `${pad}    firstEncounterParticipant:`,
-    `${pad}      id: ${quoteYaml(participantId)}`,
-    `${pad}      kind: "human"`,
+    ...participantLines,
     `${pad}    contextOrder: ${contextOrder}`,
   ]
 }
@@ -85,7 +88,7 @@ export function configurePackage({ profilePackage, dependencySpec }) {
 export function configurePatch({ patchText = '', soulId, storeDir, participantId, contextOrder = -10 }) {
   assertString('soulId', soulId)
   assertString('storeDir', storeDir)
-  assertString('participantId', participantId)
+  if (participantId != null) assertString('participantId', participantId)
   if (!Number.isFinite(contextOrder)) throw new TypeError('contextOrder must be a finite number')
 
   const normalized = String(patchText)
