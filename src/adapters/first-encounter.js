@@ -31,11 +31,10 @@ export async function captureFirstEncounterFromDshEvent({ store, soulId, session
     throw new Error('first encounter already recorded from a different runtime event')
   }
 
-  const genesisAt = Date.parse(state.genesis?.at ?? state.genesis?.createdAt ?? '')
+  const genesisAt = Date.parse(state.identity?.origin?.at ?? '')
   const encounterAt = Date.parse(capture.at)
-  if (Number.isFinite(genesisAt) && encounterAt <= genesisAt) {
-    throw new Error('first encounter must occur after Genesis')
-  }
+  if (!Number.isFinite(genesisAt)) throw new Error('persisted Soul is missing Genesis timestamp provenance')
+  if (encounterAt <= genesisAt) throw new Error('first encounter must occur after Genesis')
 
   const next = recordFirstEncounter(state, capture)
   await store.save(next)
