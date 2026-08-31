@@ -58,6 +58,14 @@
     "ai-agent"
   ],
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zuohaisu/dsh-ai-soul.git"
+  },
+  "homepage": "https://github.com/zuohaisu/dsh-ai-soul#readme",
+  "bugs": {
+    "url": "https://github.com/zuohaisu/dsh-ai-soul/issues"
+  },
   "engines": {
     "node": ">=20"
   },
