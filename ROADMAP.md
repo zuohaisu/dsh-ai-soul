@@ -132,13 +132,13 @@ Deliverables:
 - [x] Minimal context injection into agent execution.
 - [x] No Samuel-specific code in the adapter.
 - [ ] Fresh-session test in DSH.
-- [ ] Activation-before-interaction real-runtime proof for an unnamed Genesis v2 Soul (#122).
+- [x] Activation-before-interaction real-runtime proof for an unnamed Genesis v2 Soul (#122).
 
 Exit criterion:
 
 > A fresh DSH session can instantiate a selected persisted Soul; the activation-first path can also load and preserve an unnamed Soul before any conversation occurs.
 
-Engineering implementation is merged in PR #49. Real-runtime verification remains open in #7, and the stronger ordinary-user activation-before-interaction case is tracked in #122.
+Engineering implementation is merged in PR #49. The generic activation-before-interaction runtime proof completed in #122 with real model-backed context visibility, first-encounter persistence, and restart exactly-once evidence. The remaining fresh-session runtime gate in #7 is Samuel-specific and remains open.
 
 ## M3 — Experience Capture
 
@@ -234,7 +234,7 @@ Exit criterion:
 
 The original runtime-neutral Genesis implementation landed in PRs #36, #40, and #46. The activation-first ontology correction was recorded in PR #123 and implemented in PR #124 after the earlier first-meeting-centered model was found to be too restrictive.
 
-Real DSH proof that such an unnamed Soul persists across shutdown/restart before first interaction is tracked separately in #122 under the runtime gate.
+Real DSH proof that such an unnamed Soul persists across shutdown/restart before first interaction completed in #122, including model-backed context visibility and independent first-encounter persistence after later interaction.
 
 ## M8 — Portable AI Soul Core
 
