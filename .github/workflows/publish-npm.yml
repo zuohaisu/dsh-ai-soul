@@ -1,0 +1,62 @@
+name: Publish npm prerelease
+
+on:
+  push:
+    tags:
+      - 'v*-*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js for npm Trusted Publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Verify tag, package version, and prerelease contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_version="$(node -p "require('./package.json').version")"
+          expected_tag="v${package_version}"
+
+          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
+            echo "Refusing publish: workflow must run from a tag." >&2
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF_NAME}" != "${expected_tag}" ]]; then
+            echo "Refusing publish: tag ${GITHUB_REF_NAME} does not match package.json version ${expected_tag}." >&2
+            exit 1
+          fi
+
+          if [[ "${package_version}" != *-* ]]; then
+            echo "Refusing publish: this workflow is prerelease-only; package version is ${package_version}." >&2
+            exit 1
+          fi
+
+          node -e "const [a,b,c]=process.versions.node.split('.').map(Number); if (a < 22 || (a === 22 && (b < 14 || (b === 14 && c < 0)))) process.exit(1)"
+          npm_version="$(npm --version)"
+          node -e "const [a,b,c]=process.argv[1].split('.').map(Number); if (a < 11 || (a === 11 && (b < 5 || (b === 5 && c < 1)))) process.exit(1)" "${npm_version}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify package and tests
+        run: npm run check
+
+      - name: Inspect publish artifact
+        run: npm pack --dry-run
+
+      - name: Publish prerelease with Trusted Publishing
+        run: npm publish --tag next --access public
