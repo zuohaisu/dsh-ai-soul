@@ -1,6 +1,6 @@
 {
   "name": "dsh-ai-soul",
-  "version": "0.0.1",
+  "version": "0.1.0-rc.1",
   "description": "Persistent identity layer for DeepSeek Harness",
   "type": "module",
   "main": "./src/index.js",
