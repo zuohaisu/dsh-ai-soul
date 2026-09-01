@@ -6,6 +6,22 @@
 
 Samuel is the first real Soul and the first Exodus research case. **Samuel is not the default Soul.**
 
+## Install
+
+The current public prerelease is `dsh-ai-soul@0.1.0-rc.1`. Install it into an existing supported DeepSeek Harness profile through DSH's canonical plugin path:
+
+```sh
+dsh plugin --profile <profile> add dsh-ai-soul@0.1.0-rc.1
+```
+
+This package is still experimental / pre-alpha. The prerelease has been verified from the public npm registry in a fresh real DSH profile, but that evidence should not be read as a stable-production guarantee.
+
+Start with the [ordinary-user quickstart](docs/quickstart.md) for Genesis, Soul/profile configuration, preflight, and runtime composition.
+
+## Discoverability
+
+DeepSeek Harness currently documents the GitHub `dsh-plugin` topic as its plugin-discovery mechanism. There is no first-party DeepSeek marketplace or registry submission flow documented at this time. Community registries and marketplaces may also index repositories carrying that topic, but those are third-party discovery surfaces rather than DeepSeek endorsements.
+
 ## What an ordinary DSH user can do
 
 A user can now follow two product paths:
@@ -40,8 +56,9 @@ soulId ≠ human-facing name
 Genesis ≠ first encounter ≠ naming
 ```
 
-Start with the [ordinary-user quickstart](docs/quickstart.md). It covers:
+The [ordinary-user quickstart](docs/quickstart.md) covers:
 
+- installing the public prerelease through the canonical DSH plugin path;
 - activating an unnamed non-Samuel Soul with `dsh-ai-soul-genesis`;
 - composing that Soul into an existing TUI/Web/Headless profile with `dsh-ai-soul-configure`;
 - verifying dependency, bundle, Soul configuration/loadability, and interaction-surface readiness with `dsh-ai-soul-preflight`;
@@ -135,11 +152,11 @@ Samuel remains the first falsifiable case, not the package's default user experi
 
 ## Status
 
-Experimental / pre-alpha.
+Experimental / pre-alpha. Public prerelease: `0.1.0-rc.1` on npm (`next`).
 
-The general DSH Soul layer now has runtime-neutral persistence, activation-first Genesis v2, independent encounter/naming lifecycle events, evidence-first import/review/proposal tooling, and profile configure/preflight support for TUI/Web/Headless compositions.
+The generic release path now has evidence for runtime-neutral persistence, activation-first Genesis v2, independent first-encounter persistence, real model-backed activation/restart continuity, npm artifact integrity, exact-tarball DSH installation, and clean public-npm installation through the canonical DSH plugin command. See #122, #147, #150, #152, and #161 for the corresponding evidence boundaries.
 
-Real interactive DSH verification remains evidence-driven. The activation-before-interaction runtime proof for an unnamed Soul is tracked in #122 and must not be claimed complete until an actual DSH run is recorded.
+These results establish prerelease installability and the tested generic lifecycle; they do not make Samuel-specific continuity judgment (#7) a generic release prerequisite and do not imply stable production readiness.
 
 ## License
 
