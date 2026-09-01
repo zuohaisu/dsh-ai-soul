@@ -30,11 +30,12 @@ test('fresh-session checks derive expected answers from the selected Soul rather
   assert.doesNotMatch(guide, /Haisu came to Samuel in his prompts/)
 })
 
-test('quickstart links preflight to real runtime verification without claiming completion', () => {
+test('quickstart links preflight to real runtime evidence without overstating production readiness', () => {
   assert.match(quickstart, /runtime-verification\.md/)
-  assert.match(quickstart, /real.*runtime.*verification/i)
-  assert.match(quickstart, /does not claim real runtime verification unless that real run has actually occurred/i)
-  assert.match(quickstart, /#122/)
+  assert.match(quickstart, /installed-package preflight → DSH effective config → real runtime/i)
+  assert.match(quickstart, /activation-before-interaction runtime scenario has been completed in #122/i)
+  assert.match(quickstart, /#161 separately proved the public npm prerelease installs through the canonical DSH plugin path/i)
+  assert.match(quickstart, /distinct from stable-production claims/i)
 })
 
 test('TUI runtime docs use the DSH launcher contract rather than assuming a standalone binary', () => {
