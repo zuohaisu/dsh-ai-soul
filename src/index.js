@@ -5,7 +5,7 @@ import {
   projectSoulContext,
   renderSoulContext,
 } from './core/index.js'
-import { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js'
+import { processDshHumanInteraction } from './adapters/interaction-processing.js'
 
 export const name = 'ai-soul'
 export const inject = ['systemPrompt']
@@ -70,18 +70,19 @@ export async function apply(ctx, rawConfig = {}) {
     text,
   })
 
-  // Serialize candidates so two near-simultaneous human messages cannot race two
-  // first-encounter writes. Each candidate still reloads persisted truth.
-  let encounterQueue = Promise.resolve()
+  // Serialize human interactions so lifecycle persistence and ephemeral
+  // Experience/significance processing observe one ordered event stream.
+  // The significance path itself has no persistence or mutation authority.
+  let interactionQueue = Promise.resolve()
   ctx.on('session/event', (session, event) => {
-    encounterQueue = encounterQueue.then(() => captureFirstEncounterFromDshEvent({
+    interactionQueue = interactionQueue.then(() => processDshHumanInteraction({
       store,
       soulId: config.soulId,
       session,
       event,
       participant: config.firstEncounterParticipant,
     }))
-    return encounterQueue
+    return interactionQueue
   })
 
   console.log(`[dsh-ai-soul] loaded Soul ${config.soulId}`)
@@ -94,6 +95,11 @@ export {
   normalizeDshHumanInteraction,
 } from './adapters/runtime-event.js'
 export { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js'
+export {
+  DSH_SIGNIFICANCE_BASELINE_POLICY,
+  createFailClosedSignificanceAssessment,
+  processDshHumanInteraction,
+} from './adapters/interaction-processing.js'
 export { preflightSoul } from './preflight.js'
 export {
   parseAiSoulPatch,
