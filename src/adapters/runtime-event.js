@@ -15,7 +15,7 @@ function encodeIdentityPart(value) {
   return encodeURIComponent(value)
 }
 
-function validateDshHumanMessageBoundary(session, event, { participant } = {}) {
+function validateDshHumanInteractionBoundary(session, event, { participant } = {}) {
   if (!isObject(event) || event.type !== 'user/message') return { accepted: false, reason: 'not-user-message' }
   if (event.data?.source?.kind !== 'user') return { accepted: false, reason: 'not-human-source' }
 
@@ -31,8 +31,13 @@ function validateDshHumanMessageBoundary(session, event, { participant } = {}) {
   if (!isObject(participant) || !participant.id || typeof participant.id !== 'string') {
     throw new TypeError('DSH human interaction requires participant.id')
   }
+
+  return { accepted: true }
+}
+
+function extractDshTextObservation(event) {
   if (!Array.isArray(event.data?.content)) {
-    throw new TypeError('DSH human interaction requires event.data.content array')
+    throw new TypeError('DSH Experience capture requires event.data.content array')
   }
 
   const textParts = event.data.content
@@ -40,15 +45,15 @@ function validateDshHumanMessageBoundary(session, event, { participant } = {}) {
     .map((part) => part.text)
 
   if (textParts.length === 0 || textParts.some((text) => typeof text !== 'string')) {
-    throw new TypeError('DSH human interaction requires at least one text content part')
+    throw new TypeError('DSH Experience capture requires at least one text content part')
   }
 
   const text = textParts.join('\n')
   if (!text.trim()) {
-    throw new TypeError('DSH human interaction text must not be empty')
+    throw new TypeError('DSH Experience capture text must not be empty')
   }
 
-  return { accepted: true, text }
+  return text
 }
 
 export function validateRuntimeEventEnvelope(event) {
@@ -103,16 +108,20 @@ export function mapRuntimeEventToExperience(event) {
 }
 
 /**
- * Map one accepted human DSH message into an ephemeral, provenance-bound
- * Experience Record. This grants no persistence, significance, promotion, or
- * Soul-state mutation authority. Synthetic/plugin messages are ignored.
+ * Map one accepted text-bearing human DSH message into an ephemeral,
+ * provenance-bound Experience Record. This grants no persistence, significance,
+ * promotion, or Soul-state mutation authority. Synthetic/plugin messages are ignored.
+ *
+ * Text is bounded at the adapter boundary so a single runtime event cannot become
+ * an unbounded Experience payload. Truncation is explicit in the payload metadata.
  */
 export function mapDshHumanMessageToExperience(session, event, { participant } = {}) {
-  const boundary = validateDshHumanMessageBoundary(session, event, { participant })
+  const boundary = validateDshHumanInteractionBoundary(session, event, { participant })
   if (!boundary.accepted) return null
 
-  const originalChars = boundary.text.length
-  const text = boundary.text.slice(0, MAX_DSH_EXPERIENCE_TEXT_CHARS)
+  const observation = extractDshTextObservation(event)
+  const originalChars = observation.length
+  const text = observation.slice(0, MAX_DSH_EXPERIENCE_TEXT_CHARS)
 
   return mapRuntimeEventToExperience({
     version: RUNTIME_EVENT_ENVELOPE_VERSION,
@@ -149,10 +158,11 @@ export function mapDshHumanMessageToExperience(session, event, { participant } =
 /**
  * Normalize the one DSH durable fact that proves a human prompt entered a turn.
  * Synthetic/plugin messages are deliberately ignored: existence, injected context,
- * and human encounter are separate lifecycle facts.
+ * and human encounter are separate lifecycle facts. This lifecycle boundary does
+ * not require text and therefore remains independent from Experience capture.
  */
 export function normalizeDshHumanInteraction(session, event, { participant } = {}) {
-  const boundary = validateDshHumanMessageBoundary(session, event, { participant })
+  const boundary = validateDshHumanInteractionBoundary(session, event, { participant })
   if (!boundary.accepted) return null
 
   return {
