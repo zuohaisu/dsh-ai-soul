@@ -35,6 +35,10 @@ export {
 } from './candidate-claim.js'
 
 export {
+  createCandidatePromotionProposal,
+} from './candidate-promotion.js'
+
+export {
   DEFAULT_STATE_TRANSITION_REVIEW_POLICY,
   STATE_TRANSITION_DECISIONS,
   STATE_TRANSITION_PROPOSAL_VERSION,
