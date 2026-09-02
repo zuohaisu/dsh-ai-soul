@@ -19,6 +19,15 @@ function hasUsableTextContent(event) {
   ))
 }
 
+function result(firstEncounter, experience = null, significanceAssessment = null) {
+  return {
+    status: firstEncounter.status,
+    firstEncounter,
+    experience,
+    significanceAssessment,
+  }
+}
+
 /**
  * Current M4.1 baseline significance gate.
  *
@@ -56,6 +65,8 @@ export function createFailClosedSignificanceAssessment(experience) {
  * First encounter may persist because it is an existence lifecycle fact already
  * governed by Core. Experience and Significance Assessment remain ephemeral in
  * this slice and cannot mutate canonical Soul state.
+ *
+ * The top-level status preserves the pre-M4.1 session/event handler contract.
  */
 export async function processDshHumanInteraction({
   store,
@@ -73,19 +84,15 @@ export async function processDshHumanInteraction({
   })
 
   if (event?.type !== 'user/message' || event?.data?.source?.kind !== 'user') {
-    return { firstEncounter, experience: null, significanceAssessment: null }
+    return result(firstEncounter)
   }
 
   if (!hasUsableTextContent(event)) {
-    return { firstEncounter, experience: null, significanceAssessment: null }
+    return result(firstEncounter)
   }
 
   const experience = mapDshHumanMessageToExperience(session, event, { participant })
   const significanceAssessment = createFailClosedSignificanceAssessment(experience)
 
-  return {
-    firstEncounter,
-    experience,
-    significanceAssessment,
-  }
+  return result(firstEncounter, experience, significanceAssessment)
 }
