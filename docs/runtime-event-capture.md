@@ -8,7 +8,7 @@ runtime-specific event
 Runtime Event Envelope v1
       ↓ mapRuntimeEventToExperience()
 Experience Record v1
-      ↓ optional assessment
+      ↓ explicit assessment boundary
 Significance Assessment v1
       ↓ explicit governed operation only
 mutable Soul model / autobiography
@@ -42,33 +42,55 @@ M4.1 adds `mapDshHumanMessageToExperience()` as a separate adapter operation for
 - copies at most 8,000 text characters into the ephemeral Experience observation and records whether truncation occurred;
 - ignores synthetic/plugin messages;
 - does not persist the Experience by itself;
-- does not assess significance;
 - does not promote autobiography or mutate canonical Soul state.
 
 The text requirement belongs only to this first Experience-capture slice. First encounter remains independent and may be recorded from a valid non-text human interaction.
 
-## Authority boundaries
+## Live fail-closed significance gate
 
-Creating an Experience Record is evidence capture, not memory authority. The current path intentionally stops here:
+Issue #170 wires the live plugin `session/event` handler through `processDshHumanInteraction()` after the independently governed first-encounter path.
+
+For an accepted text-bearing human message the processor now produces, in memory only:
 
 ```text
 DSH human message
   → provenance-bound Experience Record
+  → Significance Assessment v1
+       level: low
+       recommendPromotion: false
+       method: fail-closed-baseline
   → STOP
 ```
 
-A later slice must explicitly define significance assessment and governed promotion. It must not infer that every captured interaction is long-term memory, and it must keep raw interaction history, Experience evidence, canonical Soul state, and governance history conceptually separate.
+The baseline assessment exists to make the selection boundary explicit without pretending that the system already knows what is worth remembering. It is not a classifier. It does not choose a model, prompt, threshold, relationship archetype, or durable-memory policy. Until a separately governed assessor establishes a promotion signal, the default answer is **do not promote**.
+
+The assessment is epistemic evidence only. It grants no persistence, reflection, promotion, or canonical-state mutation authority. Experience and assessment are deliberately ephemeral in this slice.
+
+A synthetic/plugin message receives neither Experience nor assessment. A valid non-text human message may still establish first encounter but receives neither Experience nor assessment, preserving `Genesis != first encounter != memory formation`.
+
+## Authority boundaries
+
+The implementation keeps four concerns distinct:
+
+1. raw DSH interaction history — owned by the runtime/surface;
+2. Experience Record — bounded interpreted evidence;
+3. Significance Assessment — a proposal about importance, not authority;
+4. canonical Soul state / governance history — changed only through explicit governed operations.
+
+A later M4.1 slice may introduce a real significance assessor and a bounded candidate claim, but it must preserve this separation and must prove a control interaction causes zero canonical mutation.
 
 ## What is verified
 
 Automated tests verify that:
 
 - a real-shape DSH text `user/message` maps deterministically into a valid Experience Record;
-- DSH/session/event/participant provenance survives the mapping;
-- synthetic/plugin messages produce no Experience;
-- invalid identity/time/content fails closed;
+- the live plugin handler routes DSH events through the interaction processor;
+- accepted text Experience receives a valid assessment tied to the exact Experience id;
+- the baseline assessment is explicitly `recommendPromotion:false` with policy provenance;
+- a repeated/control interaction after first encounter leaves persisted canonical Soul state unchanged;
+- synthetic/plugin messages produce neither Experience nor assessment;
+- valid non-text human interaction remains eligible for first encounter without memory assessment;
 - copied text is explicitly bounded;
-- Experience capture does not mutate Soul State or autobiography;
-- first-encounter normalization remains independent from the text Experience boundary.
+- no Experience or Significance Assessment is durably stored by this slice.
 
-The DSH `session/event` interaction source itself has real-runtime evidence from #147. This slice does **not** claim real-runtime proof that `mapDshHumanMessageToExperience()` is already wired into the live plugin handler; wiring, selective persistence, significance, and governed growth remain subsequent M4.1 work.
+The DSH `session/event` interaction source itself has real-runtime evidence from #147. The fail-closed significance gate added in #170 is currently covered by automated adapter/integration tests; it does **not** claim new real-DSH runtime evidence until exercised and recorded in a real DSH environment.
