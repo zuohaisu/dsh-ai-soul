@@ -27,6 +27,14 @@ export {
 } from './significance.js'
 
 export {
+  CANDIDATE_CLAIM_MAX_STATEMENT_LENGTH,
+  CANDIDATE_CLAIM_TARGETS,
+  CANDIDATE_CLAIM_VERSION,
+  createCandidateClaim,
+  validateCandidateClaim,
+} from './candidate-claim.js'
+
+export {
   DEFAULT_STATE_TRANSITION_REVIEW_POLICY,
   STATE_TRANSITION_DECISIONS,
   STATE_TRANSITION_PROPOSAL_VERSION,
