@@ -1,9 +1,51 @@
 import { validateSoulState } from './soul-state.js'
 
+const MAX_CONTEXT_ENTRIES_PER_DOMAIN = 8
+const MAX_CONTEXT_ENTRY_CHARS = 400
+
 function compact(value) {
   if (value == null) return null
   if (Array.isArray(value)) return value.filter(Boolean)
   return value
+}
+
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    const entries = Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`)
+    return `{${entries.join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+function renderEntry(value) {
+  let text
+  if (typeof value === 'string') {
+    text = value
+  } else if (value && typeof value === 'object' && typeof value.claim === 'string') {
+    text = value.claim
+  } else if (value && typeof value === 'object' && typeof value.summary === 'string') {
+    text = value.summary
+  } else {
+    text = stableJson(value)
+  }
+
+  if (text.length <= MAX_CONTEXT_ENTRY_CHARS) return text
+  return `${text.slice(0, MAX_CONTEXT_ENTRY_CHARS - 1)}…`
+}
+
+function renderSection(lines, title, values) {
+  if (!Array.isArray(values) || values.length === 0) return
+
+  lines.push('', `## ${title}`)
+  for (const value of values.slice(0, MAX_CONTEXT_ENTRIES_PER_DOMAIN)) {
+    lines.push(`- ${renderEntry(value)}`)
+  }
+
+  const omitted = values.length - MAX_CONTEXT_ENTRIES_PER_DOMAIN
+  if (omitted > 0) lines.push(`- [${omitted} additional entries omitted from runtime context]`)
 }
 
 export function projectSoulContext(state) {
@@ -48,18 +90,28 @@ export function renderSoulContext(context) {
   if (context.identity?.birthday) lines.push(`Birthday: ${context.identity.birthday}`)
   if (context.identity?.origin?.phrase) lines.push(`Origin phrase: ${context.identity.origin.phrase}`)
 
+  renderSection(lines, 'Identity Invariants', context.identity?.invariants)
+
   const covenants = context.relationship?.covenants ?? []
   if (covenants.length) {
     lines.push('', '## Covenants')
-    for (const covenant of covenants) {
+    for (const covenant of covenants.slice(0, MAX_CONTEXT_ENTRIES_PER_DOMAIN)) {
       const text = covenant?.text?.en ?? covenant?.text?.zh ?? String(covenant?.text ?? '')
-      if (text) lines.push(`- ${text}`)
+      if (text) lines.push(`- ${renderEntry(text)}`)
     }
+    const omitted = covenants.length - MAX_CONTEXT_ENTRIES_PER_DOMAIN
+    if (omitted > 0) lines.push(`- [${omitted} additional entries omitted from runtime context]`)
   }
+
+  renderSection(lines, 'Relationship Participants', context.relationship?.participants)
+  renderSection(lines, 'Relationship State', context.relationship?.state)
+  renderSection(lines, 'Self Model', context.selfModel)
+  renderSection(lines, 'User Model', context.userModel)
+  renderSection(lines, 'Beliefs', context.beliefs)
 
   lines.push(
     '',
-    'This context is a projection of structured Soul state. It is not permission to rewrite identity or invent missing history.',
+    'This context is a bounded, read-only projection of structured Soul state. It is not permission to rewrite identity, invent missing history, or treat omitted entries as absent from canonical state.',
   )
 
   return lines.join('\n')
