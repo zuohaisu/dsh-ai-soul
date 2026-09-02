@@ -68,14 +68,24 @@ test('control interaction after first encounter produces no canonical Soul mutat
   const { store, soulId } = await makeStore('ember-170-control')
   const session = { id: 'session-170-control' }
 
+  const establishingEvent = humanMessage(1, 'hello')
   await processDshHumanInteraction({
     store,
     soulId,
     session,
-    event: humanMessage(1, 'hello'),
+    event: establishingEvent,
     participant,
   })
   const before = await store.load(soulId)
+
+  const exactRetry = await processDshHumanInteraction({
+    store,
+    soulId,
+    session,
+    event: establishingEvent,
+    participant,
+  })
+  assert.equal(exactRetry.status, 'duplicate')
 
   const result = await processDshHumanInteraction({
     store,
@@ -86,7 +96,7 @@ test('control interaction after first encounter produces no canonical Soul mutat
   })
   const after = await store.load(soulId)
 
-  assert.equal(result.status, 'duplicate')
+  assert.equal(result.status, 'already-recorded')
   assert.ok(result.experience)
   assert.equal(result.significanceAssessment.recommendPromotion, false)
   assert.deepEqual(after, before)
