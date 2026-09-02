@@ -88,7 +88,11 @@ export async function apply(ctx, rawConfig = {}) {
 }
 
 export * from './core/index.js'
-export { normalizeDshHumanInteraction } from './adapters/runtime-event.js'
+export {
+  MAX_DSH_EXPERIENCE_TEXT_CHARS,
+  mapDshHumanMessageToExperience,
+  normalizeDshHumanInteraction,
+} from './adapters/runtime-event.js'
 export { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js'
 export { preflightSoul } from './preflight.js'
 export {
