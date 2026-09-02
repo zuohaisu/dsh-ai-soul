@@ -5,6 +5,7 @@ import {
   createSoulState,
   MAX_DSH_EXPERIENCE_TEXT_CHARS,
   mapDshHumanMessageToExperience,
+  normalizeDshHumanInteraction,
   validateExperienceRecord,
 } from '../src/index.js'
 
@@ -105,4 +106,21 @@ test('bounds copied observation text explicitly without mutating Soul state', ()
   assert.equal(experience.payload.observation.originalChars, MAX_DSH_EXPERIENCE_TEXT_CHARS + 25)
   assert.deepEqual(soul, before)
   assert.equal(soul.autobiography.length, 0)
+})
+
+test('first-encounter normalization remains independent from text Experience capture', () => {
+  const imageOnly = humanMessage({
+    data: {
+      role: 'user',
+      source: { kind: 'user', via: 'web' },
+      content: [{ type: 'image', url: 'attachment://image-1' }],
+    },
+  })
+
+  const interaction = normalizeDshHumanInteraction(session, imageOnly, { participant })
+  assert.equal(interaction.id, 'dsh:session-168:user-message:7')
+  assert.throws(
+    () => mapDshHumanMessageToExperience(session, imageOnly, { participant }),
+    /at least one text content part/,
+  )
 })
