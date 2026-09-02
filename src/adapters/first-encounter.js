@@ -16,6 +16,11 @@ function sameCapture(existing, capture) {
  * Adapter-owned transition from a trusted DSH durable user/message envelope into
  * the DSH-neutral Core first-encounter lifecycle. The store is reloaded for every
  * candidate so retries and restarts are idempotent against persisted truth.
+ *
+ * Once first encounter exists, later human interactions are ordinary continuation,
+ * not competing first-encounter candidates. An exact retry of the establishing
+ * event remains distinguishable as `duplicate`; a different later event returns
+ * `already-recorded` without changing canonical state.
  */
 export async function captureFirstEncounterFromDshEvent({ store, soulId, session, event, participant }) {
   if (!store?.load || !store?.save) throw new TypeError('Soul store with load/save is required')
@@ -28,7 +33,7 @@ export async function captureFirstEncounterFromDshEvent({ store, soulId, session
   const existing = firstEncounter(state)
   if (existing) {
     if (sameCapture(existing, capture)) return { status: 'duplicate', state }
-    throw new Error('first encounter already recorded from a different runtime event')
+    return { status: 'already-recorded', state }
   }
 
   const genesisAt = Date.parse(state.identity?.origin?.at ?? '')
