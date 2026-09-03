@@ -43,12 +43,22 @@ function humanMessage(seq, text) {
   }
 }
 
-async function processRevision(store, soulId, text) {
+async function processRevision(store, soulId, text, seq = 2) {
   return processDshHumanInteraction({
     store,
     soulId,
     session: { id: `session-${soulId}` },
-    event: humanMessage(1, text),
+    event: humanMessage(seq, text),
+    participant,
+  })
+}
+
+async function recordFirstEncounter(store, soulId) {
+  await processDshHumanInteraction({
+    store,
+    soulId,
+    session: { id: `session-${soulId}` },
+    event: humanMessage(1, 'hello'),
     participant,
   })
 }
@@ -57,6 +67,7 @@ test('explicit revision with exactly one current old preference yields a replace
   const soulId = 'ember-212-revision'
   const oldPreference = { claim: 'The user prefers concise answers.' }
   const store = await makeStore(soulId, [oldPreference])
+  await recordFirstEncounter(store, soulId)
   const before = await store.load(soulId)
 
   const result = await processRevision(
