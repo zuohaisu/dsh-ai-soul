@@ -191,3 +191,4 @@ export {
   preflightDshProfileDir,
   SURFACE_BUNDLES,
 } from './profile-preflight.js'
+export { preflightDshSurfaceContinuity } from './surface-continuity-preflight.js'
