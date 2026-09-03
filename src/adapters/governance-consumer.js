@@ -82,14 +82,15 @@ export function createDshGovernanceConsumer(ctx, { store } = {}) {
 
       // Persistence happens inside inbox.review(). Only after an approved state
       // is durably saved may the consumer tell AI Soul to refresh its validated
-      // in-memory prompt snapshot.
+      // in-memory prompt snapshot. Await that refresh so a completed human review
+      // cannot race the next prompt assembly.
       if (resolved.persisted) {
-        ctx.emit('ai-soul/state-committed', { soulId: resolved.soulId })
+        await ctx.emit('ai-soul/state-committed', { soulId: resolved.soulId })
       }
 
       // This is an audit/UI signal only. It carries the reviewed proposal and
       // outcome but grants no mutation authority.
-      ctx.emit('ai-soul/governance-resolved', structuredClone(resolved))
+      await ctx.emit('ai-soul/governance-resolved', structuredClone(resolved))
       return resolved
     })
     return reviewQueue
