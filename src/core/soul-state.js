@@ -29,6 +29,7 @@ export function createSoulState({
     autobiography: [],
     selfModel: [],
     userModel: [],
+    worldModel: [],
     relationship: {
       participants: [],
       state: [],
@@ -52,6 +53,7 @@ export function validateSoulState(state) {
   for (const key of ['autobiography', 'selfModel', 'userModel', 'beliefs', 'evolution']) {
     if (!Array.isArray(state?.[key])) errors.push(`${key} must be an array`)
   }
+  if (state?.worldModel != null && !Array.isArray(state.worldModel)) errors.push('worldModel must be an array when provided')
 
   for (const key of ['participants', 'state', 'covenants']) {
     if (!Array.isArray(state?.relationship?.[key])) errors.push(`relationship.${key} must be an array`)
