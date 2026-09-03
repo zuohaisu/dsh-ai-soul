@@ -162,6 +162,7 @@ export {
   createFailClosedSignificanceAssessment,
   processDshHumanInteraction,
 } from './adapters/interaction-processing.js'
+export { createDshGovernanceConsumer } from './adapters/governance-consumer.js'
 export { preflightSoul } from './preflight.js'
 export {
   parseAiSoulPatch,
