@@ -30,7 +30,8 @@ const PATTERNS = Object.freeze([
 function normalizedObservation(experience) {
   const observation = experience?.payload?.observation
   if (!observation || typeof observation !== 'object' || Array.isArray(observation)) return ''
-  return typeof observation.text === 'string' ? observation.text.trim() : ''
+  if (typeof observation.text !== 'string') return ''
+  return observation.text.trim().replace(/[.!?]+$/u, '').trim()
 }
 
 function cleanStatement(value) {
