@@ -1,6 +1,7 @@
 import { validateSoulState } from './soul-state.js'
+import { MAX_CURRENT_COGNITION_ENTRIES_PER_DOMAIN } from './cognitive-capacity.js'
 
-const MAX_CONTEXT_ENTRIES_PER_DOMAIN = 8
+const MAX_CONTEXT_ENTRIES_PER_DOMAIN = MAX_CURRENT_COGNITION_ENTRIES_PER_DOMAIN
 const MAX_CONTEXT_ENTRY_CHARS = 400
 
 function compact(value) {
