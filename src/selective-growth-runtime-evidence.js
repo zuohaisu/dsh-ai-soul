@@ -41,7 +41,7 @@ export function evaluateSelectiveGrowthRuntimeEvidence(record) {
     provenanceRef: requiredString(record, 'provenanceRef'),
     persistedClaim: requiredString(record, 'persistedClaim'),
   }
-  if (!['approve', 'reject'].includes(linkage.reviewDecision)) throw new TypeError('reviewDecision must be approve or reject')
+  if (linkage.reviewDecision !== 'approve') throw new TypeError('reviewDecision must be approve for the selective-growth acceptance path')
 
   const observations = record.observations
   if (!observations || typeof observations !== 'object' || Array.isArray(observations)) throw new TypeError('observations must be an object')
@@ -54,13 +54,6 @@ export function evaluateSelectiveGrowthRuntimeEvidence(record) {
     checks[key] = value === true ? 'pass' : value === false ? 'fail' : 'missing'
     if (value !== true && value !== false) missing.push(key)
     else if (value === false) failures.push(key)
-  }
-
-  if (linkage.reviewDecision === 'reject') {
-    const mutationChecks = ['governedApplyPersisted', 'dynamicContextRefreshed', 'nextTurnModelVisibleRecall']
-    for (const key of mutationChecks) {
-      if (observations[key] === true) failures.push(`rejected-review-must-not-${key}`)
-    }
   }
 
   const complete = missing.length === 0
