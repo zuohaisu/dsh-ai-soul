@@ -142,12 +142,12 @@ test('emits one unreviewed governance proposal for explicit durable preference w
   assert.equal(runtime.emitted[0].payload.soulId, 'ember-180')
   assert.equal(runtime.emitted[0].payload.proposal.review, null)
   assert.equal(runtime.emitted[0].payload.proposal.proposer, 'dsh-ai-soul:live-interaction')
-  assert.throws(
-    () => applyStateTransitionProposal(awaitedStatePlaceholder, runtime.emitted[0].payload.proposal),
-    /must be reviewed before application/,
-  )
 
   const afterExplicit = await store.load('ember-180')
+  assert.throws(
+    () => applyStateTransitionProposal(afterExplicit, runtime.emitted[0].payload.proposal),
+    /must be reviewed before application/,
+  )
   assert.equal(afterExplicit.userModel.length, 0)
 
   const control = {
