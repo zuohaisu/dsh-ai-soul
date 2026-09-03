@@ -30,6 +30,18 @@ function validateConfig(config = {}) {
   }
 }
 
+function renderCurrentSoulContext(state, soulId) {
+  try {
+    return renderSoulContext(projectSoulContext(state))
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(
+      `dsh-ai-soul context-projection error for soulId=${soulId}: ${detail}`,
+      { cause: error },
+    )
+  }
+}
+
 function createLiveGovernanceProposal(candidateClaim) {
   return createCandidatePromotionProposal(candidateClaim, {
     id: `proposal:dsh-live:${encodeURIComponent(candidateClaim.id)}`,
@@ -55,9 +67,9 @@ export async function apply(ctx, rawConfig = {}) {
   const config = validateConfig(rawConfig)
   const store = new FileSoulStore({ rootDir: config.storeDir })
 
-  let state
+  let currentState
   try {
-    state = await store.load(config.soulId)
+    currentState = await store.load(config.soulId)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     throw new Error(
@@ -66,22 +78,14 @@ export async function apply(ctx, rawConfig = {}) {
     )
   }
 
-  let text
-  try {
-    const projection = projectSoulContext(state)
-    text = renderSoulContext(projection)
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error)
-    throw new Error(
-      `dsh-ai-soul context-projection error for soulId=${config.soulId}: ${detail}`,
-      { cause: error },
-    )
-  }
-
+  // Fail at plugin activation if the configured Soul cannot be projected. DSH
+  // evaluates the provider again for every eligible prompt assembly, so later
+  // validated state swaps become model-visible without re-running apply().
+  renderCurrentSoulContext(currentState, config.soulId)
   ctx.systemPrompt.context({
     name: `ai-soul:${config.soulId}`,
     order: config.contextOrder,
-    text,
+    text: () => renderCurrentSoulContext(currentState, config.soulId),
   })
 
   // Serialize human interactions so lifecycle persistence and ephemeral
@@ -99,6 +103,13 @@ export async function apply(ctx, rawConfig = {}) {
         participant: config.firstEncounterParticipant,
       })
 
+      // First-encounter capture is the only canonical lifecycle mutation owned
+      // by this plugin. Reload the validated persisted state before exposing it
+      // to subsequent prompt assemblies in this same process.
+      if (processed.firstEncounter?.status === 'recorded') {
+        currentState = await store.load(config.soulId)
+      }
+
       if (processed.candidateClaim) {
         const proposal = createLiveGovernanceProposal(processed.candidateClaim)
         ctx.emit('ai-soul/governance-proposal', {
@@ -110,6 +121,26 @@ export async function apply(ctx, rawConfig = {}) {
       return processed
     })
     return interactionQueue
+  })
+
+  // Independent governance owns review/apply/save. After a successful save it
+  // may announce the committed soulId; AI Soul then reloads and validates that
+  // persisted state before swapping the in-memory prompt snapshot. No state is
+  // accepted directly from the event payload.
+  let refreshQueue = Promise.resolve()
+  ctx.on('ai-soul/state-committed', (payload) => {
+    refreshQueue = refreshQueue.then(async () => {
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload) || typeof payload.soulId !== 'string') {
+        throw new TypeError('dsh-ai-soul state-committed event requires payload.soulId')
+      }
+      if (payload.soulId !== config.soulId) {
+        return { status: 'ignored', soulId: payload.soulId }
+      }
+
+      currentState = await store.load(config.soulId)
+      return { status: 'refreshed', soulId: config.soulId }
+    })
+    return refreshQueue
   })
 
   console.log(`[dsh-ai-soul] loaded Soul ${config.soulId}`)
