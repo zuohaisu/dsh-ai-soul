@@ -27,10 +27,11 @@ export function validateStateTransitionProposal(proposal) {
   if(!proposal.id||typeof proposal.id!=='string')errors.push('id is required')
   if(!proposal.at||typeof proposal.at!=='string')errors.push('at is required')
   if(!STATE_TRANSITION_TARGETS.includes(proposal.target))errors.push('target is not mutable through the generic transition pipeline')
-  if(!['append','replace'].includes(proposal.operation))errors.push('operation must be append or replace')
-  if(!Object.prototype.hasOwnProperty.call(proposal,'value'))errors.push('value is required')
-  if(proposal.operation==='replace'&&!Object.prototype.hasOwnProperty.call(proposal,'previousValue'))errors.push('previousValue is required for replace')
-  if(proposal.operation==='append'&&Object.prototype.hasOwnProperty.call(proposal,'previousValue'))errors.push('previousValue is only valid for replace')
+  if(!['append','replace','retire'].includes(proposal.operation))errors.push('operation must be append, replace, or retire')
+  if(proposal.operation!=='retire'&&!Object.prototype.hasOwnProperty.call(proposal,'value'))errors.push('value is required')
+  if(proposal.operation==='retire'&&Object.prototype.hasOwnProperty.call(proposal,'value'))errors.push('value is not valid for retire')
+  if(['replace','retire'].includes(proposal.operation)&&!Object.prototype.hasOwnProperty.call(proposal,'previousValue'))errors.push('previousValue is required for replace or retire')
+  if(proposal.operation==='append'&&Object.prototype.hasOwnProperty.call(proposal,'previousValue'))errors.push('previousValue is only valid for replace or retire')
   if(!proposal.reason||typeof proposal.reason!=='string')errors.push('reason is required')
   if(!Array.isArray(proposal.evidence)||proposal.evidence.length===0)errors.push('evidence must be a non-empty array')
   if(!isRecord(proposal.provenance))errors.push('provenance is required')
@@ -57,8 +58,10 @@ export function validateStateTransitionProposal(proposal) {
 }
 
 export function createStateTransitionProposal(input={}) {
-  if(!Object.prototype.hasOwnProperty.call(input,'value'))throw new TypeError('value is required')
-  const proposal={ version:STATE_TRANSITION_PROPOSAL_VERSION,id:input.id??crypto.randomUUID(),at:input.at??new Date().toISOString(),target:input.target,operation:input.operation??'append',value:clone(input.value),reason:input.reason,evidence:clone(input.evidence),provenance:clone(input.provenance),confidence:input.confidence,proposer:input.proposer,review:null }
+  const operation=input.operation??'append'
+  if(operation!=='retire'&&!Object.prototype.hasOwnProperty.call(input,'value'))throw new TypeError('value is required')
+  const proposal={ version:STATE_TRANSITION_PROPOSAL_VERSION,id:input.id??crypto.randomUUID(),at:input.at??new Date().toISOString(),target:input.target,operation,reason:input.reason,evidence:clone(input.evidence),provenance:clone(input.provenance),confidence:input.confidence,proposer:input.proposer,review:null }
+  if(Object.prototype.hasOwnProperty.call(input,'value')) proposal.value=clone(input.value)
   if(Object.prototype.hasOwnProperty.call(input,'previousValue')) proposal.previousValue=clone(input.previousValue)
   const validation=validateStateTransitionProposal(proposal); if(!validation.valid)throw new TypeError(`invalid state transition proposal: ${validation.errors.join('; ')}`); return proposal
 }
@@ -84,9 +87,13 @@ export function applyStateTransitionProposal(state,proposal){
   else {
     const matches=[]
     target.forEach((entry,index)=>{ if(deepEqual(entry,proposal.previousValue)) matches.push(index) })
-    if(matches.length===0)throw new TypeError('replace previousValue does not match current state')
-    if(matches.length>1)throw new TypeError('replace previousValue matches multiple current values')
-    target[matches[0]]=clone(proposal.value)
+    if(matches.length===0)throw new TypeError(`${proposal.operation} previousValue does not match current state`)
+    if(matches.length>1)throw new TypeError(`${proposal.operation} previousValue matches multiple current values`)
+    if(proposal.operation==='replace') target[matches[0]]=clone(proposal.value)
+    else target.splice(matches[0],1)
   }
-  return appendTransition(next,{ kind:'governed-state-transition',reason:proposal.reason,provenance:{proposalId:proposal.id,proposal:clone(proposal.provenance),evidence:clone(proposal.evidence),review:{decision:proposal.review.decision,reviewer:proposal.review.reviewer,at:proposal.review.at,reason:proposal.review.reason,provenance:clone(proposal.review.provenance),policy:clone(proposal.review.policy),conflicts:clone(proposal.review.conflicts),conflictResolution:clone(proposal.review.conflictResolution),proposalFingerprint:proposal.review.proposalFingerprint,reviewFingerprint:proposal.review.reviewFingerprint}},change:{target:proposal.target,operation:proposal.operation,previousValue:proposal.operation==='replace'?clone(proposal.previousValue):undefined,value:clone(proposal.value),confidence:proposal.confidence,proposer:proposal.proposer} })
+  const change={target:proposal.target,operation:proposal.operation,confidence:proposal.confidence,proposer:proposal.proposer}
+  if(['replace','retire'].includes(proposal.operation)) change.previousValue=clone(proposal.previousValue)
+  if(proposal.operation!=='retire') change.value=clone(proposal.value)
+  return appendTransition(next,{ kind:'governed-state-transition',reason:proposal.reason,provenance:{proposalId:proposal.id,proposal:clone(proposal.provenance),evidence:clone(proposal.evidence),review:{decision:proposal.review.decision,reviewer:proposal.review.reviewer,at:proposal.review.at,reason:proposal.review.reason,provenance:clone(proposal.review.provenance),policy:clone(proposal.review.policy),conflicts:clone(proposal.review.conflicts),conflictResolution:clone(proposal.review.conflictResolution),proposalFingerprint:proposal.review.proposalFingerprint,reviewFingerprint:proposal.review.reviewFingerprint}},change })
 }
