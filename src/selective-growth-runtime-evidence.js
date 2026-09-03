@@ -15,6 +15,7 @@ const REQUIRED_LINKAGE = [
   'experienceId',
   'candidateId',
   'proposalId',
+  'proposerId',
   'reviewId',
   'reviewerId',
   'stateCommitId',
@@ -79,7 +80,7 @@ export function evaluateSelectiveGrowthRuntimeEvidence(record) {
     if (!value) missing.push(`linkage.${key}`)
   }
 
-  if (normalizedLinkage.reviewerId && normalizedLinkage.reviewerId === evidenceString(linkage.proposerId)) {
+  if (normalizedLinkage.reviewerId && normalizedLinkage.proposerId && normalizedLinkage.reviewerId === normalizedLinkage.proposerId) {
     failures.push('linkage.independentReviewer')
   }
 
@@ -125,10 +126,7 @@ export function evaluateSelectiveGrowthRuntimeEvidence(record) {
     complete,
     identity,
     checks,
-    linkage: {
-      proposerId: evidenceString(linkage.proposerId),
-      ...normalizedLinkage,
-    },
+    linkage: normalizedLinkage,
     mutation: normalizedMutation,
     evidence: normalizedEvidence,
     missing,
