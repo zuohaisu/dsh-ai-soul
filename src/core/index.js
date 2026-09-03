@@ -6,6 +6,13 @@ export {
 } from './soul-state.js'
 
 export {
+  CURRENT_COGNITION_TARGETS,
+  MAX_CURRENT_COGNITION_ENTRIES_PER_DOMAIN,
+  assertCurrentCognitionAppendCapacity,
+  getCurrentCognitionCapacity,
+} from './cognitive-capacity.js'
+
+export {
   importOriginArtifact,
   validateHistoricalArtifact,
 } from './artifact-import.js'
