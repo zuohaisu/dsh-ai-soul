@@ -3,6 +3,7 @@ import { inferExplicitDurableUserPreference } from './durable-preference.js'
 import { captureFirstEncounterFromDshEvent } from './first-encounter.js'
 import { inferExplicitRelationshipState } from './relationship-state.js'
 import { mapDshHumanMessageToExperience } from './runtime-event.js'
+import { inferExplicitSelfModel } from './self-model.js'
 
 export const DSH_SIGNIFICANCE_BASELINE_POLICY = Object.freeze({
   id: 'dsh-fail-closed-baseline-v1',
@@ -31,15 +32,6 @@ function result(firstEncounter, experience = null, significanceAssessment = null
   }
 }
 
-/**
- * Current M4.1 baseline significance gate.
- *
- * It deliberately does not try to infer what deserves durable memory. Until a
- * separately governed assessor establishes a narrow positive signal, every
- * other captured Experience is explicitly assessed as not recommended for
- * promotion. The assessment is epistemic evidence only and grants no
- * persistence or mutation authority.
- */
 export function createFailClosedSignificanceAssessment(experience) {
   if (!experience?.id || typeof experience.id !== 'string') {
     throw new TypeError('Experience with id is required for significance assessment')
@@ -62,16 +54,6 @@ export function createFailClosedSignificanceAssessment(experience) {
   })
 }
 
-/**
- * Process one live-shape DSH interaction through independent lifecycle and
- * selective growth paths.
- *
- * First encounter may persist because it is an existence lifecycle fact already
- * governed by Core. Experience, Significance Assessment, and Candidate Claim
- * remain ephemeral here and cannot mutate canonical Soul state.
- *
- * The top-level status preserves the pre-M4.1 session/event handler contract.
- */
 export async function processDshHumanInteraction({
   store,
   soulId,
@@ -104,6 +86,16 @@ export async function processDshHumanInteraction({
       experience,
       relationshipState.significanceAssessment,
       relationshipState.candidateClaim,
+    )
+  }
+
+  const selfModel = inferExplicitSelfModel(experience)
+  if (selfModel) {
+    return result(
+      firstEncounter,
+      experience,
+      selfModel.significanceAssessment,
+      selfModel.candidateClaim,
     )
   }
 
