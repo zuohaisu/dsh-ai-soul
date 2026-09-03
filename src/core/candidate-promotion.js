@@ -15,6 +15,8 @@ export function createCandidatePromotionProposal(candidate, {
   reason,
   proposer,
   provenance,
+  operation = 'append',
+  previousValue,
 } = {}) {
   const validation = validateCandidateClaim(candidate)
   if (!validation.valid) {
@@ -32,12 +34,22 @@ export function createCandidatePromotionProposal(candidate, {
   if (!isRecord(provenance)) {
     throw new TypeError('provenance is required')
   }
+  if (!['append', 'replace'].includes(operation)) {
+    throw new TypeError('candidate promotion operation must be append or replace')
+  }
+  if (operation === 'replace' && !isRecord(previousValue)) {
+    throw new TypeError('previousValue is required for candidate replacement')
+  }
+  if (operation === 'append' && previousValue !== undefined) {
+    throw new TypeError('previousValue is only valid for candidate replacement')
+  }
 
   return createStateTransitionProposal({
     id,
     at,
     target: candidate.target,
-    operation: 'append',
+    operation,
+    ...(operation === 'replace' ? { previousValue: clone(previousValue) } : {}),
     value: {
       claim: candidate.statement,
     },
