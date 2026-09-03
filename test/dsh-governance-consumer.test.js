@@ -119,8 +119,9 @@ test('rejected review resolves without state mutation or state-committed signal'
   assert.equal(reviewEmissions.some((event) => event.name === 'ai-soul/governance-resolved'), true)
 })
 
-test('proposer self-review and malformed review payloads fail closed', async () => {
-  const { ctx, consumer, proposal } = await fixture()
+test('invalid review fails closed without poisoning later independent review', async () => {
+  const { store, ctx, consumer, proposal } = await fixture()
+  const before = await store.load('ember-186')
   await ctx.emit('ai-soul/governance-proposal', { soulId: 'ember-186', proposal })
 
   await assert.rejects(
@@ -135,6 +136,7 @@ test('proposer self-review and malformed review payloads fail closed', async () 
     /reviewer must be independent/,
   )
   assert.equal(consumer.listPending().length, 1)
+  assert.deepEqual(await store.load('ember-186'), before)
 
   await assert.rejects(
     ctx.emit('ai-soul/governance-review', {
@@ -146,4 +148,18 @@ test('proposer self-review and malformed review payloads fail closed', async () 
     /requires reason/,
   )
   assert.equal(consumer.listPending().length, 1)
+
+  await ctx.emit('ai-soul/governance-review', {
+    soulId: 'ember-186',
+    proposalId: proposal.id,
+    decision: 'rejected',
+    reviewer: 'governance:human-reviewer',
+    reason: 'Valid later review still executes after rejected events.',
+    provenance: { reviewId: 'review-recovery-186' },
+    at: '2026-09-03T06:08:00.000Z',
+  })
+
+  assert.equal(consumer.listPending().length, 0)
+  assert.equal(consumer.listResolved()[0].status, 'rejected')
+  assert.deepEqual(await store.load('ember-186'), before)
 })
