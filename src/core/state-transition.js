@@ -1,4 +1,5 @@
 import { appendTransition, validateSoulState } from './soul-state.js'
+import { assertCurrentCognitionAppendCapacity } from './cognitive-capacity.js'
 
 export const STATE_TRANSITION_PROPOSAL_VERSION = 1
 export const STATE_TRANSITION_TARGETS = Object.freeze([
@@ -83,7 +84,10 @@ export function applyStateTransitionProposal(state,proposal){
   if(proposal.review.decision!=='approved')throw new TypeError('only approved proposals may be applied')
   const next=clone(state)
   const target=mutableTarget(next,proposal.target)
-  if(proposal.operation==='append') target.push(clone(proposal.value))
+  if(proposal.operation==='append') {
+    assertCurrentCognitionAppendCapacity(proposal.target,target)
+    target.push(clone(proposal.value))
+  }
   else {
     const matches=[]
     target.forEach((entry,index)=>{ if(deepEqual(entry,proposal.previousValue)) matches.push(index) })
