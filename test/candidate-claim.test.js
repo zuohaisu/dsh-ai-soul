@@ -3,7 +3,9 @@ import test from 'node:test'
 
 import {
   CANDIDATE_CLAIM_MAX_STATEMENT_LENGTH,
+  CANDIDATE_CLAIM_TARGETS,
   createCandidateClaim,
+  createCandidatePromotionProposal,
   createExperienceRecord,
   createSignificanceAssessment,
   validateCandidateClaim,
@@ -39,6 +41,18 @@ function fixture() {
   return { experience, significanceAssessment }
 }
 
+function candidateInput(target = 'userModel') {
+  const { experience, significanceAssessment } = fixture()
+  return {
+    experience,
+    significanceAssessment,
+    target,
+    statement: `A bounded candidate for ${target}.`,
+    confidence: 0.78,
+    provenance: { method: 'candidate-extractor-test-v1' },
+  }
+}
+
 test('creates an immutable userModel candidate bound to exact Experience and assessment provenance', () => {
   const { experience, significanceAssessment } = fixture()
   const originalExperience = structuredClone(experience)
@@ -68,6 +82,30 @@ test('creates an immutable userModel candidate bound to exact Experience and ass
   assert.deepEqual(significanceAssessment, originalAssessment)
 })
 
+test('candidate contract covers all existing governed mutable Soul domains and preserves target through promotion', () => {
+  assert.deepEqual(CANDIDATE_CLAIM_TARGETS, ['selfModel', 'userModel', 'relationship.state', 'beliefs'])
+
+  for (const target of CANDIDATE_CLAIM_TARGETS) {
+    const candidate = createCandidateClaim(candidateInput(target))
+    assert.equal(candidate.target, target)
+    assert.equal(candidate.canonicalMutation, false)
+
+    const proposal = createCandidatePromotionProposal(candidate, {
+      reason: `Review candidate for ${target}`,
+      proposer: 'reflection:test',
+      provenance: { method: 'candidate-promotion-test-v1' },
+    })
+    assert.equal(proposal.target, target)
+    assert.equal(proposal.review, null)
+  }
+})
+
+test('candidate targets stay fail-closed for identity, covenants, and unknown domains', () => {
+  for (const target of ['identity', 'identity.invariants', 'relationship.covenants', 'worldModel']) {
+    assert.throws(() => createCandidateClaim(candidateInput(target)), /target must be one of/)
+  }
+})
+
 test('fails closed when significance does not recommend promotion', () => {
   const { experience, significanceAssessment } = fixture()
   const negative = { ...significanceAssessment, recommendPromotion: false }
@@ -94,17 +132,8 @@ test('fails closed when assessment belongs to a different Experience', () => {
   }), /experienceId must match/)
 })
 
-test('candidate scope is bounded to userModel and bounded statement size', () => {
-  const { experience, significanceAssessment } = fixture()
-  const base = {
-    experience,
-    significanceAssessment,
-    statement: 'The user prefers concise implementation notes.',
-    confidence: 0.7,
-    provenance: { method: 'test' },
-  }
-
-  assert.throws(() => createCandidateClaim({ ...base, target: 'selfModel' }), /target must be one of/)
+test('candidate statement size remains bounded', () => {
+  const base = candidateInput()
   assert.throws(() => createCandidateClaim({
     ...base,
     statement: 'x'.repeat(CANDIDATE_CLAIM_MAX_STATEMENT_LENGTH + 1),
