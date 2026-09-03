@@ -71,8 +71,8 @@ export async function apply(ctx, rawConfig = {}) {
   })
 
   // Serialize human interactions so lifecycle persistence and ephemeral
-  // Experience/significance processing observe one ordered event stream.
-  // The significance path itself has no persistence or mutation authority.
+  // Experience/significance/candidate processing observe one ordered event stream.
+  // The selective-growth path itself has no persistence or mutation authority.
   let interactionQueue = Promise.resolve()
   ctx.on('session/event', (session, event) => {
     interactionQueue = interactionQueue.then(() => processDshHumanInteraction({
@@ -95,6 +95,10 @@ export {
   normalizeDshHumanInteraction,
 } from './adapters/runtime-event.js'
 export { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js'
+export {
+  EXPLICIT_DURABLE_PREFERENCE_POLICY,
+  inferExplicitDurableUserPreference,
+} from './adapters/durable-preference.js'
 export {
   DSH_SIGNIFICANCE_BASELINE_POLICY,
   createFailClosedSignificanceAssessment,
