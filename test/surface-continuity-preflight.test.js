@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict'
-import { mkdtemp } from 'node:fs/promises'
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import test from 'node:test'
 
 import { createSoulState, FileSoulStore } from '../src/core/index.js'
 import { SURFACE_BUNDLES } from '../src/profile-preflight.js'
-import { preflightDshSurfaceContinuity } from '../src/surface-continuity-preflight.js'
+import {
+  preflightDshSurfaceContinuity,
+  preflightDshSurfaceContinuityDirs,
+} from '../src/surface-continuity-preflight.js'
 
 async function createStore(soulId = 'aster') {
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-surface-continuity-'))
@@ -17,7 +20,7 @@ async function createStore(soulId = 'aster') {
 
 function profilePackage(surface) {
   return {
-    dependencies: { 'dsh-ai-soul': 'link:/repo/dsh-ai-soul' },
+    dependencies: { 'dsh-ai-soul': '0.1.0-test' },
     dsh: {
       profile: {
         bundles: ['@deepseek-ai/dsh-base', 'dsh-ai-soul', SURFACE_BUNDLES[surface]],
@@ -31,6 +34,31 @@ function profile(surface, { soulId = 'aster', storeDir }) {
     profilePackage: profilePackage(surface),
     patchText: `- id: ai-soul\n  config:\n    soulId: ${soulId}\n    storeDir: ${storeDir}\n`,
   }
+}
+
+async function installResolvablePackage(profileDir, packageName) {
+  const packageDir = join(profileDir, 'node_modules', ...packageName.split('/'))
+  await mkdir(packageDir, { recursive: true })
+  await writeFile(join(packageDir, 'package.json'), JSON.stringify({
+    name: packageName,
+    version: '0.0.0-test',
+    main: 'index.js',
+  }))
+  await writeFile(join(packageDir, 'index.js'), 'export default {}\n')
+}
+
+async function createProfileDir(surface, { soulId = 'aster', storeDir, install = true } = {}) {
+  const profileDir = await mkdtemp(join(tmpdir(), `dsh-ai-soul-${surface}-profile-`))
+  await writeFile(join(profileDir, 'package.json'), JSON.stringify(profilePackage(surface), null, 2))
+  await writeFile(
+    join(profileDir, 'cordis.patch.yml'),
+    `- id: ai-soul\n  config:\n    soulId: ${soulId}\n    storeDir: ${storeDir}\n`,
+  )
+  if (install) {
+    await installResolvablePackage(profileDir, 'dsh-ai-soul')
+    await installResolvablePackage(profileDir, SURFACE_BUNDLES[surface])
+  }
+  return profileDir
 }
 
 test('TUI and Web pass when both bind to the same explicit Soul continuity anchor', async () => {
@@ -117,4 +145,48 @@ test('profile labels do not participate in Soul identity', async () => {
 
   assert.equal(result.ready, true)
   assert.equal(result.soulId, 'aster')
+})
+
+test('directory preflight verifies real TUI and Web profile directories and installed packages', async () => {
+  const storeDir = await createStore()
+  const tuiProfileDir = await createProfileDir('tui', { storeDir })
+  const webProfileDir = await createProfileDir('web', { storeDir })
+
+  const result = await preflightDshSurfaceContinuityDirs({
+    tuiProfileDir,
+    webProfileDir,
+    soulId: 'aster',
+    storeDir,
+  })
+
+  assert.equal(result.ready, true)
+  assert.equal(result.checks.tuiReady, true)
+  assert.equal(result.checks.webReady, true)
+  assert.equal(result.checks.sharedContinuityAnchor, true)
+  assert.deepEqual(result.anchors.tui, result.anchors.web)
+  assert.equal(result.profiles.tui.checks.pluginPackageInstalled, true)
+  assert.equal(result.profiles.web.checks.applicationSurfacePackageInstalled, true)
+  assert.equal(result.profileDirs.tui, tuiProfileDir)
+  assert.equal(result.profileDirs.web, webProfileDir)
+})
+
+test('directory preflight fails closed when a real profile declares but does not install its surface package', async () => {
+  const storeDir = await createStore()
+  const tuiProfileDir = await createProfileDir('tui', { storeDir })
+  const webProfileDir = await createProfileDir('web', { storeDir, install: false })
+  await installResolvablePackage(webProfileDir, 'dsh-ai-soul')
+
+  const result = await preflightDshSurfaceContinuityDirs({
+    tuiProfileDir,
+    webProfileDir,
+    soulId: 'aster',
+    storeDir,
+  })
+
+  assert.equal(result.ready, false)
+  assert.equal(result.checks.sharedContinuityAnchor, true)
+  assert.equal(result.checks.webReady, false)
+  assert.ok(result.diagnostics.some((entry) => (
+    entry.surface === 'web' && entry.code === 'application-surface-package-not-installed'
+  )))
 })
