@@ -68,6 +68,44 @@ test('DSH governance proposal event queues pending review without canonical muta
   assert.equal(ctx.emitted.some((event) => event.name === 'ai-soul/state-committed'), false)
 })
 
+test('read-only governance snapshot is correlated, soul-scoped, detached, and non-mutating', async () => {
+  const { store, ctx, consumer, proposal } = await fixture()
+  const before = await store.load('ember-186')
+  await ctx.emit('ai-soul/governance-proposal', { soulId: 'ember-186', proposal })
+
+  const results = await ctx.emit('ai-soul/governance-snapshot-request', {
+    soulId: 'ember-186',
+    requestId: 'snapshot-188',
+  })
+  const snapshot = results[0]
+
+  assert.equal(snapshot.requestId, 'snapshot-188')
+  assert.equal(snapshot.soulId, 'ember-186')
+  assert.equal(snapshot.pending.length, 1)
+  assert.equal(snapshot.pending[0].proposal.id, proposal.id)
+  assert.deepEqual(snapshot.resolved, [])
+  assert.deepEqual(await store.load('ember-186'), before)
+  assert.equal(ctx.emitted.some((event) => event.name === 'ai-soul/state-committed'), false)
+
+  const emitted = ctx.emitted.find((event) => event.name === 'ai-soul/governance-snapshot')
+  assert.equal(emitted.payload.requestId, 'snapshot-188')
+  snapshot.pending[0].proposal.value.claim = 'tampered'
+  assert.equal(consumer.listPending()[0].proposal.value.claim, 'The user prefers concise implementation notes.')
+})
+
+test('governance snapshot request fails closed when correlation or soul scope is missing', async () => {
+  const { ctx } = await fixture()
+
+  await assert.rejects(
+    ctx.emit('ai-soul/governance-snapshot-request', { soulId: 'ember-186' }),
+    /requires requestId/,
+  )
+  await assert.rejects(
+    ctx.emit('ai-soul/governance-snapshot-request', { requestId: 'snapshot-188' }),
+    /requires soulId/,
+  )
+})
+
 test('independent approved review persists before state-committed and resolution signals', async () => {
   const { store, ctx, consumer, proposal } = await fixture()
   await ctx.emit('ai-soul/governance-proposal', { soulId: 'ember-186', proposal })
