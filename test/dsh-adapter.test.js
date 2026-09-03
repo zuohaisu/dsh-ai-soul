@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import {
   apply,
+  applyStateTransitionProposal,
   createGenesisRecord,
   FileSoulStore,
   persistGenesisSoul,
@@ -14,9 +15,11 @@ import {
 function runtimeContext() {
   const registrations = []
   const listeners = new Map()
+  const emitted = []
   return {
     registrations,
     listeners,
+    emitted,
     ctx: {
       systemPrompt: {
         context(definition) {
@@ -27,6 +30,9 @@ function runtimeContext() {
       on(name, listener) {
         listeners.set(name, listener)
         return () => listeners.delete(name)
+      },
+      emit(name, payload) {
+        emitted.push({ name, payload })
       },
     },
   }
@@ -105,6 +111,61 @@ test('records first human DSH user/message once and survives reload', async () =
   assert.equal(reloaded.autobiography.some((item) => item.kind === 'naming'), false)
 })
 
+test('emits one unreviewed governance proposal for explicit durable preference without mutating Soul state', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-governance-handoff-'))
+  const store = await unnamedGenesis(rootDir, 'ember-180')
+  const runtime = runtimeContext()
+  await apply(runtime.ctx, {
+    soulId: 'ember-180',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+  })
+
+  const listener = runtime.listeners.get('session/event')
+  const session = { id: 'session-governance-handoff' }
+  const explicit = {
+    type: 'user/message',
+    seq: 1,
+    time: Date.parse('2026-09-03T03:05:00.000Z'),
+    data: {
+      role: 'user',
+      source: { kind: 'user', via: 'web' },
+      content: [{ type: 'text', text: 'Please remember that I prefer concise implementation notes.' }],
+    },
+  }
+
+  const processed = await listener(session, explicit)
+  assert.equal(processed.significanceAssessment.recommendPromotion, true)
+  assert.equal(processed.candidateClaim.statement, 'The user prefers concise implementation notes.')
+  assert.equal(runtime.emitted.length, 1)
+  assert.equal(runtime.emitted[0].name, 'ai-soul/governance-proposal')
+  assert.equal(runtime.emitted[0].payload.soulId, 'ember-180')
+  assert.equal(runtime.emitted[0].payload.proposal.review, null)
+  assert.equal(runtime.emitted[0].payload.proposal.proposer, 'dsh-ai-soul:live-interaction')
+  assert.throws(
+    () => applyStateTransitionProposal(awaitedStatePlaceholder, runtime.emitted[0].payload.proposal),
+    /must be reviewed before application/,
+  )
+
+  const afterExplicit = await store.load('ember-180')
+  assert.equal(afterExplicit.userModel.length, 0)
+
+  const control = {
+    type: 'user/message',
+    seq: 2,
+    time: Date.parse('2026-09-03T03:06:00.000Z'),
+    data: {
+      role: 'user',
+      source: { kind: 'user', via: 'web' },
+      content: [{ type: 'text', text: 'That build finished quickly.' }],
+    },
+  }
+  const controlResult = await listener(session, control)
+  assert.equal(controlResult.significanceAssessment.recommendPromotion, false)
+  assert.equal(runtime.emitted.length, 1)
+  assert.equal((await store.load('ember-180')).userModel.length, 0)
+})
+
 test('ignores synthetic DSH user/message sources', async () => {
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-synthetic-'))
   const store = await unnamedGenesis(rootDir)
@@ -140,7 +201,7 @@ test('adapter has no Samuel-specific default and requires explicit participant i
 
 test('adapter reports missing systemPrompt service at the runtime boundary', async () => {
   await assert.rejects(
-    () => apply({ on() {} }, {
+    () => apply({ on() {}, emit() {} }, {
       soulId: 'ember-147',
       storeDir: '.souls',
       firstEncounterParticipant: participant,
@@ -152,6 +213,14 @@ test('adapter reports missing systemPrompt service at the runtime boundary', asy
 test('adapter reports missing DSH event API at the runtime boundary', async () => {
   await assert.rejects(
     () => apply({ systemPrompt: { context() {} } }, {
+      soulId: 'ember-147',
+      storeDir: '.souls',
+      firstEncounterParticipant: participant,
+    }),
+    /required DSH event API is unavailable/,
+  )
+  await assert.rejects(
+    () => apply({ systemPrompt: { context() {} }, on() {} }, {
       soulId: 'ember-147',
       storeDir: '.souls',
       firstEncounterParticipant: participant,
