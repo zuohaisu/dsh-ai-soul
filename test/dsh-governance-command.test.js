@@ -131,7 +131,7 @@ test('human /soul-review lists and approves a live proposal, persists it, and re
   const persisted = await store.load('ember-190-approve')
   assert.equal(persisted.userModel.length, 1)
   assert.equal(persisted.userModel[0].claim, 'The user prefers concise implementation notes.')
-  assert.equal(persisted.evolutionHistory.at(-1).review.reviewer, 'human:human-partner-190')
+  assert.equal(persisted.evolution.at(-1).provenance.review.reviewer, 'human:human-partner-190')
 
   const promptText = runtime.contexts[0].text({})
   assert.match(promptText, /The user prefers concise implementation notes\./)
