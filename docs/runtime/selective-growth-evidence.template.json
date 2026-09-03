@@ -1,0 +1,44 @@
+{
+  "recordedAt": "",
+  "dshVersion": "",
+  "runtime": "",
+  "profile": "",
+  "soulId": "",
+  "surface": "tui",
+  "observations": {
+    "realHumanInteraction": null,
+    "pendingProposalVisible": null,
+    "independentHumanReview": null,
+    "persistedUserModelMutation": null,
+    "sameSoulIdAfterCommit": null,
+    "dynamicContextRefreshed": null,
+    "nextTurnContextContainedClaim": null,
+    "nextTurnModelDemonstratedRecall": null
+  },
+  "linkage": {
+    "experienceId": "",
+    "candidateId": "",
+    "proposalId": "",
+    "proposerId": "",
+    "reviewId": "",
+    "reviewerId": "",
+    "stateCommitId": "",
+    "contextAssemblyId": "",
+    "provenanceSource": ""
+  },
+  "mutation": {
+    "target": "userModel",
+    "claim": "",
+    "persistedClaimCountDelta": null,
+    "rawInteractionStoredInCanonicalState": null
+  },
+  "evidence": {
+    "interaction": "",
+    "proposalSnapshot": "",
+    "review": "",
+    "persistedState": "",
+    "nextTurnContext": "",
+    "nextTurnResponse": ""
+  },
+  "deviations": []
+}
