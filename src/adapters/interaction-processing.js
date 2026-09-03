@@ -4,6 +4,7 @@ import { captureFirstEncounterFromDshEvent } from './first-encounter.js'
 import { inferExplicitRelationshipState } from './relationship-state.js'
 import { mapDshHumanMessageToExperience } from './runtime-event.js'
 import { inferExplicitSelfModel } from './self-model.js'
+import { inferExplicitWorldContext } from './world-context.js'
 
 export const DSH_SIGNIFICANCE_BASELINE_POLICY = Object.freeze({
   id: 'dsh-fail-closed-baseline-v1',
@@ -96,6 +97,16 @@ export async function processDshHumanInteraction({
       experience,
       selfModel.significanceAssessment,
       selfModel.candidateClaim,
+    )
+  }
+
+  const worldContext = inferExplicitWorldContext(experience)
+  if (worldContext) {
+    return result(
+      firstEncounter,
+      experience,
+      worldContext.significanceAssessment,
+      worldContext.candidateClaim,
     )
   }
 

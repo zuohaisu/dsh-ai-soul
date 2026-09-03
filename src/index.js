@@ -89,6 +89,7 @@ export { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js
 export { EXPLICIT_DURABLE_PREFERENCE_POLICY, inferExplicitDurableUserPreference } from './adapters/durable-preference.js'
 export { EXPLICIT_RELATIONSHIP_STATE_POLICY, inferExplicitRelationshipState } from './adapters/relationship-state.js'
 export { EXPLICIT_SELF_MODEL_POLICY, inferExplicitSelfModel } from './adapters/self-model.js'
+export { EXPLICIT_WORLD_CONTEXT_POLICY, inferExplicitWorldContext } from './adapters/world-context.js'
 export { DSH_SIGNIFICANCE_BASELINE_POLICY, createFailClosedSignificanceAssessment, processDshHumanInteraction } from './adapters/interaction-processing.js'
 export { createDshGovernanceConsumer } from './adapters/governance-consumer.js'
 export { createDshGovernanceCommand, registerDshGovernanceCommand } from './adapters/governance-command.js'
