@@ -50,6 +50,11 @@ export {
 } from './state-transition.js'
 
 export {
+  attachGovernanceInbox,
+  createGovernanceInbox,
+} from './governance-inbox.js'
+
+export {
   REFLECTION_RESULT_VERSION,
   createReflectionResult,
   validateReflectionResult,
