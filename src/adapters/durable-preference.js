@@ -14,8 +14,9 @@ const PATTERNS = Object.freeze([
 ])
 
 function normalizedObservation(experience) {
-  const value = experience?.payload?.observation
-  return typeof value === 'string' ? value.trim() : ''
+  const observation = experience?.payload?.observation
+  if (!observation || typeof observation !== 'object' || Array.isArray(observation)) return ''
+  return typeof observation.text === 'string' ? observation.text.trim() : ''
 }
 
 function extractExplicitPreference(experience) {
