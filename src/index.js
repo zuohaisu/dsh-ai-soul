@@ -80,6 +80,9 @@ export async function apply(ctx, rawConfig = {}) {
     )
   }
 
+  // Fail at plugin activation if the configured Soul cannot be projected. DSH
+  // evaluates the provider again for every eligible prompt assembly, so later
+  // validated state swaps become model-visible without re-running apply().
   renderCurrentSoulContext(currentState, config.soulId)
   ctx.systemPrompt.context({
     name: `ai-soul:${config.soulId}`,
@@ -87,8 +90,16 @@ export async function apply(ctx, rawConfig = {}) {
     text: () => renderCurrentSoulContext(currentState, config.soulId),
   })
 
+  // Governance proposal receipt/review/apply/save is owned by a separate
+  // consumer boundary even though it is composed by this package. The live Soul
+  // interaction path can propose but cannot approve. Human command review, when
+  // available, enters only through the consumer's review event.
   const governanceConsumer = createDshGovernanceConsumer(ctx, { store })
 
+  // Serialize human interactions so lifecycle persistence and ephemeral
+  // Experience/significance/candidate processing observe one ordered event stream.
+  // A positive candidate is handed off as an unreviewed governance proposal;
+  // this plugin never reviews, applies, or persists that proposal itself.
   let interactionQueue = Promise.resolve()
   ctx.on('session/event', (session, event) => {
     interactionQueue = interactionQueue.then(async () => {
@@ -100,6 +111,9 @@ export async function apply(ctx, rawConfig = {}) {
         participant: config.firstEncounterParticipant,
       })
 
+      // First-encounter capture is the only canonical lifecycle mutation owned
+      // by the interaction path. Reload the validated persisted state before
+      // exposing it to subsequent prompt assemblies in this same process.
       if (processed.firstEncounter?.status === 'recorded') {
         currentState = await store.load(config.soulId)
       }
@@ -117,6 +131,10 @@ export async function apply(ctx, rawConfig = {}) {
     return interactionQueue
   })
 
+  // Independent governance owns review/apply/save. After a successful save it
+  // announces the committed soulId; AI Soul then reloads and validates that
+  // persisted state before swapping the in-memory prompt snapshot. No state is
+  // accepted directly from the event payload.
   let refreshQueue = Promise.resolve()
   ctx.on('ai-soul/state-committed', (payload) => {
     refreshQueue = refreshQueue.then(async () => {
@@ -133,6 +151,9 @@ export async function apply(ctx, rawConfig = {}) {
     return refreshQueue
   })
 
+  // DSH commands is an optional UI service: Web/TUI profiles can expose the
+  // human-only review plane, while headless/UI-less profiles continue to run
+  // without acquiring a new hard dependency.
   registerDshGovernanceCommand(ctx, {
     consumer: governanceConsumer,
     soulId: config.soulId,
