@@ -1,6 +1,7 @@
 import { createSignificanceAssessment } from '../core/significance.js'
 import { inferExplicitDurableUserPreference } from './durable-preference.js'
 import { captureFirstEncounterFromDshEvent } from './first-encounter.js'
+import { inferExplicitRelationshipState } from './relationship-state.js'
 import { mapDshHumanMessageToExperience } from './runtime-event.js'
 
 export const DSH_SIGNIFICANCE_BASELINE_POLICY = Object.freeze({
@@ -95,6 +96,17 @@ export async function processDshHumanInteraction({
   }
 
   const experience = mapDshHumanMessageToExperience(session, event, { participant })
+
+  const relationshipState = inferExplicitRelationshipState(experience)
+  if (relationshipState) {
+    return result(
+      firstEncounter,
+      experience,
+      relationshipState.significanceAssessment,
+      relationshipState.candidateClaim,
+    )
+  }
+
   const durablePreference = inferExplicitDurableUserPreference(experience)
   if (durablePreference) {
     return result(
