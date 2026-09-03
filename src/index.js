@@ -27,13 +27,18 @@ function renderCurrentSoulContext(state, soulId) {
   }
 }
 
-function createLiveGovernanceProposal(candidateClaim) {
+function createLiveGovernanceProposal(candidateClaim, transitionIntent = null) {
   return createCandidatePromotionProposal(candidateClaim, {
     id: `proposal:dsh-live:${encodeURIComponent(candidateClaim.id)}`,
     at: candidateClaim.createdAt,
-    reason: 'A bounded, provenance-linked candidate claim from live DSH interaction requires independent governance.',
+    reason: transitionIntent?.operation === 'replace'
+      ? 'A bounded, provenance-linked candidate claim explicitly supersedes one exact current Soul-state value and requires independent governance.'
+      : 'A bounded, provenance-linked candidate claim from live DSH interaction requires independent governance.',
     proposer: 'dsh-ai-soul:live-interaction',
     provenance: { source: 'dsh-session-event', boundary: 'ai-soul/governance-proposal-v1' },
+    ...(transitionIntent?.operation === 'replace'
+      ? { operation: 'replace', previousValue: transitionIntent.previousValue }
+      : {}),
   })
 }
 
@@ -60,7 +65,7 @@ export async function apply(ctx, rawConfig = {}) {
       const processed = await processDshHumanInteraction({ store, soulId: config.soulId, session, event, participant: config.firstEncounterParticipant })
       if (processed.firstEncounter?.status === 'recorded') currentState = await store.load(config.soulId)
       if (processed.candidateClaim) {
-        const proposal = createLiveGovernanceProposal(processed.candidateClaim)
+        const proposal = createLiveGovernanceProposal(processed.candidateClaim, processed.transitionIntent)
         await ctx.emit('ai-soul/governance-proposal', { soulId: config.soulId, proposal })
       }
       return processed
@@ -86,7 +91,12 @@ export async function apply(ctx, rawConfig = {}) {
 export * from './core/index.js'
 export { MAX_DSH_EXPERIENCE_TEXT_CHARS, mapDshHumanMessageToExperience, normalizeDshHumanInteraction } from './adapters/runtime-event.js'
 export { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js'
-export { EXPLICIT_DURABLE_PREFERENCE_POLICY, inferExplicitDurableUserPreference } from './adapters/durable-preference.js'
+export {
+  EXPLICIT_DURABLE_PREFERENCE_POLICY,
+  EXPLICIT_DURABLE_PREFERENCE_REVISION_POLICY,
+  inferExplicitDurableUserPreference,
+  inferExplicitDurableUserPreferenceRevision,
+} from './adapters/durable-preference.js'
 export { EXPLICIT_RELATIONSHIP_STATE_POLICY, inferExplicitRelationshipState } from './adapters/relationship-state.js'
 export { EXPLICIT_SELF_MODEL_POLICY, inferExplicitSelfModel } from './adapters/self-model.js'
 export { EXPLICIT_WORLD_CONTEXT_POLICY, inferExplicitWorldContext } from './adapters/world-context.js'

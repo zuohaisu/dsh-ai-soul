@@ -1,5 +1,8 @@
 import { createSignificanceAssessment } from '../core/significance.js'
-import { inferExplicitDurableUserPreference } from './durable-preference.js'
+import {
+  inferExplicitDurableUserPreference,
+  inferExplicitDurableUserPreferenceRevision,
+} from './durable-preference.js'
 import { captureFirstEncounterFromDshEvent } from './first-encounter.js'
 import { inferExplicitRelationshipState } from './relationship-state.js'
 import { mapDshHumanMessageToExperience } from './runtime-event.js'
@@ -23,13 +26,14 @@ function hasUsableTextContent(event) {
   ))
 }
 
-function result(firstEncounter, experience = null, significanceAssessment = null, candidateClaim = null) {
+function result(firstEncounter, experience = null, significanceAssessment = null, candidateClaim = null, transitionIntent = null) {
   return {
     status: firstEncounter.status,
     firstEncounter,
     experience,
     significanceAssessment,
     candidateClaim,
+    transitionIntent,
   }
 }
 
@@ -107,6 +111,18 @@ export async function processDshHumanInteraction({
       experience,
       worldContext.significanceAssessment,
       worldContext.candidateClaim,
+    )
+  }
+
+  const currentState = await store.load(soulId)
+  const durablePreferenceRevision = inferExplicitDurableUserPreferenceRevision(experience, currentState)
+  if (durablePreferenceRevision) {
+    return result(
+      firstEncounter,
+      experience,
+      durablePreferenceRevision.significanceAssessment,
+      durablePreferenceRevision.candidateClaim,
+      durablePreferenceRevision.transitionIntent,
     )
   }
 
