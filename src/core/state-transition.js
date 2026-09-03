@@ -13,11 +13,12 @@ export const DEFAULT_STATE_TRANSITION_REVIEW_POLICY = Object.freeze({ minimumCon
 
 function clone(value) { return structuredClone(value) }
 function isRecord(value) { return value != null && typeof value === 'object' && !Array.isArray(value) }
-function proposalFingerprint(proposal) { return JSON.stringify({ version: proposal.version, id: proposal.id, at: proposal.at, target: proposal.target, operation: proposal.operation, value: proposal.value, reason: proposal.reason, evidence: proposal.evidence, provenance: proposal.provenance, confidence: proposal.confidence, proposer: proposal.proposer }) }
+function proposalFingerprint(proposal) { return JSON.stringify({ version: proposal.version, id: proposal.id, at: proposal.at, target: proposal.target, operation: proposal.operation, value: proposal.value, previousValue: proposal.previousValue, reason: proposal.reason, evidence: proposal.evidence, provenance: proposal.provenance, confidence: proposal.confidence, proposer: proposal.proposer }) }
 function reviewFingerprint(review) { return JSON.stringify({ decision: review.decision, reviewer: review.reviewer, reason: review.reason, provenance: review.provenance, policy: review.policy, conflicts: review.conflicts, conflictResolution: review.conflictResolution, at: review.at, proposalFingerprint: review.proposalFingerprint }) }
 function normalizeReviewPolicy(policy = {}) { const minimumConfidence = policy.minimumConfidence ?? DEFAULT_STATE_TRANSITION_REVIEW_POLICY.minimumConfidence; if (!Number.isFinite(minimumConfidence) || minimumConfidence < 0 || minimumConfidence > 1) throw new TypeError('review policy minimumConfidence must be between 0 and 1'); return { minimumConfidence } }
 function validateDeclaredConflicts(conflicts) { if (!Array.isArray(conflicts)) return ['review.conflicts must be an array']; const errors=[]; conflicts.forEach((conflict,index)=>{ if(!isRecord(conflict)){errors.push(`review.conflicts[${index}] must be an object`);return} if(!conflict.id||typeof conflict.id!=='string') errors.push(`review.conflicts[${index}].id is required`); if(!conflict.reason||typeof conflict.reason!=='string') errors.push(`review.conflicts[${index}].reason is required`); if(!isRecord(conflict.provenance)) errors.push(`review.conflicts[${index}].provenance is required`) }); return errors }
 function validateConflictResolution(resolution, conflicts) { const errors=[]; if(resolution==null)return errors; if(conflicts.length===0)return ['review.conflictResolution requires declared conflicts']; if(!isRecord(resolution))return ['review.conflictResolution must be an object']; if(resolution.disposition!=='coexist')errors.push('review.conflictResolution.disposition must be coexist'); if(!resolution.reason||typeof resolution.reason!=='string')errors.push('review.conflictResolution.reason is required'); if(!isRecord(resolution.provenance))errors.push('review.conflictResolution.provenance is required'); return errors }
+function deepEqual(a,b){ return JSON.stringify(a)===JSON.stringify(b) }
 
 export function validateStateTransitionProposal(proposal) {
   const errors=[]
@@ -26,8 +27,10 @@ export function validateStateTransitionProposal(proposal) {
   if(!proposal.id||typeof proposal.id!=='string')errors.push('id is required')
   if(!proposal.at||typeof proposal.at!=='string')errors.push('at is required')
   if(!STATE_TRANSITION_TARGETS.includes(proposal.target))errors.push('target is not mutable through the generic transition pipeline')
-  if(proposal.operation!=='append')errors.push('operation must be append')
+  if(!['append','replace'].includes(proposal.operation))errors.push('operation must be append or replace')
   if(!Object.prototype.hasOwnProperty.call(proposal,'value'))errors.push('value is required')
+  if(proposal.operation==='replace'&&!Object.prototype.hasOwnProperty.call(proposal,'previousValue'))errors.push('previousValue is required for replace')
+  if(proposal.operation==='append'&&Object.prototype.hasOwnProperty.call(proposal,'previousValue'))errors.push('previousValue is only valid for replace')
   if(!proposal.reason||typeof proposal.reason!=='string')errors.push('reason is required')
   if(!Array.isArray(proposal.evidence)||proposal.evidence.length===0)errors.push('evidence must be a non-empty array')
   if(!isRecord(proposal.provenance))errors.push('provenance is required')
@@ -56,6 +59,7 @@ export function validateStateTransitionProposal(proposal) {
 export function createStateTransitionProposal(input={}) {
   if(!Object.prototype.hasOwnProperty.call(input,'value'))throw new TypeError('value is required')
   const proposal={ version:STATE_TRANSITION_PROPOSAL_VERSION,id:input.id??crypto.randomUUID(),at:input.at??new Date().toISOString(),target:input.target,operation:input.operation??'append',value:clone(input.value),reason:input.reason,evidence:clone(input.evidence),provenance:clone(input.provenance),confidence:input.confidence,proposer:input.proposer,review:null }
+  if(Object.prototype.hasOwnProperty.call(input,'previousValue')) proposal.previousValue=clone(input.previousValue)
   const validation=validateStateTransitionProposal(proposal); if(!validation.valid)throw new TypeError(`invalid state transition proposal: ${validation.errors.join('; ')}`); return proposal
 }
 
@@ -74,6 +78,15 @@ export function applyStateTransitionProposal(state,proposal){
   if(proposal.review.proposalFingerprint!==proposalFingerprint(proposal))throw new TypeError('review does not match current proposal contents')
   if(proposal.review.reviewFingerprint!==reviewFingerprint(proposal.review))throw new TypeError('review contents changed after review')
   if(proposal.review.decision!=='approved')throw new TypeError('only approved proposals may be applied')
-  const next=clone(state); mutableTarget(next,proposal.target).push(clone(proposal.value))
-  return appendTransition(next,{ kind:'governed-state-transition',reason:proposal.reason,provenance:{proposalId:proposal.id,proposal:clone(proposal.provenance),evidence:clone(proposal.evidence),review:{decision:proposal.review.decision,reviewer:proposal.review.reviewer,at:proposal.review.at,reason:proposal.review.reason,provenance:clone(proposal.review.provenance),policy:clone(proposal.review.policy),conflicts:clone(proposal.review.conflicts),conflictResolution:clone(proposal.review.conflictResolution),proposalFingerprint:proposal.review.proposalFingerprint,reviewFingerprint:proposal.review.reviewFingerprint}},change:{target:proposal.target,operation:proposal.operation,value:clone(proposal.value),confidence:proposal.confidence,proposer:proposal.proposer} })
+  const next=clone(state)
+  const target=mutableTarget(next,proposal.target)
+  if(proposal.operation==='append') target.push(clone(proposal.value))
+  else {
+    const matches=[]
+    target.forEach((entry,index)=>{ if(deepEqual(entry,proposal.previousValue)) matches.push(index) })
+    if(matches.length===0)throw new TypeError('replace previousValue does not match current state')
+    if(matches.length>1)throw new TypeError('replace previousValue matches multiple current values')
+    target[matches[0]]=clone(proposal.value)
+  }
+  return appendTransition(next,{ kind:'governed-state-transition',reason:proposal.reason,provenance:{proposalId:proposal.id,proposal:clone(proposal.provenance),evidence:clone(proposal.evidence),review:{decision:proposal.review.decision,reviewer:proposal.review.reviewer,at:proposal.review.at,reason:proposal.review.reason,provenance:clone(proposal.review.provenance),policy:clone(proposal.review.policy),conflicts:clone(proposal.review.conflicts),conflictResolution:clone(proposal.review.conflictResolution),proposalFingerprint:proposal.review.proposalFingerprint,reviewFingerprint:proposal.review.reviewFingerprint}},change:{target:proposal.target,operation:proposal.operation,previousValue:proposal.operation==='replace'?clone(proposal.previousValue):undefined,value:clone(proposal.value),confidence:proposal.confidence,proposer:proposal.proposer} })
 }
