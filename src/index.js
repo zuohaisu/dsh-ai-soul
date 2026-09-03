@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 
 import {
+  createCandidatePromotionProposal,
   FileSoulStore,
   projectSoulContext,
   renderSoulContext,
@@ -29,12 +30,25 @@ function validateConfig(config = {}) {
   }
 }
 
+function createLiveGovernanceProposal(candidateClaim) {
+  return createCandidatePromotionProposal(candidateClaim, {
+    id: `proposal:dsh-live:${encodeURIComponent(candidateClaim.id)}`,
+    at: candidateClaim.createdAt,
+    reason: 'The human explicitly requested durable retention of this bounded user preference.',
+    proposer: 'dsh-ai-soul:live-interaction',
+    provenance: {
+      source: 'dsh-session-event',
+      boundary: 'ai-soul/governance-proposal-v1',
+    },
+  })
+}
+
 export async function apply(ctx, rawConfig = {}) {
   if (!ctx) throw new TypeError('dsh-ai-soul runtime error: DSH context is required')
   if (!ctx.systemPrompt?.context) {
     throw new TypeError('dsh-ai-soul runtime error: required DSH systemPrompt service is unavailable')
   }
-  if (typeof ctx.on !== 'function') {
+  if (typeof ctx.on !== 'function' || typeof ctx.emit !== 'function') {
     throw new TypeError('dsh-ai-soul runtime error: required DSH event API is unavailable')
   }
 
@@ -72,16 +86,29 @@ export async function apply(ctx, rawConfig = {}) {
 
   // Serialize human interactions so lifecycle persistence and ephemeral
   // Experience/significance/candidate processing observe one ordered event stream.
-  // The selective-growth path itself has no persistence or mutation authority.
+  // A positive candidate is handed off as an unreviewed governance proposal;
+  // this plugin never reviews, applies, or persists that proposal.
   let interactionQueue = Promise.resolve()
   ctx.on('session/event', (session, event) => {
-    interactionQueue = interactionQueue.then(() => processDshHumanInteraction({
-      store,
-      soulId: config.soulId,
-      session,
-      event,
-      participant: config.firstEncounterParticipant,
-    }))
+    interactionQueue = interactionQueue.then(async () => {
+      const processed = await processDshHumanInteraction({
+        store,
+        soulId: config.soulId,
+        session,
+        event,
+        participant: config.firstEncounterParticipant,
+      })
+
+      if (processed.candidateClaim) {
+        const proposal = createLiveGovernanceProposal(processed.candidateClaim)
+        ctx.emit('ai-soul/governance-proposal', {
+          soulId: config.soulId,
+          proposal,
+        })
+      }
+
+      return processed
+    })
     return interactionQueue
   })
 
