@@ -13,12 +13,19 @@ export const EXPLICIT_DURABLE_PREFERENCE_REVISION_POLICY = Object.freeze({
   target: 'userModel',
 })
 
+export const EXPLICIT_DURABLE_PREFERENCE_FORGET_POLICY = Object.freeze({
+  id: 'explicit-durable-user-preference-forget-v1',
+  version: 1,
+  target: 'userModel',
+})
+
 const MAX_PREFERENCE_TEXT_CHARS = 400
 const PATTERNS = Object.freeze([
   /^please\s+remember(?:\s+that)?\s+i\s+prefer\s+(.+)$/i,
   /^from\s+now\s+on\s*,?\s*i\s+prefer\s+(.+)$/i,
 ])
 const REVISION_PATTERN = /^i\s+used\s+to\s+prefer\s+(.+?),\s*but\s+from\s+now\s+on\s+i\s+prefer\s+(.+)$/i
+const FORGET_PATTERN = /^please\s+forget(?:\s+that)?\s+i\s+prefer\s+(.+)$/i
 
 function normalizedObservation(experience) {
   const observation = experience?.payload?.observation
@@ -35,6 +42,19 @@ function normalizePreferenceText(value) {
 
 function preferenceClaim(preference) {
   return `The user prefers ${preference}.`
+}
+
+function exactPreferenceValue(currentState, preference) {
+  if (!Array.isArray(currentState?.userModel)) return null
+  const previousValue = { claim: preferenceClaim(preference) }
+  const matches = currentState.userModel.filter((entry) => (
+    entry
+    && typeof entry === 'object'
+    && !Array.isArray(entry)
+    && Object.keys(entry).length === 1
+    && entry.claim === previousValue.claim
+  ))
+  return matches.length === 1 ? previousValue : null
 }
 
 function extractExplicitPreference(experience) {
@@ -60,6 +80,13 @@ function extractExplicitPreferenceRevision(experience) {
   const nextPreference = normalizePreferenceText(match[2])
   if (!previousPreference || !nextPreference || previousPreference === nextPreference) return null
   return { previousPreference, nextPreference }
+}
+
+function extractExplicitPreferenceForget(experience) {
+  const observation = normalizedObservation(experience)
+  if (!observation) return null
+  const match = observation.match(FORGET_PATTERN)
+  return match ? normalizePreferenceText(match[1]) : null
 }
 
 function createPreferenceAssessment(experience, policy, method, rationale) {
@@ -100,14 +127,6 @@ function createPreferenceCandidate(experience, assessment, policy, method, prefe
   })
 }
 
-/**
- * Infer only explicit, first-person durable preference intent.
- *
- * This is intentionally deterministic and narrow. A bare `I prefer ...` is not
- * enough: the human must explicitly ask for persistence (`please remember`) or
- * declare a forward-looking preference (`from now on`). The result remains a
- * non-authoritative Candidate Claim and grants no mutation authority.
- */
 export function inferExplicitDurableUserPreference(experience) {
   if (!experience?.id || typeof experience.id !== 'string') {
     throw new TypeError('Experience with id is required')
@@ -130,19 +149,9 @@ export function inferExplicitDurableUserPreference(experience) {
     preference,
   )
 
-  return Object.freeze({
-    significanceAssessment: assessment,
-    candidateClaim,
-  })
+  return Object.freeze({ significanceAssessment: assessment, candidateClaim })
 }
 
-/**
- * Infer an explicit preference revision only when the stated old preference
- * resolves to exactly one current canonical userModel value.
- *
- * Matching is deliberately exact. Missing, duplicate, or structurally richer
- * values fail closed rather than attempting semantic reconciliation.
- */
 export function inferExplicitDurableUserPreferenceRevision(experience, currentState) {
   if (!experience?.id || typeof experience.id !== 'string') {
     throw new TypeError('Experience with id is required')
@@ -150,20 +159,11 @@ export function inferExplicitDurableUserPreferenceRevision(experience, currentSt
   if (!currentState || typeof currentState !== 'object' || Array.isArray(currentState)) {
     throw new TypeError('Current Soul state is required')
   }
-  if (!Array.isArray(currentState.userModel)) return null
 
   const revision = extractExplicitPreferenceRevision(experience)
   if (!revision) return null
-
-  const previousValue = { claim: preferenceClaim(revision.previousPreference) }
-  const matches = currentState.userModel.filter((entry) => (
-    entry
-    && typeof entry === 'object'
-    && !Array.isArray(entry)
-    && Object.keys(entry).length === 1
-    && entry.claim === previousValue.claim
-  ))
-  if (matches.length !== 1) return null
+  const previousValue = exactPreferenceValue(currentState, revision.previousPreference)
+  if (!previousValue) return null
 
   const assessment = createPreferenceAssessment(
     experience,
@@ -183,9 +183,47 @@ export function inferExplicitDurableUserPreferenceRevision(experience, currentSt
   return Object.freeze({
     significanceAssessment: assessment,
     candidateClaim,
-    transitionIntent: Object.freeze({
-      operation: 'replace',
-      previousValue: structuredClone(previousValue),
-    }),
+    transitionIntent: Object.freeze({ operation: 'replace', previousValue: structuredClone(previousValue) }),
+  })
+}
+
+/**
+ * Infer an explicit preference-forgetting request only when its target resolves
+ * to exactly one current canonical userModel value. The Candidate Claim remains
+ * non-authoritative; the transition intent only asks independent governance to
+ * retire that exact current claim.
+ */
+export function inferExplicitDurableUserPreferenceForget(experience, currentState) {
+  if (!experience?.id || typeof experience.id !== 'string') {
+    throw new TypeError('Experience with id is required')
+  }
+  if (!currentState || typeof currentState !== 'object' || Array.isArray(currentState)) {
+    throw new TypeError('Current Soul state is required')
+  }
+
+  const preference = extractExplicitPreferenceForget(experience)
+  if (!preference) return null
+  const previousValue = exactPreferenceValue(currentState, preference)
+  if (!previousValue) return null
+
+  const assessment = createPreferenceAssessment(
+    experience,
+    EXPLICIT_DURABLE_PREFERENCE_FORGET_POLICY,
+    'deterministic-explicit-durable-preference-forget',
+    'The human explicitly requested forgetting of one uniquely matching current durable preference.',
+  )
+  const candidateClaim = createPreferenceCandidate(
+    experience,
+    assessment,
+    EXPLICIT_DURABLE_PREFERENCE_FORGET_POLICY,
+    'deterministic-explicit-durable-preference-forget',
+    preference,
+    { previousValue, requestedDisposition: 'retire-current-cognition' },
+  )
+
+  return Object.freeze({
+    significanceAssessment: assessment,
+    candidateClaim,
+    transitionIntent: Object.freeze({ operation: 'retire', previousValue: structuredClone(previousValue) }),
   })
 }

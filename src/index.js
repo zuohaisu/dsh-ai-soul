@@ -28,16 +28,21 @@ function renderCurrentSoulContext(state, soulId) {
 }
 
 function createLiveGovernanceProposal(candidateClaim, transitionIntent = null) {
+  const operation = transitionIntent?.operation
+  const reason = operation === 'replace'
+    ? 'A bounded, provenance-linked candidate claim explicitly supersedes one exact current Soul-state value and requires independent governance.'
+    : operation === 'retire'
+      ? 'A bounded, provenance-linked explicit forget request asks to retire one exact current Soul-state value and requires independent governance.'
+      : 'A bounded, provenance-linked candidate claim from live DSH interaction requires independent governance.'
+
   return createCandidatePromotionProposal(candidateClaim, {
     id: `proposal:dsh-live:${encodeURIComponent(candidateClaim.id)}`,
     at: candidateClaim.createdAt,
-    reason: transitionIntent?.operation === 'replace'
-      ? 'A bounded, provenance-linked candidate claim explicitly supersedes one exact current Soul-state value and requires independent governance.'
-      : 'A bounded, provenance-linked candidate claim from live DSH interaction requires independent governance.',
+    reason,
     proposer: 'dsh-ai-soul:live-interaction',
     provenance: { source: 'dsh-session-event', boundary: 'ai-soul/governance-proposal-v1' },
-    ...(transitionIntent?.operation === 'replace'
-      ? { operation: 'replace', previousValue: transitionIntent.previousValue }
+    ...((operation === 'replace' || operation === 'retire')
+      ? { operation, previousValue: transitionIntent.previousValue }
       : {}),
   })
 }
@@ -94,8 +99,10 @@ export { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js
 export {
   EXPLICIT_DURABLE_PREFERENCE_POLICY,
   EXPLICIT_DURABLE_PREFERENCE_REVISION_POLICY,
+  EXPLICIT_DURABLE_PREFERENCE_FORGET_POLICY,
   inferExplicitDurableUserPreference,
   inferExplicitDurableUserPreferenceRevision,
+  inferExplicitDurableUserPreferenceForget,
 } from './adapters/durable-preference.js'
 export { EXPLICIT_RELATIONSHIP_STATE_POLICY, inferExplicitRelationshipState } from './adapters/relationship-state.js'
 export { EXPLICIT_SELF_MODEL_POLICY, inferExplicitSelfModel } from './adapters/self-model.js'

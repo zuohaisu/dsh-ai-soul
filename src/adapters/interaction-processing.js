@@ -1,6 +1,7 @@
 import { createSignificanceAssessment } from '../core/significance.js'
 import {
   inferExplicitDurableUserPreference,
+  inferExplicitDurableUserPreferenceForget,
   inferExplicitDurableUserPreferenceRevision,
 } from './durable-preference.js'
 import { captureFirstEncounterFromDshEvent } from './first-encounter.js'
@@ -86,35 +87,32 @@ export async function processDshHumanInteraction({
 
   const relationshipState = inferExplicitRelationshipState(experience)
   if (relationshipState) {
-    return result(
-      firstEncounter,
-      experience,
-      relationshipState.significanceAssessment,
-      relationshipState.candidateClaim,
-    )
+    return result(firstEncounter, experience, relationshipState.significanceAssessment, relationshipState.candidateClaim)
   }
 
   const selfModel = inferExplicitSelfModel(experience)
   if (selfModel) {
-    return result(
-      firstEncounter,
-      experience,
-      selfModel.significanceAssessment,
-      selfModel.candidateClaim,
-    )
+    return result(firstEncounter, experience, selfModel.significanceAssessment, selfModel.candidateClaim)
   }
 
   const worldContext = inferExplicitWorldContext(experience)
   if (worldContext) {
-    return result(
-      firstEncounter,
-      experience,
-      worldContext.significanceAssessment,
-      worldContext.candidateClaim,
-    )
+    return result(firstEncounter, experience, worldContext.significanceAssessment, worldContext.candidateClaim)
   }
 
   const currentState = await store.load(soulId)
+
+  const durablePreferenceForget = inferExplicitDurableUserPreferenceForget(experience, currentState)
+  if (durablePreferenceForget) {
+    return result(
+      firstEncounter,
+      experience,
+      durablePreferenceForget.significanceAssessment,
+      durablePreferenceForget.candidateClaim,
+      durablePreferenceForget.transitionIntent,
+    )
+  }
+
   const durablePreferenceRevision = inferExplicitDurableUserPreferenceRevision(experience, currentState)
   if (durablePreferenceRevision) {
     return result(
@@ -128,12 +126,7 @@ export async function processDshHumanInteraction({
 
   const durablePreference = inferExplicitDurableUserPreference(experience)
   if (durablePreference) {
-    return result(
-      firstEncounter,
-      experience,
-      durablePreference.significanceAssessment,
-      durablePreference.candidateClaim,
-    )
+    return result(firstEncounter, experience, durablePreference.significanceAssessment, durablePreference.candidateClaim)
   }
 
   const significanceAssessment = createFailClosedSignificanceAssessment(experience)

@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import {
   createGenesisRecord,
+  EXPLICIT_DURABLE_PREFERENCE_FORGET_POLICY,
   EXPLICIT_DURABLE_PREFERENCE_POLICY,
   FileSoulStore,
   persistGenesisSoul,
@@ -46,13 +47,7 @@ test('explicit remember-intent preference yields positive assessment and non-aut
   const store = await makeStore(soulId)
   const session = { id: 'session-176-explicit' }
 
-  await processDshHumanInteraction({
-    store,
-    soulId,
-    session,
-    event: humanMessage(1, 'hello'),
-    participant,
-  })
+  await processDshHumanInteraction({ store, soulId, session, event: humanMessage(1, 'hello'), participant })
   const before = await store.load(soulId)
 
   const result = await processDshHumanInteraction({
@@ -67,23 +62,15 @@ test('explicit remember-intent preference yields positive assessment and non-aut
   assert.equal(result.status, 'already-recorded')
   assert.equal(result.significanceAssessment.recommendPromotion, true)
   assert.equal(result.significanceAssessment.level, 'medium')
-  assert.equal(
-    result.significanceAssessment.provenance.policy.id,
-    EXPLICIT_DURABLE_PREFERENCE_POLICY.id,
-  )
+  assert.equal(result.significanceAssessment.provenance.policy.id, EXPLICIT_DURABLE_PREFERENCE_POLICY.id)
   assert.deepEqual(validateSignificanceAssessment(result.significanceAssessment), { valid: true, errors: [] })
-
   assert.deepEqual(validateCandidateClaim(result.candidateClaim), { valid: true, errors: [] })
   assert.equal(result.candidateClaim.target, 'userModel')
   assert.equal(result.candidateClaim.statement, 'The user prefers concise implementation notes.')
   assert.equal(result.candidateClaim.status, 'candidate')
   assert.equal(result.candidateClaim.canonicalMutation, false)
   assert.equal(result.candidateClaim.source.experienceId, result.experience.id)
-  assert.equal(
-    result.candidateClaim.source.significanceAssessmentId,
-    result.significanceAssessment.id,
-  )
-
+  assert.equal(result.candidateClaim.source.significanceAssessmentId, result.significanceAssessment.id)
   assert.deepEqual(after, before)
 })
 
@@ -104,7 +91,73 @@ test('forward-looking explicit preference is recognized without granting mutatio
   assert.equal(result.candidateClaim.canonicalMutation, false)
 })
 
-test('ambiguous bare preference and ordinary chat remain fail-closed with no candidate', async () => {
+test('explicit forget request yields a non-authoritative retirement intent for one exact current preference', async () => {
+  const soulId = 'ember-216-forget'
+  const store = await makeStore(soulId)
+  const session = { id: 'session-216-forget' }
+  await processDshHumanInteraction({ store, soulId, session, event: humanMessage(1, 'hello'), participant })
+
+  const seeded = await store.load(soulId)
+  seeded.userModel.push({ claim: 'The user prefers concise implementation notes.' })
+  await store.save(seeded)
+  const before = await store.load(soulId)
+
+  const result = await processDshHumanInteraction({
+    store,
+    soulId,
+    session,
+    event: humanMessage(2, 'Please forget that I prefer concise implementation notes.'),
+    participant,
+  })
+  const after = await store.load(soulId)
+
+  assert.equal(result.significanceAssessment.provenance.policy.id, EXPLICIT_DURABLE_PREFERENCE_FORGET_POLICY.id)
+  assert.equal(result.significanceAssessment.recommendPromotion, true)
+  assert.equal(result.candidateClaim.statement, 'The user prefers concise implementation notes.')
+  assert.equal(result.candidateClaim.canonicalMutation, false)
+  assert.deepEqual(result.transitionIntent, {
+    operation: 'retire',
+    previousValue: { claim: 'The user prefers concise implementation notes.' },
+  })
+  assert.deepEqual(after, before)
+})
+
+test('forget inference fails closed when the exact current preference is missing or duplicated', async () => {
+  const missingSoulId = 'ember-216-forget-missing'
+  const missingStore = await makeStore(missingSoulId)
+  const missing = await processDshHumanInteraction({
+    store: missingStore,
+    soulId: missingSoulId,
+    session: { id: 'session-216-forget-missing' },
+    event: humanMessage(1, 'Please forget that I prefer concise implementation notes.'),
+    participant,
+  })
+  assert.equal(missing.significanceAssessment.recommendPromotion, false)
+  assert.equal(missing.candidateClaim, null)
+  assert.equal(missing.transitionIntent, null)
+
+  const duplicateSoulId = 'ember-216-forget-duplicate'
+  const duplicateStore = await makeStore(duplicateSoulId)
+  const duplicateState = await duplicateStore.load(duplicateSoulId)
+  duplicateState.userModel.push(
+    { claim: 'The user prefers concise implementation notes.' },
+    { claim: 'The user prefers concise implementation notes.' },
+  )
+  await duplicateStore.save(duplicateState)
+
+  const duplicate = await processDshHumanInteraction({
+    store: duplicateStore,
+    soulId: duplicateSoulId,
+    session: { id: 'session-216-forget-duplicate' },
+    event: humanMessage(1, 'Please forget that I prefer concise implementation notes.'),
+    participant,
+  })
+  assert.equal(duplicate.significanceAssessment.recommendPromotion, false)
+  assert.equal(duplicate.candidateClaim, null)
+  assert.equal(duplicate.transitionIntent, null)
+})
+
+test('ambiguous bare preference and non-explicit forget language remain fail-closed with no candidate', async () => {
   const soulId = 'ember-176-control'
   const store = await makeStore(soulId)
   const session = { id: 'session-176-control' }
@@ -119,11 +172,25 @@ test('ambiguous bare preference and ordinary chat remain fail-closed with no can
   assert.equal(barePreference.significanceAssessment.recommendPromotion, false)
   assert.equal(barePreference.candidateClaim, null)
 
+  const state = await store.load(soulId)
+  state.userModel.push({ claim: 'The user prefers concise implementation notes.' })
+  await store.save(state)
+
+  const ambiguousForget = await processDshHumanInteraction({
+    store,
+    soulId,
+    session,
+    event: humanMessage(2, 'Do not worry about my concise implementation notes preference anymore.'),
+    participant,
+  })
+  assert.equal(ambiguousForget.significanceAssessment.recommendPromotion, false)
+  assert.equal(ambiguousForget.candidateClaim, null)
+
   const ordinary = await processDshHumanInteraction({
     store,
     soulId,
     session,
-    event: humanMessage(2, 'That build finished quickly.'),
+    event: humanMessage(3, 'That build finished quickly.'),
     participant,
   })
   assert.equal(ordinary.significanceAssessment.recommendPromotion, false)
