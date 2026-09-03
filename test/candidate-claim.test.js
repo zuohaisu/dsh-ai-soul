@@ -83,7 +83,7 @@ test('creates an immutable userModel candidate bound to exact Experience and ass
 })
 
 test('candidate contract covers all existing governed mutable Soul domains and preserves target through promotion', () => {
-  assert.deepEqual(CANDIDATE_CLAIM_TARGETS, ['selfModel', 'userModel', 'relationship.state', 'beliefs'])
+  assert.deepEqual(CANDIDATE_CLAIM_TARGETS, ['selfModel', 'userModel', 'relationship.state', 'beliefs', 'worldModel'])
 
   for (const target of CANDIDATE_CLAIM_TARGETS) {
     const candidate = createCandidateClaim(candidateInput(target))
@@ -101,7 +101,7 @@ test('candidate contract covers all existing governed mutable Soul domains and p
 })
 
 test('candidate targets stay fail-closed for identity, covenants, and unknown domains', () => {
-  for (const target of ['identity', 'identity.invariants', 'relationship.covenants', 'worldModel']) {
+  for (const target of ['identity', 'identity.invariants', 'relationship.covenants', 'unknownModel']) {
     assert.throws(() => createCandidateClaim(candidateInput(target)), /target must be one of/)
   }
 })
