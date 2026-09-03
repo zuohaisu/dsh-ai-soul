@@ -45,19 +45,25 @@ function normalizeReviewPayload(payload) {
   }
 }
 
+function enqueue(queue, task) {
+  // A rejected event must fail closed for that invocation without poisoning the
+  // serial boundary for every later, independently valid governance event.
+  return queue.then(task, task)
+}
+
 export function createDshGovernanceConsumer(ctx, { store } = {}) {
   assertEventApi(ctx)
   const inbox = createGovernanceInbox({ store })
 
   let proposalQueue = Promise.resolve()
   ctx.on('ai-soul/governance-proposal', (payload) => {
-    proposalQueue = proposalQueue.then(() => inbox.receive(payload))
+    proposalQueue = enqueue(proposalQueue, () => inbox.receive(payload))
     return proposalQueue
   })
 
   let reviewQueue = Promise.resolve()
   ctx.on('ai-soul/governance-review', (payload) => {
-    reviewQueue = reviewQueue.then(async () => {
+    reviewQueue = enqueue(reviewQueue, async () => {
       const review = normalizeReviewPayload(payload)
       const resolved = await inbox.review(review)
 
