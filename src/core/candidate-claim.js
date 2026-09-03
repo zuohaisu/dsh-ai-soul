@@ -7,6 +7,7 @@ export const CANDIDATE_CLAIM_TARGETS = Object.freeze([
   'userModel',
   'relationship.state',
   'beliefs',
+  'worldModel',
 ])
 export const CANDIDATE_CLAIM_MAX_STATEMENT_LENGTH = 500
 
