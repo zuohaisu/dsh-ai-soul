@@ -45,6 +45,19 @@ function normalizeReviewPayload(payload) {
   }
 }
 
+function normalizeSnapshotRequest(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new TypeError('governance snapshot request requires an object payload')
+  }
+  if (!payload.soulId || typeof payload.soulId !== 'string') {
+    throw new TypeError('governance snapshot request requires soulId')
+  }
+  if (!payload.requestId || typeof payload.requestId !== 'string') {
+    throw new TypeError('governance snapshot request requires requestId')
+  }
+  return { soulId: payload.soulId, requestId: payload.requestId }
+}
+
 function enqueue(queue, task) {
   // A rejected event must fail closed for that invocation without poisoning the
   // serial boundary for every later, independently valid governance event.
@@ -80,6 +93,22 @@ export function createDshGovernanceConsumer(ctx, { store } = {}) {
       return resolved
     })
     return reviewQueue
+  })
+
+  // Runtime surfaces inspect governance state through an event boundary instead
+  // of receiving a mutable reference to the inbox. The response is detached and
+  // scoped to one Soul; it carries no review/apply authority.
+  ctx.on('ai-soul/governance-snapshot-request', (payload) => {
+    const { soulId, requestId } = normalizeSnapshotRequest(payload)
+    const snapshot = {
+      requestId,
+      soulId,
+      pending: inbox.listPending().filter((entry) => entry.soulId === soulId),
+      resolved: inbox.listResolved().filter((entry) => entry.soulId === soulId),
+    }
+    const detached = structuredClone(snapshot)
+    ctx.emit('ai-soul/governance-snapshot', detached)
+    return structuredClone(snapshot)
   })
 
   return Object.freeze({
