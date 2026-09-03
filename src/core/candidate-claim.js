@@ -2,7 +2,12 @@ import { validateExperienceRecord } from './experience.js'
 import { validateSignificanceAssessment } from './significance.js'
 
 export const CANDIDATE_CLAIM_VERSION = 1
-export const CANDIDATE_CLAIM_TARGETS = Object.freeze(['userModel'])
+export const CANDIDATE_CLAIM_TARGETS = Object.freeze([
+  'selfModel',
+  'userModel',
+  'relationship.state',
+  'beliefs',
+])
 export const CANDIDATE_CLAIM_MAX_STATEMENT_LENGTH = 500
 
 function isRecord(value) {
