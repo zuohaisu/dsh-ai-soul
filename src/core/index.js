@@ -34,6 +34,11 @@ export {
 } from './erasure-impact.js'
 
 export {
+  AUTOBIOGRAPHY_DERIVED_CONTENT_REDACTION_VERSION,
+  redactAutobiographyDerivedContent,
+} from './autobiography-redaction.js'
+
+export {
   SIGNIFICANCE_ASSESSMENT_VERSION,
   SIGNIFICANCE_LEVELS,
   createSignificanceAssessment,
