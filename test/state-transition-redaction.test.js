@@ -48,8 +48,10 @@ test('archives reviewed Experience-derived proposal without retaining sensitive 
   assert.equal(archive.sourceProposal.id, proposal.id)
   assert.equal(archive.sourceProposal.target, proposal.target)
   assert.equal(archive.review.decision, 'approved')
-  assert.equal(archive.review.proposalFingerprint, proposal.review.proposalFingerprint)
-  assert.equal(archive.review.reviewFingerprint, proposal.review.reviewFingerprint)
+  assert.match(archive.review.proposalFingerprintDigest, /^[a-f0-9]{64}$/)
+  assert.match(archive.review.reviewFingerprintDigest, /^[a-f0-9]{64}$/)
+  assert.equal(Object.hasOwn(archive.review, 'proposalFingerprint'), false)
+  assert.equal(Object.hasOwn(archive.review, 'reviewFingerprint'), false)
   assert.equal(archive.redaction.experienceId, 'exp-sensitive-1')
   assert.match(archive.redaction.proposalFieldDigests.value, /^[a-f0-9]{64}$/)
   assert.match(archive.redaction.proposalFieldDigests.evidence, /^[a-f0-9]{64}$/)
@@ -73,6 +75,8 @@ test('digest output is deterministic for the same reviewed proposal', () => {
   })
   assert.deepEqual(a.redaction.proposalFieldDigests, b.redaction.proposalFieldDigests)
   assert.deepEqual(a.redaction.reviewFieldDigests, b.redaction.reviewFieldDigests)
+  assert.equal(a.review.proposalFingerprintDigest, b.review.proposalFingerprintDigest)
+  assert.equal(a.review.reviewFingerprintDigest, b.review.reviewFingerprintDigest)
 })
 
 test('fails closed for pending, unrelated, and already-redacted proposals', () => {
