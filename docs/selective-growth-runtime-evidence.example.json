@@ -1,0 +1,44 @@
+{
+  "recordedAt": "<ISO-8601 timestamp from the real run>",
+  "dshVersion": "<exact installed DSH version>",
+  "runtime": "<OS and runtime description>",
+  "profile": "<effective interactive profile>",
+  "soulId": "<stable Soul id used for the complete run>",
+  "surface": "<tui-or-web>",
+  "observations": {
+    "realHumanInteraction": false,
+    "pendingProposalVisible": false,
+    "independentHumanReview": false,
+    "persistedUserModelMutation": false,
+    "sameSoulIdAfterCommit": false,
+    "dynamicContextRefreshed": false,
+    "nextTurnContextContainedClaim": false,
+    "nextTurnModelDemonstratedRecall": false
+  },
+  "linkage": {
+    "experienceId": "<real id>",
+    "candidateId": "<real id>",
+    "proposalId": "<real id>",
+    "proposerId": "<real proposer id>",
+    "reviewId": "<real review id>",
+    "reviewerId": "<real reviewer id different from proposerId>",
+    "stateCommitId": "<real state commit id>",
+    "contextAssemblyId": "<real context assembly id>",
+    "provenanceSource": "<real provenance source>"
+  },
+  "mutation": {
+    "target": "userModel",
+    "claim": "<actual normalized persisted claim>",
+    "persistedClaimCountDelta": 0,
+    "rawInteractionStoredInCanonicalState": true
+  },
+  "evidence": {
+    "interaction": "<literal real human interaction or durable capture reference>",
+    "proposalSnapshot": "<literal /soul-review list output or durable capture reference>",
+    "review": "<literal review command/result or durable capture reference>",
+    "persistedState": "<persisted state excerpt/path/hash or durable capture reference>",
+    "nextTurnContext": "<same-process context evidence or durable capture reference>",
+    "nextTurnResponse": "<literal real model response or durable capture reference>"
+  },
+  "deviations": []
+}
