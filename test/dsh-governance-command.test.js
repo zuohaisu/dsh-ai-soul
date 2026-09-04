@@ -10,6 +10,7 @@ import {
   FileSoulStore,
   persistGenesisSoul,
 } from '../src/index.js'
+import { createDshGovernanceCommand } from '../src/adapters/governance-command.js'
 
 const participant = { id: 'human-partner-190', kind: 'human' }
 
@@ -116,6 +117,7 @@ test('human /soul-review lists and approves a live proposal, persists it, and re
   const list = await command.handler(invocation(' list'))
   assert.equal(list.kind, 'success')
   assert.match(list.text, /Pending AI Soul governance proposals: 1/)
+  assert.match(list.text, /operation: append/)
   assert.match(list.text, /The user prefers concise implementation notes\./)
   assert.match(list.text, /confidence:/)
   assert.match(list.text, /provenance: dsh-session-event/)
@@ -140,6 +142,89 @@ test('human /soul-review lists and approves a live proposal, persists it, and re
   const after = await command.handler(invocation(' list', 'command-190-after'))
   assert.equal(after.kind, 'success')
   assert.equal(after.text, 'No pending AI Soul governance proposals.')
+})
+
+test('human /soul-review renders consolidation sources and result before review', async () => {
+  const first = { claim: 'The user prefers concise status updates.' }
+  const second = { claim: 'The user prefers explicit acceptance criteria.' }
+  const consolidated = { claim: 'The user prefers concise, falsifiable engineering communication.' }
+  const command = createDshGovernanceCommand({
+    ctx: { async emit() { return [] } },
+    soulId: 'ember-222-consolidation',
+    reviewerId: 'human:human-partner-222',
+    consumer: {
+      listPending() {
+        return [{
+          soulId: 'ember-222-consolidation',
+          proposal: {
+            id: 'proposal-consolidation-222',
+            target: 'userModel',
+            operation: 'consolidate',
+            previousValues: [first, second],
+            value: consolidated,
+            confidence: 0.95,
+            proposer: 'reflection:test',
+            provenance: { source: 'dsh-session-event' },
+          },
+        }]
+      },
+    },
+  })
+
+  const list = await command.handler(invocation('list', 'command-222-list'))
+  assert.equal(list.kind, 'success')
+  assert.match(list.text, /operation: consolidate/)
+  assert.match(list.text, /source claims:/)
+  assert.match(list.text, /1\. The user prefers concise status updates\./)
+  assert.match(list.text, /2\. The user prefers explicit acceptance criteria\./)
+  assert.match(list.text, /claim: The user prefers concise, falsifiable engineering communication\./)
+})
+
+test('human /soul-review renders exact previous claim for replace and retire proposals', async () => {
+  const consumer = {
+    listPending() {
+      return [
+        {
+          soulId: 'ember-222-previous',
+          proposal: {
+            id: 'proposal-replace-222',
+            target: 'userModel',
+            operation: 'replace',
+            previousValue: { claim: 'The user prefers concise answers.' },
+            value: { claim: 'The user prefers detailed answers.' },
+            confidence: 0.95,
+            proposer: 'reflection:test',
+            provenance: { source: 'dsh-session-event' },
+          },
+        },
+        {
+          soulId: 'ember-222-previous',
+          proposal: {
+            id: 'proposal-retire-222',
+            target: 'userModel',
+            operation: 'retire',
+            previousValue: { claim: 'The user prefers weekly summaries.' },
+            value: undefined,
+            confidence: 0.95,
+            proposer: 'reflection:test',
+            provenance: { source: 'dsh-session-event' },
+          },
+        },
+      ]
+    },
+  }
+  const command = createDshGovernanceCommand({
+    ctx: { async emit() { return [] } },
+    consumer,
+    soulId: 'ember-222-previous',
+    reviewerId: 'human:human-partner-222',
+  })
+
+  const list = await command.handler(invocation('list', 'command-222-previous'))
+  assert.match(list.text, /operation: replace/)
+  assert.match(list.text, /previous claim: The user prefers concise answers\./)
+  assert.match(list.text, /operation: retire/)
+  assert.match(list.text, /previous claim: The user prefers weekly summaries\./)
 })
 
 test('human /soul-review reject resolves without canonical mutation', async () => {

@@ -21,11 +21,32 @@ function parseCommandInput(rawInput = '') {
   }
 }
 
+function formatProposalValue(value) {
+  if (typeof value?.claim === 'string') return value.claim
+  return JSON.stringify(value)
+}
+
+function formatMutationDetails(proposal) {
+  const operation = proposal.operation ?? 'append'
+  const lines = [`   operation: ${operation}`]
+
+  if ((operation === 'replace' || operation === 'retire') && proposal.previousValue !== undefined) {
+    lines.push(`   previous claim: ${formatProposalValue(proposal.previousValue)}`)
+  }
+
+  if (operation === 'consolidate' && Array.isArray(proposal.previousValues)) {
+    lines.push('   source claims:')
+    proposal.previousValues.forEach((value, index) => {
+      lines.push(`     ${index + 1}. ${formatProposalValue(value)}`)
+    })
+  }
+
+  return lines
+}
+
 function formatPendingEntry(entry, index) {
   const proposal = entry.proposal
-  const claim = typeof proposal.value?.claim === 'string'
-    ? proposal.value.claim
-    : JSON.stringify(proposal.value)
+  const claim = formatProposalValue(proposal.value)
   const provenanceSource = typeof proposal.provenance?.source === 'string'
     ? proposal.provenance.source
     : 'unknown'
@@ -33,6 +54,7 @@ function formatPendingEntry(entry, index) {
   return [
     `${index + 1}. ${proposal.id}`,
     `   target: ${proposal.target}`,
+    ...formatMutationDetails(proposal),
     `   claim: ${claim}`,
     `   confidence: ${proposal.confidence}`,
     `   proposer: ${proposal.proposer}`,
