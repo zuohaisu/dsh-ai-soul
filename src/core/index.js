@@ -96,6 +96,11 @@ export {
 } from './evolution-history.js'
 
 export {
+  EVOLUTION_HISTORY_DERIVED_CONTENT_REDACTION_VERSION,
+  redactEvolutionHistoryDerivedContent,
+} from './evolution-history-redaction.js'
+
+export {
   GENESIS_RECORD_VERSION,
   LEGACY_GENESIS_RECORD_VERSION,
   createGenesisRecord,
