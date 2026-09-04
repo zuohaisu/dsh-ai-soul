@@ -74,6 +74,11 @@ export {
 } from './state-transition.js'
 
 export {
+  STATE_TRANSITION_REDACTED_ARCHIVE_VERSION,
+  archiveRedactedStateTransitionProposal,
+} from './state-transition-redaction.js'
+
+export {
   attachGovernanceInbox,
   createGovernanceInbox,
 } from './governance-inbox.js'
