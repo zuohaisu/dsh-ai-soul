@@ -54,6 +54,11 @@ export {
 } from './candidate-claim.js'
 
 export {
+  CANDIDATE_CLAIM_DERIVED_CONTENT_REDACTION_VERSION,
+  redactCandidateClaimDerivedContent,
+} from './candidate-claim-redaction.js'
+
+export {
   createCandidatePromotionProposal,
 } from './candidate-promotion.js'
 
