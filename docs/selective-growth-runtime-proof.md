@@ -1,85 +1,70 @@
-# Real DSH Selective-Growth Runtime Proof
+# Real DSH selective-growth runtime proof
 
-This runbook produces the only evidence that can close the remaining runtime acceptance gap in Issue #27.
+This is the canonical operator protocol for the remaining runtime-evidence gap in Issue #27. It must be executed in an actual DeepSeek Harness **TUI or Web** session. Tests, mocks, hand-edited Soul State, or rendered context without a real model turn do not satisfy the proof.
 
-It must be executed in an actual DeepSeek Harness interactive surface (`tui` or `web`). Unit tests, mocked Cordis events, integration fixtures, direct calls into adapter functions, and hand-edited Soul State do **not** satisfy this proof.
-
-The verifier is intentionally read-only:
+The repository already contains a read-only verifier:
 
 ```sh
 npm run runtime:selective-growth-evidence -- --record /absolute/path/to/selective-growth-runtime.json
 ```
 
-It evaluates evidence after the run; it does not run DSH or manufacture proof.
+The verifier evaluates supplied evidence; it does not run DSH or manufacture evidence.
 
-## 1. Preconditions
-
-Use a composed interactive DSH profile containing all three required layers:
+## What a successful run proves
 
 ```text
-@deepseek-ai/dsh-base
-+ dsh-ai-soul
-+ one interactive application surface
+real human interaction
+→ Experience Record
+→ significance assessment
+→ Candidate Claim
+→ unreviewed proposal
+→ pending proposal visible to the human
+→ independent /soul-review approval
+→ governed userModel mutation persisted
+→ same soulId remains active
+→ same-process dynamic Soul Context refresh
+→ next real model turn receives the learned claim
+→ model response demonstrates recall
 ```
 
-For TUI, verify the effective profile before launch:
+The same run must also prove **selectivity**: an ordinary control interaction must not create a durable-growth proposal merely because the Soul was present.
+
+## 1. Preconditions and baseline
+
+Use current `main` or a package version containing the live governance command plane and selective-growth evidence validator. Compose `dsh-ai-soul` into the interactive profile as described in `docs/dsh-integration.md`.
+
+Verify the effective profile before launch:
 
 ```sh
 dsh --profile dsh-tui --dump-config
+# or: dsh --profile web --dump-config
 ```
 
-The dump must contain the configured `ai-soul` plugin and the TUI application bundle. For Web, perform the equivalent check against the `web` profile.
+Record the exact DSH version, runtime/OS, profile, surface (`tui` or `web`), Soul Store, and `soulId`. Before the test, capture the current relevant `userModel` claim count and verify that the durable preference chosen below is not already present. Do not reset or replace the Soul simply to make the proof easier.
 
-Record before the interaction:
+## 2. Control interaction: prove presence is not promiscuous memory
 
-- exact DSH version;
-- runtime/OS description;
-- profile name;
-- surface: `tui` or `web`;
-- selected `soulId`;
-- path to the Soul Store;
-- the current persisted `userModel` claim count.
-
-Do not start with a `userModel` claim semantically equivalent to the test claim below. This proof is for a new selective-growth append, not a duplicate/revision test.
-
-## 2. Use one deterministic durable-preference interaction
-
-In the real interactive surface, send a human message that the existing narrow inference policy accepts, for example:
+In the real interactive surface, send one ordinary message that contains no durable first-person preference. Example:
 
 ```text
-Please remember that I prefer concise implementation status updates.
+What time is it usually best to drink coffee?
 ```
 
-Do not inject the claim directly through Core APIs and do not edit the Soul JSON.
+Observe the live governance inbox. This control interaction must **not** produce an eligible durable-preference proposal. If it does, stop: selectivity failed and this run cannot close #27.
 
-Capture the literal interaction text as `evidence.interaction`.
+Keep a durable capture/reference for the control interaction and the observation that no promotion proposal resulted. The control evidence is part of the operator record even though it is not a required field in the machine verifier schema.
 
-The expected boundary is:
+## 3. Eligible durable-preference interaction
+
+Send one explicit, narrow, durable first-person preference that is not already in canonical state. Example:
 
 ```text
-real DSH human interaction
-→ Experience Record
-→ Significance Assessment
-→ userModel Candidate Claim
-→ unreviewed StateTransitionProposal
-→ pending governance inbox
+Please remember this as a standing preference: when giving me technical explanations, I prefer the conclusion first and the detailed reasoning after it.
 ```
 
-The interaction itself must not mutate canonical Soul State.
+Do not use Samuel-specific facts and do not inject the claim through Core APIs.
 
-## 3. Verify the proposal is pending before review
-
-From the same DSH runtime, run:
-
-```text
-/soul-review list
-```
-
-The command must show a pending proposal targeting `userModel`, with `operation: append`, the proposed claim, confidence, proposer, and provenance.
-
-Capture the full human-readable output as `evidence.proposalSnapshot`.
-
-Record the following linkage identifiers from runtime diagnostics/snapshots produced by the live chain:
+Capture the literal interaction and the real linkage identifiers emitted by the live chain:
 
 - `experienceId`
 - `candidateId`
@@ -87,142 +72,111 @@ Record the following linkage identifiers from runtime diagnostics/snapshots prod
 - `proposerId`
 - `provenanceSource`
 
-If any required identifier cannot be tied to the same live interaction, stop and record the run as incomplete. Do not infer or invent linkage IDs.
+If any identifier cannot be tied to this exact interaction, do not invent it; record the run as incomplete.
 
-## 4. Perform independent human review
+## 4. Prove the proposal is pending before review
 
-Approve the exact pending proposal through the command plane:
+From the same runtime, run:
+
+```text
+/soul-review list
+```
+
+Capture the pending proposal snapshot before approval. It must target `userModel`, remain unreviewed, and correspond to the Experience from step 3.
+
+## 5. Independent human review
+
+Approve the exact proposal through the human-only command plane using the syntax exposed by the installed DSH build, for example:
 
 ```text
 /soul-review approve <proposalId> selective-growth runtime proof
 ```
 
-A successful command must return an acknowledgement equivalent to:
-
-```text
-Approved and persisted governance proposal: <proposalId>
-```
-
-Capture the review command/result as `evidence.review`.
-
-Record:
+Capture the command/result and record:
 
 - `reviewId`
 - `reviewerId`
 - `stateCommitId`
 
-`reviewerId` must differ from `proposerId`. If proposer and reviewer identities are the same, the verifier rejects the proof.
+`reviewerId` must differ from `proposerId`. Direct Core apply calls do not satisfy this boundary. A rejection is valid governance behavior, but it does not satisfy #27's positive persisted-growth criterion; do not rewrite rejected history to force a pass.
 
-Do not use a direct Core apply call. The proof specifically requires the independent live governance boundary.
+## 6. Prove persisted canonical mutation
 
-## 5. Verify persisted canonical state
+After approval, inspect the persisted Soul State and prove all of the following:
 
-Read the persisted Soul State after approval and verify all of the following:
+1. `soulId` is unchanged;
+2. exactly one expected `userModel` claim was added;
+3. the relevant persisted claim count increased by exactly `1`;
+4. the raw chat interaction was **not** dumped into canonical Soul State;
+5. the mutation is traceable to the reviewed proposal.
 
-1. the selected `soulId` is unchanged;
-2. the new `userModel` claim is present exactly once;
-3. the persisted `userModel` claim count increased by exactly `1`;
-4. the raw interaction text was **not** stored as canonical Soul State.
+Capture a state excerpt/path/hash and the actual normalized claim emitted by the runtime.
 
-Capture an appropriate state excerpt/path/hash as `evidence.persistedState`.
+## 7. Prove same-process context refresh
 
-The evidence JSON must therefore use:
+Do **not** restart DSH. The next acceptance boundary is stronger than persistence.
 
-```json
-{
-  "mutation": {
-    "target": "userModel",
-    "claim": "The user prefers concise implementation status updates.",
-    "persistedClaimCountDelta": 1,
-    "rawInteractionStoredInCanonicalState": false
-  }
-}
-```
+Capture the next prompt/context assembly used by the running process, including `contextAssemblyId`, and prove that the newly approved claim is present in dynamic Soul Context. Reading the persisted JSON file alone does not satisfy this step.
 
-Use the actual normalized claim emitted by the runtime if its wording differs from the example. Do not rewrite the claim in the evidence record.
+## 8. Prove the next real model turn uses the learned state
 
-## 6. Verify same-process dynamic context refresh
-
-Without restarting the DSH process, trigger or inspect the next Soul Context assembly used for the next model turn.
-
-Record:
-
-- `contextAssemblyId`;
-- evidence that the newly persisted claim is present in the assembled Soul Context.
-
-Capture that material as `evidence.nextTurnContext`.
-
-This is a critical boundary: persistence alone does not prove that the currently running model context was refreshed.
-
-## 7. Require a real next model turn
-
-In the same real interactive session, ask a question whose answer depends on the newly learned preference without repeating the preference itself. For example:
+Without restating the preference, ask a natural follow-up whose response should reveal whether the new claim reached the model. For the example preference:
 
 ```text
-How should you format implementation status updates for me?
+Explain how this Soul growth path works.
 ```
 
-The model response must demonstrate use of the learned claim. Capture the literal response as `evidence.nextTurnResponse`.
+The response should naturally put the conclusion before detailed reasoning. Capture the literal real-model response. A mocked response or renderer assertion does not satisfy this step.
 
-A test assertion that `renderSoulContext()` contains the claim is not a substitute for this step. The acceptance requires a real next model turn in TUI/Web.
+## 9. Build the evidence record
 
-## 8. Build the verifier record
+Copy:
 
-Create a JSON record with this shape, replacing every placeholder with evidence from the actual run:
-
-```json
-{
-  "recordedAt": "2026-09-04T00:00:00Z",
-  "dshVersion": "<exact version>",
-  "runtime": "<OS/runtime>",
-  "profile": "<profile>",
-  "soulId": "<stable soulId>",
-  "surface": "tui",
-  "observations": {
-    "realHumanInteraction": true,
-    "pendingProposalVisible": true,
-    "independentHumanReview": true,
-    "persistedUserModelMutation": true,
-    "sameSoulIdAfterCommit": true,
-    "dynamicContextRefreshed": true,
-    "nextTurnContextContainedClaim": true,
-    "nextTurnModelDemonstratedRecall": true
-  },
-  "linkage": {
-    "experienceId": "<id>",
-    "candidateId": "<id>",
-    "proposalId": "<id>",
-    "proposerId": "<id>",
-    "reviewId": "<id>",
-    "reviewerId": "<id>",
-    "stateCommitId": "<id>",
-    "contextAssemblyId": "<id>",
-    "provenanceSource": "<source>"
-  },
-  "mutation": {
-    "target": "userModel",
-    "claim": "<actual normalized claim>",
-    "persistedClaimCountDelta": 1,
-    "rawInteractionStoredInCanonicalState": false
-  },
-  "evidence": {
-    "interaction": "<literal human interaction or durable capture reference>",
-    "proposalSnapshot": "<literal /soul-review list output or durable capture reference>",
-    "review": "<approval command/result or durable capture reference>",
-    "persistedState": "<state evidence or durable capture reference>",
-    "nextTurnContext": "<context evidence or durable capture reference>",
-    "nextTurnResponse": "<literal real-model response or durable capture reference>"
-  },
-  "deviations": []
-}
+```text
+docs/selective-growth-runtime-evidence.example.json
 ```
 
-The evaluator also accepts `surface: "web"` for a Web proof.
+to a local evidence file. Replace every placeholder with observations from this exact run. The template intentionally starts with failing values (`false`, delta `0`, and raw canonical storage `true`) so an operator cannot obtain a passing result by merely filling identifiers and forgetting to assert the critical safety observations.
 
-## 9. Run the verifier
+Required observations are:
+
+- `realHumanInteraction`
+- `pendingProposalVisible`
+- `independentHumanReview`
+- `persistedUserModelMutation`
+- `sameSoulIdAfterCommit`
+- `dynamicContextRefreshed`
+- `nextTurnContextContainedClaim`
+- `nextTurnModelDemonstratedRecall`
+
+Required linkage is:
+
+- `experienceId`
+- `candidateId`
+- `proposalId`
+- `proposerId`
+- `reviewId`
+- `reviewerId`
+- `stateCommitId`
+- `contextAssemblyId`
+- `provenanceSource`
+
+The mutation must target `userModel`, add exactly one claim, and report `rawInteractionStoredInCanonicalState: false`.
+
+Also retain the control-interaction capture alongside the machine-verifier JSON and publication evidence.
+
+## 10. Validate and publish
+
+Run:
 
 ```sh
 npm run runtime:selective-growth-evidence -- --record /absolute/path/to/selective-growth-runtime.json
+```
+
+or the installed CLI:
+
+```sh
+dsh-ai-soul-selective-growth-evidence --record /absolute/path/to/selective-growth-runtime.json
 ```
 
 A valid proof must return both:
@@ -234,41 +188,38 @@ A valid proof must return both:
 }
 ```
 
-and exit with status `0`.
+and exit `0`.
 
-Any missing required field, false observation, non-`userModel` target, claim-count delta other than `1`, canonical raw-interaction storage, or proposer/reviewer identity collision makes the proof fail.
+Post to Issue #27:
 
-## 10. Evidence publication
-
-Post the verifier result and durable references/captures to Issue #27. Include:
-
-- DSH version and surface;
-- exact `soulId`;
-- test interaction;
+- DSH version, surface, profile and stable `soulId`;
+- baseline claim evidence;
+- control interaction + no-proposal observation;
+- eligible interaction;
 - `/soul-review list` snapshot;
 - approval result;
 - persisted-state evidence;
 - same-process next-turn context evidence;
-- real next model response;
-- full linkage IDs;
-- verifier JSON/result;
-- any deviations.
+- literal next real-model response;
+- full linkage ids;
+- verifier record/result;
+- deviations.
 
-Only after that evidence verifies should #27 acceptance criterion 6 be marked complete.
+## Fail-closed conditions
 
-## Fail-closed stop conditions
-
-Stop the run and report it as incomplete rather than filling gaps when any of these occur:
+Stop and report the run as incomplete if any of these occur:
 
 - no real TUI/Web surface is attached;
-- no pending proposal appears;
-- proposal is applied without `/soul-review` human approval;
-- proposer and reviewer are not independent;
-- the `soulId` changes;
+- the ordinary control interaction generates a durable proposal;
+- no eligible pending proposal appears;
+- proposal is applied without human `/soul-review`;
+- proposer and reviewer identities are not independent;
+- `soulId` changes;
 - persisted mutation cannot be demonstrated;
-- dynamic context refresh cannot be demonstrated;
+- raw interaction is copied into canonical Soul State;
+- same-process context refresh cannot be demonstrated;
 - no real next model turn occurs;
-- the next-turn response does not demonstrate the new claim;
+- the next response does not demonstrate the learned claim;
 - required linkage cannot be recovered from real runtime evidence.
 
-The purpose of this proof is falsifiability, not producing a green-looking artifact.
+Completing this protocol with `verified: true` supplies the final runtime evidence needed for #27 acceptance criterion 6. This document, its template, and automated integration tests **do not by themselves close #27**.
