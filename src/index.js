@@ -33,7 +33,9 @@ function createLiveGovernanceProposal(candidateClaim, transitionIntent = null) {
     ? 'A bounded, provenance-linked candidate claim explicitly supersedes one exact current Soul-state value and requires independent governance.'
     : operation === 'retire'
       ? 'A bounded, provenance-linked explicit forget request asks to retire one exact current Soul-state value and requires independent governance.'
-      : 'A bounded, provenance-linked candidate claim from live DSH interaction requires independent governance.'
+      : operation === 'consolidate'
+        ? 'A bounded, provenance-linked explicit consolidation request asks to replace multiple exact current Soul-state values with one supplied compact claim and requires independent governance.'
+        : 'A bounded, provenance-linked candidate claim from live DSH interaction requires independent governance.'
 
   return createCandidatePromotionProposal(candidateClaim, {
     id: `proposal:dsh-live:${encodeURIComponent(candidateClaim.id)}`,
@@ -43,7 +45,9 @@ function createLiveGovernanceProposal(candidateClaim, transitionIntent = null) {
     provenance: { source: 'dsh-session-event', boundary: 'ai-soul/governance-proposal-v1' },
     ...((operation === 'replace' || operation === 'retire')
       ? { operation, previousValue: transitionIntent.previousValue }
-      : {}),
+      : operation === 'consolidate'
+        ? { operation, previousValues: transitionIntent.previousValues }
+        : {}),
   })
 }
 
@@ -104,6 +108,7 @@ export {
   inferExplicitDurableUserPreferenceRevision,
   inferExplicitDurableUserPreferenceForget,
 } from './adapters/durable-preference.js'
+export { EXPLICIT_USER_MODEL_CONSOLIDATION_POLICY, inferExplicitUserModelConsolidation } from './adapters/user-model-consolidation.js'
 export { EXPLICIT_RELATIONSHIP_STATE_POLICY, inferExplicitRelationshipState } from './adapters/relationship-state.js'
 export { EXPLICIT_SELF_MODEL_POLICY, inferExplicitSelfModel } from './adapters/self-model.js'
 export { EXPLICIT_WORLD_CONTEXT_POLICY, inferExplicitWorldContext } from './adapters/world-context.js'
