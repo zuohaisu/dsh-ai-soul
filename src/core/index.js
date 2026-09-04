@@ -20,9 +20,11 @@ export {
 export { FileSoulStore } from './soul-store.js'
 
 export {
+  EXPERIENCE_PAYLOAD_REDACTION_VERSION,
   EXPERIENCE_RECORD_VERSION,
   createExperienceRecord,
   promoteExperienceToAutobiography,
+  redactExperiencePayload,
   validateExperienceRecord,
 } from './experience.js'
 
