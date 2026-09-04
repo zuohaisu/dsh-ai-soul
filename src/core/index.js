@@ -46,6 +46,11 @@ export {
 } from './significance.js'
 
 export {
+  SIGNIFICANCE_ASSESSMENT_DERIVED_CONTENT_REDACTION_VERSION,
+  redactSignificanceAssessmentDerivedContent,
+} from './significance-redaction.js'
+
+export {
   CANDIDATE_CLAIM_MAX_STATEMENT_LENGTH,
   CANDIDATE_CLAIM_TARGETS,
   CANDIDATE_CLAIM_VERSION,
@@ -58,9 +63,7 @@ export {
   redactCandidateClaimDerivedContent,
 } from './candidate-claim-redaction.js'
 
-export {
-  createCandidatePromotionProposal,
-} from './candidate-promotion.js'
+export { createCandidatePromotionProposal } from './candidate-promotion.js'
 
 export {
   DEFAULT_STATE_TRANSITION_REVIEW_POLICY,
@@ -145,9 +148,7 @@ export {
   validateExodusReviewWorkspace,
 } from './exodus-review-workspace.js'
 
-export {
-  createExodusPromotionProposal,
-} from './exodus-promotion.js'
+export { createExodusPromotionProposal } from './exodus-promotion.js'
 
 export {
   LIFECYCLE_IMPORT_COMPARISON_STATES,
