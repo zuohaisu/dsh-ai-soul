@@ -8,6 +8,7 @@ import { captureFirstEncounterFromDshEvent } from './first-encounter.js'
 import { inferExplicitRelationshipState } from './relationship-state.js'
 import { mapDshHumanMessageToExperience } from './runtime-event.js'
 import { inferExplicitSelfModel } from './self-model.js'
+import { inferExplicitUserModelConsolidation } from './user-model-consolidation.js'
 import { inferExplicitWorldContext } from './world-context.js'
 
 export const DSH_SIGNIFICANCE_BASELINE_POLICY = Object.freeze({
@@ -101,6 +102,17 @@ export async function processDshHumanInteraction({
   }
 
   const currentState = await store.load(soulId)
+
+  const userModelConsolidation = inferExplicitUserModelConsolidation(experience, currentState)
+  if (userModelConsolidation) {
+    return result(
+      firstEncounter,
+      experience,
+      userModelConsolidation.significanceAssessment,
+      userModelConsolidation.candidateClaim,
+      userModelConsolidation.transitionIntent,
+    )
+  }
 
   const durablePreferenceForget = inferExplicitDurableUserPreferenceForget(experience, currentState)
   if (durablePreferenceForget) {
