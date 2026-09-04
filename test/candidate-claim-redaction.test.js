@@ -18,13 +18,14 @@ function buildCandidate(id = 'claim-private', experienceId = 'exp-private') {
     payload: { text: 'sensitive preference' },
   })
   const significanceAssessment = createSignificanceAssessment({
-    experience,
+    experienceId: experience.id,
     id: `sig-${experienceId}`,
     assessedAt: '2026-09-04T09:05:01.000Z',
     level: 'high',
+    rationale: 'explicit durable preference',
     confidence: 0.9,
-    reasons: ['explicit durable preference'],
     provenance: { assessor: 'test' },
+    recommendPromotion: true,
   })
   return createCandidateClaim({
     experience,
