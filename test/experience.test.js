@@ -5,6 +5,7 @@ import {
   createExperienceRecord,
   createSoulState,
   promoteExperienceToAutobiography,
+  redactExperiencePayload,
   validateExperienceRecord,
 } from '../src/core/index.js'
 
@@ -113,4 +114,93 @@ test('experience creation rejects omitted payload', () => {
     }),
     /payload is required/,
   )
+})
+
+test('Experience payload redaction removes plaintext while preserving lineage', () => {
+  const experience = createExperienceRecord({
+    id: 'exp-private',
+    at: '2026-09-04T05:00:00.000Z',
+    kind: 'conversation-turn',
+    source: { runtime: 'dsh', sessionId: 'session-private' },
+    provenance: { eventId: 'event-private', sourceType: 'runtime-event' },
+    payload: { observation: { text: 'my private secret value' }, extra: ['sensitive', 42] },
+  })
+
+  const redacted = redactExperiencePayload(experience, {
+    reason: 'human requested physical payload redaction',
+    provenance: { actor: 'human', method: 'explicit-request' },
+    redactedAt: '2026-09-04T05:01:00.000Z',
+  })
+
+  assert.deepEqual(validateExperienceRecord(redacted), { valid: true, errors: [] })
+  assert.equal(redacted.id, experience.id)
+  assert.equal(redacted.at, experience.at)
+  assert.equal(redacted.kind, experience.kind)
+  assert.deepEqual(redacted.source, experience.source)
+  assert.deepEqual(redacted.provenance, experience.provenance)
+  assert.equal(redacted.payload.redacted, true)
+  assert.equal(redacted.payload.redaction.algorithm, 'sha256')
+  assert.match(redacted.payload.redaction.digest, /^[a-f0-9]{64}$/)
+  assert.equal(JSON.stringify(redacted).includes('my private secret value'), false)
+  assert.equal(JSON.stringify(redacted).includes('sensitive'), false)
+  assert.deepEqual(experience.payload, { observation: { text: 'my private secret value' }, extra: ['sensitive', 42] })
+})
+
+test('Experience payload redaction digest is deterministic across object key order', () => {
+  const base = {
+    id: 'exp-digest',
+    at: '2026-09-04T05:02:00.000Z',
+    kind: 'conversation-turn',
+    source: { runtime: 'test' },
+    provenance: { eventId: 'event-digest' },
+  }
+  const a = createExperienceRecord({ ...base, payload: { b: 2, a: { y: 2, x: 1 } } })
+  const b = createExperienceRecord({ ...base, payload: { a: { x: 1, y: 2 }, b: 2 } })
+
+  const options = {
+    reason: 'privacy request',
+    provenance: { actor: 'human' },
+    redactedAt: '2026-09-04T05:03:00.000Z',
+  }
+  const redactedA = redactExperiencePayload(a, options)
+  const redactedB = redactExperiencePayload(b, options)
+
+  assert.equal(redactedA.payload.redaction.digest, redactedB.payload.redaction.digest)
+})
+
+test('Experience payload redaction fails closed when already redacted', () => {
+  const experience = createExperienceRecord({
+    id: 'exp-redact-once',
+    kind: 'conversation-turn',
+    source: { runtime: 'test' },
+    provenance: { eventId: 'event-redact-once' },
+    payload: { text: 'erase me' },
+  })
+  const redacted = redactExperiencePayload(experience, {
+    reason: 'privacy request',
+    provenance: { actor: 'human' },
+    redactedAt: '2026-09-04T05:04:00.000Z',
+  })
+
+  assert.throws(
+    () => redactExperiencePayload(redacted, {
+      reason: 'second request',
+      provenance: { actor: 'human' },
+      redactedAt: '2026-09-04T05:05:00.000Z',
+    }),
+    /already redacted/,
+  )
+})
+
+test('Experience payload redaction requires reason and provenance', () => {
+  const experience = createExperienceRecord({
+    id: 'exp-redaction-governance',
+    kind: 'conversation-turn',
+    source: { runtime: 'test' },
+    provenance: { eventId: 'event-redaction-governance' },
+    payload: { text: 'erase me' },
+  })
+
+  assert.throws(() => redactExperiencePayload(experience, { provenance: { actor: 'human' } }), /redaction reason is required/)
+  assert.throws(() => redactExperiencePayload(experience, { reason: 'privacy request' }), /redaction provenance is required/)
 })
