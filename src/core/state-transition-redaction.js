@@ -92,8 +92,8 @@ export function archiveRedactedStateTransitionProposal(
       reviewer: proposal.review.reviewer,
       at: proposal.review.at,
       policy: clone(proposal.review.policy),
-      proposalFingerprint: proposal.review.proposalFingerprint,
-      reviewFingerprint: proposal.review.reviewFingerprint,
+      proposalFingerprintDigest: digest(proposal.review.proposalFingerprint),
+      reviewFingerprintDigest: digest(proposal.review.reviewFingerprint),
     },
     redaction: {
       experienceId,
@@ -105,6 +105,7 @@ export function archiveRedactedStateTransitionProposal(
     },
     limitations: [
       'this archive is non-executable and must not be passed to proposal review/apply machinery',
+      'original fingerprint strings may contain derived plaintext and are represented only by digests in this archive',
       'archival redaction does not undo an approved canonical state transition',
       'evolution history, logs, backups, caches, external stores, and semantic copies are not erased by this transformation',
     ],
