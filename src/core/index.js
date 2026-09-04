@@ -29,6 +29,11 @@ export {
 } from './experience.js'
 
 export {
+  EXPERIENCE_ERASURE_IMPACT_VERSION,
+  assessExperienceErasureImpact,
+} from './erasure-impact.js'
+
+export {
   SIGNIFICANCE_ASSESSMENT_VERSION,
   SIGNIFICANCE_LEVELS,
   createSignificanceAssessment,
