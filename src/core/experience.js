@@ -1,10 +1,39 @@
+import { createHash } from 'node:crypto'
+
 import { validateSignificanceAssessment } from './significance.js'
 import { validateSoulState } from './soul-state.js'
 
 export const EXPERIENCE_RECORD_VERSION = 1
+export const EXPERIENCE_PAYLOAD_REDACTION_VERSION = 1
 
 function clone(value) {
   return structuredClone(value)
+}
+
+function canonicalize(value) {
+  if (Array.isArray(value)) return value.map(canonicalize)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value).sort().map((key) => [key, canonicalize(value[key])]),
+    )
+  }
+  return value
+}
+
+function payloadDigest(payload) {
+  return createHash('sha256')
+    .update(JSON.stringify(canonicalize(payload)))
+    .digest('hex')
+}
+
+function isRedactedPayload(payload) {
+  return Boolean(
+    payload
+    && typeof payload === 'object'
+    && !Array.isArray(payload)
+    && payload.redacted === true
+    && payload.redaction?.version === EXPERIENCE_PAYLOAD_REDACTION_VERSION,
+  )
 }
 
 export function validateExperienceRecord(record) {
@@ -21,6 +50,17 @@ export function validateExperienceRecord(record) {
   if (!record?.provenance || typeof record.provenance !== 'object' || Array.isArray(record.provenance)) errors.push('provenance is required')
   if (!Object.prototype.hasOwnProperty.call(record ?? {}, 'payload') || record?.payload === undefined) {
     errors.push('payload is required')
+  }
+
+  if (isRedactedPayload(record?.payload)) {
+    const redaction = record.payload.redaction
+    if (redaction.algorithm !== 'sha256') errors.push('redacted payload algorithm must be sha256')
+    if (!/^[a-f0-9]{64}$/.test(redaction.digest ?? '')) errors.push('redacted payload digest must be sha256 hex')
+    if (!redaction.redactedAt || typeof redaction.redactedAt !== 'string') errors.push('redactedAt is required')
+    if (!redaction.reason || typeof redaction.reason !== 'string') errors.push('redaction reason is required')
+    if (!redaction.provenance || typeof redaction.provenance !== 'object' || Array.isArray(redaction.provenance)) {
+      errors.push('redaction provenance is required')
+    }
   }
 
   return { valid: errors.length === 0, errors }
@@ -50,6 +90,44 @@ export function createExperienceRecord({
   }
 
   return record
+}
+
+export function redactExperiencePayload(experience, {
+  reason,
+  provenance,
+  redactedAt = new Date().toISOString(),
+} = {}) {
+  const validation = validateExperienceRecord(experience)
+  if (!validation.valid) {
+    throw new TypeError(`invalid experience record: ${validation.errors.join('; ')}`)
+  }
+  if (isRedactedPayload(experience.payload)) {
+    throw new TypeError('experience payload is already redacted')
+  }
+  if (!reason || typeof reason !== 'string') {
+    throw new TypeError('redaction reason is required')
+  }
+  if (!provenance || typeof provenance !== 'object' || Array.isArray(provenance)) {
+    throw new TypeError('redaction provenance is required')
+  }
+  if (!redactedAt || typeof redactedAt !== 'string') {
+    throw new TypeError('redactedAt is required')
+  }
+
+  const next = clone(experience)
+  next.payload = {
+    redacted: true,
+    redaction: {
+      version: EXPERIENCE_PAYLOAD_REDACTION_VERSION,
+      algorithm: 'sha256',
+      digest: payloadDigest(experience.payload),
+      redactedAt,
+      reason,
+      provenance: clone(provenance),
+    },
+  }
+
+  return next
 }
 
 export function promoteExperienceToAutobiography(state, experience, {
