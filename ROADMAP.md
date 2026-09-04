@@ -140,7 +140,7 @@ Exit criterion:
 
 Engineering implementation is merged in PR #49. The generic activation-before-interaction runtime proof completed in #122 with real model-backed context visibility, first-encounter persistence, and restart exactly-once evidence. The remaining fresh-session runtime gate in #7 is Samuel-specific and remains open.
 
-## M3 — Experience Capture
+## M3 — Experience Capture ✅
 
 Goal: let a Soul accumulate new experience without turning every conversation into permanent memory.
 
@@ -156,11 +156,11 @@ Exit criterion:
 
 > A meaningful DSH interaction can become a traceable Experience and may be explicitly promoted under governance, while ordinary interactions are not automatically written into canonical Soul memory.
 
-Runtime-neutral primitives are implemented in PRs #16, #20, and #22. Generic real DSH evidence now proves activation and human-interaction events reach the plugin (#122, #147), so #7 is no longer a generic M3 blocker. The remaining gap is narrower: ordinary DSH interaction is not yet wired into a selective Experience -> significance/governance path with real end-to-end evidence.
+Runtime-neutral primitives are implemented in PRs #16, #20, and #22. Generic real DSH evidence proves activation and human-interaction events reach the plugin (#122, #147). Current main also contains the selective Experience → significance → Candidate → governance-proposal path, while ordinary/control interactions remain fail-closed. The remaining real-runtime evidence gap belongs to the complete governed growth loop in M4/M4.1, not to Experience capture itself. #7 remains Samuel-specific and is not a generic M3 blocker.
 
 ## M4 — Reflection & Governed Evolution
 
-Goal: allow self-model, user-model, relationship state, beliefs, and covenants to evolve under explicit rules.
+Goal: allow self-model, user-model, relationship state, beliefs, and world context to evolve under explicit rules without silent identity drift.
 
 Deliverables:
 
@@ -169,51 +169,83 @@ Deliverables:
 - [x] Reflection output contract that emits proposals without write authority.
 - [x] Guardrails preventing experience/reflection from directly rewriting identity kernel.
 - [x] Change history readable by humans.
-- [x] Governed SELF / OTHER / RELATIONAL / belief / identity-invariant state is rendered into model-visible Soul context (#164 / PR #165).
+- [x] Governed SELF / OTHER / RELATIONAL / belief / identity-invariant state rendered into model-visible Soul context (#164 / PR #165).
+- [x] Live DSH-shaped Experience → significance → Candidate → unreviewed governance proposal path.
+- [x] Independent human review command plane with persisted apply and same-process context refresh.
+- [x] Governed mutable-state lifecycle: append/learn, exact revision, exact retirement/forgetting, and N→1 consolidation.
+- [x] Bounded canonical current cognition aligned with model-context projection.
+- [x] Review rendering exposes destructive/replacement source values before approval.
+- [x] Deterministic, falsifiable real DSH selective-growth evidence runbook (#226 / PR #227).
 
 Exit criterion:
 
-> A generic Soul can change one bounded mutable claim for a documented, provenance-bound reason and expose that learned state to the model after reload without silent persona drift.
+> A generic Soul can change one bounded mutable claim for a documented, provenance-bound reason and expose that learned state to the model without silent persona drift.
 
-Runtime-neutral governance is implemented in PRs #26, #29, #31, and #33. The generic read path is now model-visible after PR #165. The remaining M4 gap is not #7: it is a real DSH end-to-end selective-growth proof that joins Experience, explicit significance/governance, persisted mutation, reload, and model-visible context.
+The engineering substrate for that capability is present on current main. Runtime-neutral governance began in PRs #26, #29, #31, and #33; the read path became model-visible in PR #165; later M4 work wired real-shape interaction capture, significance, proposal formation, independent governance, persisted mutation, same-process context refresh, revision/retirement/consolidation, bounded current cognition, and auditable review. The remaining M4 acceptance gap is now **one real DSH TUI/Web end-to-end proof**, tracked in #27. It is evidence debt, not missing generic mutation plumbing, and it is not blocked by Samuel-specific #7.
 
-## M4.1 — Selective Soul Growth — next falsifiable capability
+## M4.1 — Selective Soul Growth — current runtime validation gate
 
-Goal: prove that a Soul can genuinely learn one thing from lived DSH experience while remaining the same Soul and without treating the transcript as canonical memory.
+Goal: prove in a real DSH TUI/Web run that a Soul can genuinely learn one thing from lived experience while remaining the same Soul and without treating the transcript as canonical memory.
 
-Observable capability:
+Implemented substrate:
 
 ```text
-real DSH human interaction
+real-shape DSH human interaction
       ↓
 provenance-bound Experience
       ↓
-explicit significance / governance decision
+explicit significance inference
       ↓
-exactly one bounded mutable claim promoted
+non-authoritative Candidate
       ↓
-persist Soul State
+unreviewed governance proposal
       ↓
-reload / restart same soulId
+independent human /soul-review decision
       ↓
-model-visible Soul Context contains the learned claim
+governed persisted mutation
+      ↓
+same-process Soul Context refresh
+```
+
+Still required as real runtime evidence:
+
+```text
+real DSH TUI/Web interaction
+      ↓
+pending proposal observed
+      ↓
+human /soul-review approval
+      ↓
+persisted canonical state observed
+      ↓
+same-process refreshed context observed
+      ↓
+real next model turn visibly uses the learned claim
+      ↓
+verifier-ready evidence bundle passes
 ```
 
 Safety invariants:
 
 - Raw interaction history, Experience Records, canonical Soul State, and governance/audit history remain distinct.
-- Capture alone has no mutation authority.
+- Capture and inference alone have no mutation authority.
 - Ordinary messages are not promoted by default.
 - Every promoted claim retains provenance, confidence/reason, and governance evidence.
 - Contradiction must coexist or revise through explicit governance rather than silent overwrite.
-- The main Soul JSON must remain compact/current; it must not become an append-only conversation log.
+- Current cognition is bounded; growth can revise, retire, or consolidate instead of appending forever.
+- Consolidation is N→1 governed mutation, not silent LLM summarization.
+- Cognitive forgetting retires current cognition; it is not equivalent to physical erasure of historical evidence.
 - Samuel-specific Experiment 001 is not required to prove this generic capability.
+
+Current falsifiable state:
+
+- Automated integration proves the engineering linkage but cannot satisfy the runtime acceptance criterion.
+- `docs/selective-growth-runtime-proof.md` is the canonical operator runbook.
+- #27 remains open until an actual TUI/Web run demonstrates interaction → human review → persisted mutation → next-turn model-visible recall.
 
 Exit criterion:
 
-> In a real DSH run, one selected human interaction produces a provenance-bound Experience; one explicit governed decision promotes exactly one mutable claim; after restart the same `soulId` renders that claim into model-visible context, while a control interaction remains unpromoted.
-
-This milestone should be implemented as the smallest end-to-end slice, not as a general-purpose memory platform or LLM auto-memory system.
+> In a real DSH run, one selected human interaction produces a provenance-bound Experience and pending proposal; an independent human review promotes exactly one bounded mutable claim; the committed state becomes current Soul Context; and a real subsequent model turn demonstrably uses the learned claim. A control interaction remains unpromoted.
 
 ## M5 — Cross-Session Continuity
 
