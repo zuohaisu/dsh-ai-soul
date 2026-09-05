@@ -175,7 +175,7 @@ Deliverables:
 - [x] Governed mutable-state lifecycle: append/learn, exact revision, exact retirement/forgetting, and N→1 consolidation.
 - [x] Bounded canonical current cognition aligned with model-context projection.
 - [x] Review rendering exposes destructive/replacement source values before approval.
-- [x] Deterministic, falsifiable real DSH selective-growth evidence runbook (#226 / PR #227).
+- [x] Deterministic, falsifiable real DSH selective-growth evidence protocol and fail-safe template (#244 / PR #245).
 
 Exit criterion:
 
