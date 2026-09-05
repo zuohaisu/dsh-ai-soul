@@ -4,7 +4,7 @@ import {
 } from './cognitive-capacity.js'
 import { validateSoulState } from './soul-state.js'
 
-export const SOUL_HOMEOSTASIS_CHECK_VERSION = 1
+export const SOUL_HOMEOSTASIS_CHECK_VERSION = 2
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable)
@@ -53,6 +53,24 @@ export function evaluateSoulHomeostasis({ baseline, current } = {}) {
   check('identity-origin-changed', equal(baseline.identity.origin, current.identity.origin))
   check('identity-invariants-changed', equal(baseline.identity.invariants, current.identity.invariants))
   check('relationship-covenants-changed', equal(baseline.relationship.covenants, current.relationship.covenants))
+
+  if (current.evolution.length < baseline.evolution.length) {
+    violations.push({
+      code: 'evolution-history-truncated',
+      baselineLength: baseline.evolution.length,
+      currentLength: current.evolution.length,
+    })
+  } else {
+    const mismatchIndex = baseline.evolution.findIndex(
+      (entry, index) => !equal(entry, current.evolution[index]),
+    )
+    if (mismatchIndex !== -1) {
+      violations.push({
+        code: 'evolution-history-rewritten',
+        index: mismatchIndex,
+      })
+    }
+  }
 
   for (const target of CURRENT_COGNITION_TARGETS) {
     const entries = domainEntries(current, target)

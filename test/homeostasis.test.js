@@ -19,6 +19,17 @@ function baselineState() {
   return state
 }
 
+function evolutionEntry(id, at = '2026-09-05T01:00:00.000Z') {
+  return {
+    id,
+    at,
+    kind: 'governed-growth',
+    reason: `reason-${id}`,
+    provenance: { source: `evidence-${id}` },
+    change: { target: 'userModel', id },
+  }
+}
+
 test('allows governed mutable growth and a human-facing name change', () => {
   const baseline = baselineState()
   const current = structuredClone(baseline)
@@ -34,6 +45,55 @@ test('allows governed mutable growth and a human-facing name change', () => {
   assert.equal(result.passed, true)
   assert.equal(result.soulId, baseline.soulId)
   assert.deepEqual(result.violations, [])
+})
+
+test('allows append-only evolution lineage', () => {
+  const baseline = baselineState()
+  baseline.evolution.push(evolutionEntry('transition-1'))
+  const current = structuredClone(baseline)
+  current.evolution.push(evolutionEntry('transition-2', '2026-09-05T02:00:00.000Z'))
+
+  const result = evaluateSoulHomeostasis({ baseline, current })
+
+  assert.equal(result.passed, true)
+  assert.deepEqual(result.violations, [])
+})
+
+test('rejects truncated evolution lineage', () => {
+  const baseline = baselineState()
+  baseline.evolution.push(evolutionEntry('transition-1'))
+  baseline.evolution.push(evolutionEntry('transition-2', '2026-09-05T02:00:00.000Z'))
+  const current = structuredClone(baseline)
+  current.evolution.pop()
+
+  const result = evaluateSoulHomeostasis({ baseline, current })
+
+  assert.equal(result.passed, false)
+  assert.deepEqual(result.violations, [{
+    code: 'evolution-history-truncated',
+    baselineLength: 2,
+    currentLength: 1,
+  }])
+})
+
+test('rejects rewritten or reordered baseline evolution lineage at the first mismatch', () => {
+  const baseline = baselineState()
+  baseline.evolution.push(evolutionEntry('transition-1'))
+  baseline.evolution.push(evolutionEntry('transition-2', '2026-09-05T02:00:00.000Z'))
+
+  const rewritten = structuredClone(baseline)
+  rewritten.evolution[0].provenance = { source: 'rewritten-evidence' }
+  assert.deepEqual(
+    evaluateSoulHomeostasis({ baseline, current: rewritten }).violations,
+    [{ code: 'evolution-history-rewritten', index: 0 }],
+  )
+
+  const reordered = structuredClone(baseline)
+  reordered.evolution.reverse()
+  assert.deepEqual(
+    evaluateSoulHomeostasis({ baseline, current: reordered }).violations,
+    [{ code: 'evolution-history-rewritten', index: 0 }],
+  )
 })
 
 test('reports hard machine-continuity violations deterministically', () => {
@@ -83,8 +143,10 @@ test('fails closed on invalid state and never mutates inputs', () => {
   )
 
   const baseline = baselineState()
+  baseline.evolution.push(evolutionEntry('transition-1'))
   const current = structuredClone(baseline)
   current.userModel.push({ id: 'user-1', statement: 'A mutable claim.' })
+  current.evolution.push(evolutionEntry('transition-2', '2026-09-05T02:00:00.000Z'))
   const beforeBaseline = structuredClone(baseline)
   const beforeCurrent = structuredClone(current)
 
