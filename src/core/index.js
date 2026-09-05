@@ -35,6 +35,16 @@ export {
 } from './agency-permission-request.js'
 
 export {
+  AGENCY_AUTHORIZATION_DECISIONS,
+  AGENCY_AUTHORIZATION_DECISION_MAX_ACTOR_ID_LENGTH,
+  AGENCY_AUTHORIZATION_DECISION_MAX_ACTOR_ROLE_LENGTH,
+  AGENCY_AUTHORIZATION_DECISION_MAX_REASON_LENGTH,
+  AGENCY_AUTHORIZATION_DECISION_VERSION,
+  createAgencyAuthorizationDecision,
+  validateAgencyAuthorizationDecision,
+} from './agency-authorization-decision.js'
+
+export {
   importOriginArtifact,
   validateHistoricalArtifact,
 } from './artifact-import.js'
