@@ -9,7 +9,7 @@ import {
 } from '../src/core/index.js'
 
 function approvedDecision(overrides = {}) {
-  const intent = createAgencyIntent({ id: 'intent-1', at: '2026-09-06T00:00:00.000Z', soulId: 'soul-1', kind: 'communicate', reason: 'A clarification may help.', proposedAction: 'Ask one clarification.', contextRefs: [], provenance: { producer: 'test' } })
+  const intent = createAgencyIntent({ id: 'intent-1', at: '2026-09-06T00:00:00.000Z', soulId: 'soul-1', kind: 'communicate', reason: 'A clarification may help.', proposedAction: 'Ask one clarification.', contextRefs: [{ type: 'world', id: 'project-1' }], provenance: { producer: 'test' } })
   const request = createAgencyPermissionRequest({ id: 'request-1', at: '2026-09-06T00:01:00.000Z', intent, capability: 'communicate-with-user', scope: 'One clarification in the current surface.', justification: 'Permission required.', provenance: { producer: 'test' } })
   return createAgencyAuthorizationDecision({ id: 'decision-1', at: '2026-09-06T00:02:00.000Z', request, decision: 'approved', decisionMaker: { id: 'human-1', role: 'user' }, reason: 'Approved once.', provenance: { producer: 'test' }, ...overrides })
 }
