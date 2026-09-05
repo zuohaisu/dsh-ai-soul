@@ -18,6 +18,14 @@ export {
 } from './homeostasis.js'
 
 export {
+  AGENCY_INTENT_KINDS,
+  AGENCY_INTENT_MAX_ACTION_LENGTH,
+  AGENCY_INTENT_VERSION,
+  createAgencyIntent,
+  validateAgencyIntent,
+} from './agency-intent.js'
+
+export {
   importOriginArtifact,
   validateHistoricalArtifact,
 } from './artifact-import.js'
