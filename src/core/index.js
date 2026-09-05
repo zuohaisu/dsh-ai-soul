@@ -26,6 +26,15 @@ export {
 } from './agency-intent.js'
 
 export {
+  AGENCY_PERMISSION_REQUEST_MAX_CAPABILITY_LENGTH,
+  AGENCY_PERMISSION_REQUEST_MAX_JUSTIFICATION_LENGTH,
+  AGENCY_PERMISSION_REQUEST_MAX_SCOPE_LENGTH,
+  AGENCY_PERMISSION_REQUEST_VERSION,
+  createAgencyPermissionRequest,
+  validateAgencyPermissionRequest,
+} from './agency-permission-request.js'
+
+export {
   importOriginArtifact,
   validateHistoricalArtifact,
 } from './artifact-import.js'
