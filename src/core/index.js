@@ -50,6 +50,16 @@ export {
 } from './agency-authorization-use.js'
 
 export {
+  AGENCY_AUTHORIZATION_CONSUMPTION_MAX_ACTOR_ID_LENGTH,
+  AGENCY_AUTHORIZATION_CONSUMPTION_MAX_ACTOR_ROLE_LENGTH,
+  AGENCY_AUTHORIZATION_CONSUMPTION_MAX_REASON_LENGTH,
+  AGENCY_AUTHORIZATION_CONSUMPTION_VERSION,
+  createAgencyAuthorizationConsumption,
+  deriveConsumedAuthorizationDecisionIds,
+  validateAgencyAuthorizationConsumption,
+} from './agency-authorization-consumption.js'
+
+export {
   importOriginArtifact,
   validateHistoricalArtifact,
 } from './artifact-import.js'
