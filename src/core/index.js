@@ -13,6 +13,11 @@ export {
 } from './cognitive-capacity.js'
 
 export {
+  SOUL_HOMEOSTASIS_CHECK_VERSION,
+  evaluateSoulHomeostasis,
+} from './homeostasis.js'
+
+export {
   importOriginArtifact,
   validateHistoricalArtifact,
 } from './artifact-import.js'
