@@ -45,6 +45,11 @@ export {
 } from './agency-authorization-decision.js'
 
 export {
+  AGENCY_AUTHORIZATION_USE_EVALUATION_VERSION,
+  evaluateAgencyAuthorizationUse,
+} from './agency-authorization-use.js'
+
+export {
   importOriginArtifact,
   validateHistoricalArtifact,
 } from './artifact-import.js'
