@@ -13,7 +13,11 @@ The verifier evaluates supplied evidence; it does not run DSH or manufacture evi
 ## What a successful run proves
 
 ```text
-real human interaction
+ordinary control interaction
+→ no durable-growth proposal
+→ canonical cognition unchanged
+
+significant human interaction
 → Experience Record
 → significance assessment
 → Candidate Claim
@@ -27,7 +31,7 @@ real human interaction
 → model response demonstrates recall
 ```
 
-The same run must also prove **selectivity**: an ordinary control interaction must not create a durable-growth proposal merely because the Soul was present.
+A passing run must prove both growth and selectivity. Presence alone must not promote ordinary interaction into durable cognition.
 
 ## 1. Preconditions and baseline
 
@@ -50,9 +54,12 @@ In the real interactive surface, send one ordinary message that contains no dura
 What time is it usually best to drink coffee?
 ```
 
-Observe the live governance inbox. This control interaction must **not** produce an eligible durable-preference proposal. If it does, stop: selectivity failed and this run cannot close #27.
+Capture the literal control interaction or a durable reference to it. Observe the live governance inbox and canonical cognition after the control turn. The control must satisfy both machine-verifier observations:
 
-Keep a durable capture/reference for the control interaction and the observation that no promotion proposal resulted. The control evidence is part of the operator record even though it is not a required field in the machine verifier schema.
+- `controlInteractionProducedNoProposal: true` — no eligible durable-growth proposal resulted from the control interaction;
+- `controlInteractionLeftCanonicalCognitionUnchanged: true` — canonical cognition did not change because of the control interaction.
+
+Retain durable evidence for both `controlInteraction` and `controlPostState`. If a durable proposal appears or canonical cognition changes, stop: selectivity is falsified and this run cannot close #27.
 
 ## 3. Eligible durable-preference interaction
 
@@ -148,6 +155,8 @@ Required observations are:
 - `dynamicContextRefreshed`
 - `nextTurnContextContainedClaim`
 - `nextTurnModelDemonstratedRecall`
+- `controlInteractionProducedNoProposal`
+- `controlInteractionLeftCanonicalCognitionUnchanged`
 
 Required linkage is:
 
@@ -161,9 +170,18 @@ Required linkage is:
 - `contextAssemblyId`
 - `provenanceSource`
 
-The mutation must target `userModel`, add exactly one claim, and report `rawInteractionStoredInCanonicalState: false`.
+Required evidence references are:
 
-Also retain the control-interaction capture alongside the machine-verifier JSON and publication evidence.
+- `interaction`
+- `proposalSnapshot`
+- `review`
+- `persistedState`
+- `nextTurnContext`
+- `nextTurnResponse`
+- `controlInteraction`
+- `controlPostState`
+
+The mutation must target `userModel`, add exactly one claim, and report `rawInteractionStoredInCanonicalState: false`.
 
 ## 10. Validate and publish
 
@@ -194,7 +212,7 @@ Post to Issue #27:
 
 - DSH version, surface, profile and stable `soulId`;
 - baseline claim evidence;
-- control interaction + no-proposal observation;
+- control interaction + no-proposal observation + unchanged-canonical-cognition evidence;
 - eligible interaction;
 - `/soul-review list` snapshot;
 - approval result;
@@ -202,15 +220,18 @@ Post to Issue #27:
 - same-process next-turn context evidence;
 - literal next real-model response;
 - full linkage ids;
-- verifier record/result;
+- complete verifier record/result including `controlInteraction` and `controlPostState` evidence;
 - deviations.
 
 ## Fail-closed conditions
 
-Stop and report the run as incomplete if any of these occur:
+Stop and report the run as incomplete or failed, as appropriate, if any of these occur:
 
 - no real TUI/Web surface is attached;
+- control interaction evidence is missing;
 - the ordinary control interaction generates a durable proposal;
+- canonical cognition changes because of the control interaction;
+- control post-state evidence is missing;
 - no eligible pending proposal appears;
 - proposal is applied without human `/soul-review`;
 - proposer and reviewer identities are not independent;
@@ -220,6 +241,6 @@ Stop and report the run as incomplete if any of these occur:
 - same-process context refresh cannot be demonstrated;
 - no real next model turn occurs;
 - the next response does not demonstrate the learned claim;
-- required linkage cannot be recovered from real runtime evidence.
+- required linkage or evidence references cannot be recovered from real runtime evidence.
 
-Completing this protocol with `verified: true` supplies the final runtime evidence needed for #27 acceptance criterion 6. This document, its template, and automated integration tests **do not by themselves close #27**.
+Completing this protocol with `verified: true` and `complete: true` supplies the final runtime evidence needed for #27 acceptance criterion 6. This document, its template, and automated integration tests **do not by themselves close #27**.
