@@ -20,13 +20,23 @@ function context(overrides = {}) {
   }
 }
 
-test('renderDshSoulStatus keeps existence separate from naming', () => {
+test('renderDshSoulStatus keeps existence separate from naming and runtime attachment', () => {
   const rendered = renderDshSoulStatus(context())
 
   assert.match(rendered, /Soul ID: soul-1/)
   assert.match(rendered, /Name: \(unnamed\)/)
   assert.match(rendered, /Naming state: unnamed/)
-  assert.match(rendered, /Presence\/status is not attention, memory capture, mutation authority, or permission to act\./)
+  assert.match(rendered, /Runtime attachment: DeepSeek Harness \(active\)/)
+  assert.match(rendered, /Existence is not runtime attachment/)
+})
+
+test('runtime attachment does not assert attention or memory capture', () => {
+  const rendered = renderDshSoulStatus(context())
+
+  assert.match(rendered, /Attention: not asserted/)
+  assert.match(rendered, /Memory capture: not implied by runtime attachment/)
+  assert.match(rendered, /runtime attachment is not attention, memory capture, mutation authority, or permission to act\./)
+  assert.doesNotMatch(rendered, /Attention: active|Memory capture: active|continuous capture/i)
 })
 
 test('status exposes bounded current cognition counts without content dumping', () => {
