@@ -71,6 +71,18 @@ export {
 } from './agency-execution-attempt.js'
 
 export {
+  AGENCY_EXECUTION_OUTCOME_MAX_ACTOR_ID_LENGTH,
+  AGENCY_EXECUTION_OUTCOME_MAX_ACTOR_ROLE_LENGTH,
+  AGENCY_EXECUTION_OUTCOME_MAX_CHANNEL_LENGTH,
+  AGENCY_EXECUTION_OUTCOME_MAX_SUMMARY_LENGTH,
+  AGENCY_EXECUTION_OUTCOME_STATUSES,
+  AGENCY_EXECUTION_OUTCOME_VERSION,
+  createAgencyExecutionOutcome,
+  validateAgencyExecutionOutcome,
+  validateAgencyExecutionOutcomeLineage,
+} from './agency-execution-outcome.js'
+
+export {
   importOriginArtifact,
   validateHistoricalArtifact,
 } from './artifact-import.js'
