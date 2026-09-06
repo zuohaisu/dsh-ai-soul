@@ -88,3 +88,15 @@ export function evaluateSoulHomeostasis({ baseline, current } = {}) {
     violations,
   }
 }
+
+export function assertSoulHomeostasis({ baseline, current } = {}) {
+  const result = evaluateSoulHomeostasis({ baseline, current })
+  if (!result.passed) {
+    const codes = result.violations.map((violation) => violation.code).join(', ')
+    const error = new TypeError(`Soul homeostasis violation: ${codes}`)
+    error.code = 'SOUL_HOMEOSTASIS_VIOLATION'
+    error.homeostasis = result
+    throw error
+  }
+  return result
+}
