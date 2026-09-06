@@ -60,6 +60,17 @@ export {
 } from './agency-authorization-consumption.js'
 
 export {
+  AGENCY_EXECUTION_ATTEMPT_MAX_ACTOR_ID_LENGTH,
+  AGENCY_EXECUTION_ATTEMPT_MAX_ACTOR_ROLE_LENGTH,
+  AGENCY_EXECUTION_ATTEMPT_MAX_CHANNEL_LENGTH,
+  AGENCY_EXECUTION_ATTEMPT_MAX_REASON_LENGTH,
+  AGENCY_EXECUTION_ATTEMPT_VERSION,
+  createAgencyExecutionAttempt,
+  validateAgencyExecutionAttempt,
+  validateAgencyExecutionAttemptLineage,
+} from './agency-execution-attempt.js'
+
+export {
   importOriginArtifact,
   validateHistoricalArtifact,
 } from './artifact-import.js'
