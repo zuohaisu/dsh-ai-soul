@@ -9,6 +9,8 @@ const REQUIRED_OBSERVATIONS = [
   'dynamicContextRefreshed',
   'nextTurnContextContainedClaim',
   'nextTurnModelDemonstratedRecall',
+  'controlInteractionProducedNoProposal',
+  'controlInteractionLeftCanonicalCognitionUnchanged',
 ]
 
 const REQUIRED_LINKAGE = [
@@ -111,7 +113,16 @@ export function evaluateSelectiveGrowthRuntimeEvidence(record) {
   const evidence = record.evidence && typeof record.evidence === 'object' && !Array.isArray(record.evidence)
     ? record.evidence
     : {}
-  const requiredEvidence = ['interaction', 'proposalSnapshot', 'review', 'persistedState', 'nextTurnContext', 'nextTurnResponse']
+  const requiredEvidence = [
+    'interaction',
+    'proposalSnapshot',
+    'review',
+    'persistedState',
+    'nextTurnContext',
+    'nextTurnResponse',
+    'controlInteraction',
+    'controlPostState',
+  ]
   const normalizedEvidence = {}
   for (const key of requiredEvidence) {
     normalizedEvidence[key] = evidenceString(evidence[key])
