@@ -9,6 +9,7 @@ import {
 import { createDshGovernanceConsumer } from './adapters/governance-consumer.js'
 import { registerDshGovernanceCommand } from './adapters/governance-command.js'
 import { processDshHumanInteraction } from './adapters/interaction-processing.js'
+import { registerDshSoulContextCommand } from './adapters/soul-context-command.js'
 import { registerDshSoulStatusCommand } from './adapters/soul-status-command.js'
 
 export const name = 'ai-soul'
@@ -96,6 +97,7 @@ export async function apply(ctx, rawConfig = {}) {
 
   registerDshGovernanceCommand(ctx, { consumer: governanceConsumer, soulId: config.soulId, reviewerId: `human:${config.firstEncounterParticipant.id}` })
   registerDshSoulStatusCommand(ctx, { soulId: config.soulId, getContext: () => projectSoulContext(currentState) })
+  registerDshSoulContextCommand(ctx, { soulId: config.soulId, getContext: () => projectSoulContext(currentState) })
   console.log(`[dsh-ai-soul] loaded Soul ${config.soulId}`)
 }
 
@@ -117,6 +119,7 @@ export { EXPLICIT_WORLD_CONTEXT_POLICY, inferExplicitWorldContext } from './adap
 export { DSH_SIGNIFICANCE_BASELINE_POLICY, createFailClosedSignificanceAssessment, processDshHumanInteraction } from './adapters/interaction-processing.js'
 export { createDshGovernanceConsumer } from './adapters/governance-consumer.js'
 export { createDshGovernanceCommand, registerDshGovernanceCommand } from './adapters/governance-command.js'
+export { createDshSoulContextCommand, registerDshSoulContextCommand, renderDshSoulContext } from './adapters/soul-context-command.js'
 export { createDshSoulStatusCommand, registerDshSoulStatusCommand, renderDshSoulStatus } from './adapters/soul-status-command.js'
 export { preflightSoul } from './preflight.js'
 export { parseAiSoulPatch, preflightDshProfile, preflightDshProfileDir, SURFACE_BUNDLES } from './profile-preflight.js'
