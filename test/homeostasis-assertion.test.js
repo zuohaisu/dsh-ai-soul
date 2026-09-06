@@ -2,12 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { assertSoulHomeostasis } from '../src/core/homeostasis.js'
-import { createGenesisSoulState } from '../src/core/genesis.js'
+import { createSoulState } from '../src/core/soul-state.js'
 
 function baselineSoul() {
-  return createGenesisSoulState({
+  return createSoulState({
     soulId: 'soul-homeostasis-test',
-    activatedAt: '2026-09-07T00:00:00.000Z',
+    createdAt: '2026-09-07T00:00:00.000Z',
     origin: { kind: 'genesis', source: 'test' },
   })
 }
