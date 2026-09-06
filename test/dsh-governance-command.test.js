@@ -102,9 +102,9 @@ test('human /soul-review lists and approves a live proposal, persists it, and re
     firstEncounterParticipant: participant,
   })
 
-  assert.equal(runtime.commands.length, 1)
-  const command = runtime.commands[0]
-  assert.equal(command.name, 'soul-review')
+  assert.deepEqual(runtime.commands.map((item) => item.name).sort(), ['soul-review', 'soul-status'])
+  const command = runtime.commands.find((item) => item.name === 'soul-review')
+  assert.ok(command)
   assert.equal(command.recordInput, false)
 
   const [processed] = await runtime.ctx.emit(
@@ -239,7 +239,8 @@ test('human /soul-review reject resolves without canonical mutation', async () =
   })
   await runtime.ctx.emit('session/event', { id: 'session-190-reject' }, explicitPreferenceEvent(2))
 
-  const command = runtime.commands[0]
+  const command = runtime.commands.find((item) => item.name === 'soul-review')
+  assert.ok(command)
   const list = await command.handler(invocation(''))
   const proposalId = list.text.match(/proposal:dsh-live:[^\n]+/u)?.[0]
   assert.ok(proposalId)
@@ -265,7 +266,8 @@ test('governance command fails closed for malformed or unknown proposal ids', as
     firstEncounterParticipant: participant,
   })
 
-  const command = runtime.commands[0]
+  const command = runtime.commands.find((item) => item.name === 'soul-review')
+  assert.ok(command)
   assert.equal((await command.handler(invocation(' delete everything'))).kind, 'error')
   const unknown = await command.handler(invocation(' approve missing-proposal'))
   assert.equal(unknown.kind, 'error')
