@@ -102,7 +102,7 @@ test('human /soul-review lists and approves a live proposal, persists it, and re
     firstEncounterParticipant: participant,
   })
 
-  assert.deepEqual(runtime.commands.map((item) => item.name).sort(), ['soul-review', 'soul-status'])
+  assert.deepEqual(runtime.commands.map((item) => item.name).sort(), ['soul-context', 'soul-review', 'soul-status'])
   const command = runtime.commands.find((item) => item.name === 'soul-review')
   assert.ok(command)
   assert.equal(command.recordInput, false)
