@@ -13,7 +13,9 @@
     "sameSoulIdAfterCommit": null,
     "dynamicContextRefreshed": null,
     "nextTurnContextContainedClaim": null,
-    "nextTurnModelDemonstratedRecall": null
+    "nextTurnModelDemonstratedRecall": null,
+    "controlInteractionProducedNoProposal": null,
+    "controlInteractionLeftCanonicalCognitionUnchanged": null
   },
   "linkage": {
     "experienceId": "",
@@ -38,7 +40,9 @@
     "review": "",
     "persistedState": "",
     "nextTurnContext": "",
-    "nextTurnResponse": ""
+    "nextTurnResponse": "",
+    "controlInteraction": "",
+    "controlPostState": ""
   },
   "deviations": []
 }
