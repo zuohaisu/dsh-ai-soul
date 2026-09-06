@@ -30,6 +30,9 @@ export function renderDshSoulStatus(context, expectedSoulId = context?.soulId) {
     `Soul ID: ${current.soulId}`,
     `Name: ${name ?? '(unnamed)'}`,
     `Naming state: ${name ? 'named' : 'unnamed'}`,
+    'Runtime attachment: DeepSeek Harness (active)',
+    'Attention: not asserted',
+    'Memory capture: not implied by runtime attachment',
     `Relationship participants: ${asArray(current.relationship?.participants).length}`,
     `Current SELF entries: ${asArray(current.selfModel).length}`,
     `Current OTHER entries: ${asArray(current.userModel).length}`,
@@ -37,7 +40,7 @@ export function renderDshSoulStatus(context, expectedSoulId = context?.soulId) {
     `Current WORLD entries: ${asArray(current.worldModel).length}`,
     `Current belief entries: ${asArray(current.beliefs).length}`,
     '',
-    'This is a bounded, read-only status projection of the currently loaded Soul. Presence/status is not attention, memory capture, mutation authority, or permission to act.',
+    'This is a bounded, read-only status projection of the currently loaded Soul. Existence is not runtime attachment; runtime attachment is not attention, memory capture, mutation authority, or permission to act.',
   ].join('\n')
 }
 
@@ -51,7 +54,7 @@ export function createDshSoulStatusCommand({ soulId, getContext } = {}) {
 
   return Object.freeze({
     name: 'soul-status',
-    description: 'show read-only continuity status for the currently loaded AI Soul',
+    description: 'show read-only continuity and DSH attachment status for the currently loaded AI Soul',
     input: { hint: '' },
     recordInput: false,
     async handler() {
