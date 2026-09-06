@@ -19,7 +19,10 @@ export function assertCurrentCognitionAppendCapacity(target, entries) {
   if (!Array.isArray(entries)) throw new TypeError('current cognition entries must be an array')
   const capacity = getCurrentCognitionCapacity(target)
   if (entries.length >= capacity) {
-    throw new TypeError(`${target} current cognition is at capacity; consolidate, replace, or retire before append`)
+    const error = new TypeError(`${target} current cognition is at capacity; consolidate, replace, or retire before append`)
+    error.code = 'SOUL_CURRENT_COGNITION_CAPACITY_EXCEEDED'
+    error.capacity = Object.freeze({ target, capacity, currentEntries: entries.length })
+    throw error
   }
   return true
 }
