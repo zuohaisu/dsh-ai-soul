@@ -20,6 +20,8 @@ function completeRecord() {
       dynamicContextRefreshed: true,
       nextTurnContextContainedClaim: true,
       nextTurnModelDemonstratedRecall: true,
+      controlInteractionProducedNoProposal: true,
+      controlInteractionLeftCanonicalCognitionUnchanged: true,
     },
     linkage: {
       experienceId: 'exp-1',
@@ -45,6 +47,8 @@ function completeRecord() {
       persistedState: 'artifact://state.json',
       nextTurnContext: 'artifact://context.txt',
       nextTurnResponse: 'artifact://response.txt',
+      controlInteraction: 'artifact://control-interaction.json',
+      controlPostState: 'artifact://control-post-state.json',
     },
     deviations: [],
   }
@@ -62,11 +66,13 @@ test('is incomplete when linkage or evidence is missing', () => {
   const record = completeRecord()
   delete record.linkage.reviewId
   delete record.evidence.nextTurnResponse
+  delete record.evidence.controlPostState
   const result = evaluateSelectiveGrowthRuntimeEvidence(record)
   assert.equal(result.complete, false)
   assert.equal(result.verified, false)
   assert.ok(result.missing.includes('linkage.reviewId'))
   assert.ok(result.missing.includes('evidence.nextTurnResponse'))
+  assert.ok(result.missing.includes('evidence.controlPostState'))
 })
 
 test('preserves explicit runtime failures separately from completeness', () => {
@@ -87,4 +93,23 @@ test('fails verification if reviewer equals proposer or canonical state stores r
   assert.equal(result.verified, false)
   assert.ok(result.failures.includes('linkage.independentReviewer'))
   assert.ok(result.failures.includes('mutation.rawInteractionStoredInCanonicalState=false'))
+})
+
+test('requires a negative control to falsify indiscriminate interaction accumulation', () => {
+  const record = completeRecord()
+  delete record.observations.controlInteractionProducedNoProposal
+  delete record.observations.controlInteractionLeftCanonicalCognitionUnchanged
+  const incomplete = evaluateSelectiveGrowthRuntimeEvidence(record)
+  assert.equal(incomplete.complete, false)
+  assert.ok(incomplete.missing.includes('observations.controlInteractionProducedNoProposal'))
+  assert.ok(incomplete.missing.includes('observations.controlInteractionLeftCanonicalCognitionUnchanged'))
+
+  const failed = completeRecord()
+  failed.observations.controlInteractionProducedNoProposal = false
+  failed.observations.controlInteractionLeftCanonicalCognitionUnchanged = false
+  const result = evaluateSelectiveGrowthRuntimeEvidence(failed)
+  assert.equal(result.complete, true)
+  assert.equal(result.verified, false)
+  assert.ok(result.failures.includes('observations.controlInteractionProducedNoProposal'))
+  assert.ok(result.failures.includes('observations.controlInteractionLeftCanonicalCognitionUnchanged'))
 })
