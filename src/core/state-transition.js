@@ -1,5 +1,6 @@
 import { appendTransition, validateSoulState } from './soul-state.js'
 import { assertCurrentCognitionAppendCapacity } from './cognitive-capacity.js'
+import { assertSoulHomeostasis } from './homeostasis.js'
 
 export const STATE_TRANSITION_PROPOSAL_VERSION = 1
 export const STATE_TRANSITION_TARGETS = Object.freeze([
@@ -119,5 +120,7 @@ export function applyStateTransitionProposal(state,proposal){
   if(['replace','retire'].includes(proposal.operation)) change.previousValue=clone(proposal.previousValue)
   if(proposal.operation==='consolidate') change.previousValues=clone(proposal.previousValues)
   if(proposal.operation!=='retire') change.value=clone(proposal.value)
-  return appendTransition(next,{ kind:'governed-state-transition',reason:proposal.reason,provenance:{proposalId:proposal.id,proposal:clone(proposal.provenance),evidence:clone(proposal.evidence),review:{decision:proposal.review.decision,reviewer:proposal.review.reviewer,at:proposal.review.at,reason:proposal.review.reason,provenance:clone(proposal.review.provenance),policy:clone(proposal.review.policy),conflicts:clone(proposal.review.conflicts),conflictResolution:clone(proposal.review.conflictResolution),proposalFingerprint:proposal.review.proposalFingerprint,reviewFingerprint:proposal.review.reviewFingerprint}},change })
+  const candidate=appendTransition(next,{ kind:'governed-state-transition',reason:proposal.reason,provenance:{proposalId:proposal.id,proposal:clone(proposal.provenance),evidence:clone(proposal.evidence),review:{decision:proposal.review.decision,reviewer:proposal.review.reviewer,at:proposal.review.at,reason:proposal.review.reason,provenance:clone(proposal.review.provenance),policy:clone(proposal.review.policy),conflicts:clone(proposal.review.conflicts),conflictResolution:clone(proposal.review.conflictResolution),proposalFingerprint:proposal.review.proposalFingerprint,reviewFingerprint:proposal.review.reviewFingerprint}},change })
+  assertSoulHomeostasis({ baseline: state, current: candidate })
+  return candidate
 }
