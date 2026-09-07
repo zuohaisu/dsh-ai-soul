@@ -2,9 +2,21 @@ name: CI
 
 on:
   pull_request:
+    paths-ignore:
+      - 'AGENTS.md'
+      - 'docs/evolution/**'
+      - 'docs/decisions/**'
+      - 'docs/knowledge/**'
+      - 'docs/architecture/ai-native-mind.md'
   push:
     branches:
       - main
+    paths-ignore:
+      - 'AGENTS.md'
+      - 'docs/evolution/**'
+      - 'docs/decisions/**'
+      - 'docs/knowledge/**'
+      - 'docs/architecture/ai-native-mind.md'
 
 permissions:
   contents: read
