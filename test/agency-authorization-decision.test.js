@@ -8,9 +8,21 @@ import {
   validateAgencyAuthorizationDecision,
 } from '../src/core/index.js'
 
-function validRequest() {
-  const intent = createAgencyIntent({ id: 'intent-1', at: '2026-09-06T00:00:00.000Z', soulId: 'soul-1', kind: 'communicate', reason: 'A clarification may help.', proposedAction: 'Ask one clarification.', contextRefs: [{ type: 'relationship', id: 'rel-1' }], provenance: { producer: 'test' } })
-  return createAgencyPermissionRequest({ id: 'request-1', at: '2026-09-06T00:01:00.000Z', intent, capability: 'communicate-with-user', scope: 'One clarification in the current surface.', justification: 'Separate authorization is required.', provenance: { producer: 'test' } })
+function validIntent(provenance = { producer: 'test' }) {
+  return createAgencyIntent({ id: 'intent-1', at: '2026-09-06T00:00:00.000Z', soulId: 'soul-1', kind: 'communicate', reason: 'A clarification may help.', proposedAction: 'Ask one clarification.', contextRefs: [{ type: 'relationship', id: 'rel-1' }], provenance })
+}
+
+function validRequest({ grounded = false } = {}) {
+  const provenance = grounded ? {
+    producer: 'agency-initiation:test',
+    triggerEvidence: {
+      id: 'evidence-1',
+      type: 'user-request-evidence',
+      source: { type: 'experience', id: 'exp-1' },
+      provenance: { runtime: 'dsh', sessionId: 'session-1', eventId: 'event-1' },
+    },
+  } : { producer: 'test' }
+  return createAgencyPermissionRequest({ id: 'request-1', at: '2026-09-06T00:01:00.000Z', intent: validIntent(provenance), capability: 'communicate-with-user', scope: 'One clarification in the current surface.', justification: 'Separate authorization is required.', provenance: { producer: 'test' } })
 }
 
 function validInput(overrides = {}) {
@@ -24,8 +36,40 @@ test('creates explicit approved and rejected decisions bound to the request', ()
   assert.equal(approved.intentId, 'intent-1')
   assert.equal(approved.requestId, 'request-1')
   assert.equal(approved.authority, 'authorized')
+  assert.equal(approved.groundingMode, 'legacy-ungrounded')
   const rejected = createAgencyAuthorizationDecision(validInput({ decision: 'rejected' }))
   assert.equal(rejected.authority, 'none')
+})
+
+test('approved grounded decision preserves immutable initiation lineage', () => {
+  const request = validRequest({ grounded: true })
+  const decision = createAgencyAuthorizationDecision(validInput({ request }))
+  assert.equal(decision.authority, 'authorized')
+  assert.equal(decision.groundingMode, 'grounded')
+  assert.deepEqual(decision.initiationGrounding, request.initiationGrounding)
+  assert.notEqual(decision.initiationGrounding, request.initiationGrounding)
+  assert.deepEqual(validateAgencyAuthorizationDecision(decision), { valid: true, errors: [] })
+})
+
+test('authorization provenance cannot replace initiation grounding', () => {
+  assert.throws(() => createAgencyAuthorizationDecision(validInput({
+    request: validRequest({ grounded: true }),
+    provenance: { producer: 'authorization:test', initiationGrounding: { evidenceId: 'replacement' } },
+  })), /must not replace initiation grounding/)
+})
+
+test('grounded decisions fail closed when grounding is removed or malformed', () => {
+  const decision = createAgencyAuthorizationDecision(validInput({ request: validRequest({ grounded: true }) }))
+  delete decision.initiationGrounding.source
+  assert.match(validateAgencyAuthorizationDecision(decision).errors.join('; '), /initiationGrounding.source is required/)
+})
+
+test('continues to validate stored version 1 authorization decisions', () => {
+  const decision = createAgencyAuthorizationDecision(validInput())
+  const legacy = structuredClone(decision)
+  legacy.version = 1
+  delete legacy.groundingMode
+  assert.deepEqual(validateAgencyAuthorizationDecision(legacy), { valid: true, errors: [] })
 })
 
 test('requires a valid pending permission request', () => {
@@ -55,14 +99,15 @@ test('rejection grants no authority', () => {
   assert.match(validateAgencyAuthorizationDecision(decision).errors.join('; '), /rejected decision authority must be none/)
 })
 
-test('creation clones decision maker and provenance without mutating request', () => {
-  const request = validRequest()
+test('creation clones decision maker, provenance, and grounding without mutating request', () => {
+  const request = validRequest({ grounded: true })
   const before = structuredClone(request)
   const decisionMaker = { id: 'human-1', role: 'user' }
   const provenance = { producer: 'authorization:test', nested: { review: 'r1' } }
   const decision = createAgencyAuthorizationDecision(validInput({ request, decisionMaker, provenance }))
   decision.decisionMaker.role = 'changed'
   decision.provenance.nested.review = 'changed'
+  decision.initiationGrounding.source.id = 'changed'
   assert.deepEqual(request, before)
   assert.equal(decisionMaker.role, 'user')
   assert.equal(provenance.nested.review, 'r1')
