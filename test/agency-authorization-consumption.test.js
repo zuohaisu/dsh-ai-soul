@@ -26,7 +26,21 @@ function approvedDecision(overrides = {}) {
   }
 }
 
-test('creates traceable consumption evidence for an approved decision', () => {
+function groundedDecision(overrides = {}) {
+  return approvedDecision({
+    version: 2,
+    groundingMode: 'grounded',
+    initiationGrounding: {
+      evidenceId: 'evidence-1',
+      evidenceType: 'user-request-evidence',
+      source: { runtime: 'dsh', sessionId: 'session-1', eventId: 'event-1' },
+      provenance: { experienceId: 'experience-1', source: 'dsh-human-message' },
+    },
+    ...overrides,
+  })
+}
+
+test('creates traceable legacy-ungrounded consumption evidence for an approved legacy decision', () => {
   const record = createAgencyAuthorizationConsumption({
     id: 'consumption-1',
     consumedAt: '2026-09-06T00:01:00.000Z',
@@ -36,11 +50,51 @@ test('creates traceable consumption evidence for an approved decision', () => {
     provenance: { source: 'authorization-ledger' },
   })
 
+  assert.equal(record.version, 2)
   assert.equal(record.decisionId, 'decision-1')
-  assert.equal(record.soulId, 'soul-1')
-  assert.equal(record.capability, 'send-message')
-  assert.equal(record.scope, 'conversation:abc')
+  assert.equal(record.intentId, 'intent-1')
+  assert.equal(record.requestId, 'request-1')
+  assert.equal(record.groundingMode, 'legacy-ungrounded')
+  assert.equal(Object.hasOwn(record, 'initiationGrounding'), false)
   assert.equal(validateAgencyAuthorizationConsumption(record).valid, true)
+})
+
+test('preserves grounded decision lineage through authorization consumption', () => {
+  const decision = groundedDecision()
+  const record = createAgencyAuthorizationConsumption({
+    id: 'consumption-grounded',
+    consumedAt: '2026-09-06T00:01:00.000Z',
+    decision,
+    consumer: { id: 'runtime-1', role: 'agency-runtime' },
+    reason: 'Reserve grounded authorization.',
+    provenance: { source: 'authorization-ledger', ledgerEntry: 'entry-1' },
+  })
+
+  assert.equal(record.groundingMode, 'grounded')
+  assert.equal(record.intentId, decision.intentId)
+  assert.equal(record.requestId, decision.requestId)
+  assert.deepEqual(record.initiationGrounding, decision.initiationGrounding)
+  assert.notEqual(record.initiationGrounding, decision.initiationGrounding)
+  assert.equal(record.initiationGrounding.evidenceId, 'evidence-1')
+  assert.equal(validateAgencyAuthorizationConsumption(record).valid, true)
+})
+
+test('rejects consumption provenance that attempts to replace initiation grounding', () => {
+  assert.throws(() => createAgencyAuthorizationConsumption({
+    decision: groundedDecision(),
+    consumer: { id: 'runtime-1', role: 'agency-runtime' },
+    reason: 'Invalid grounding override.',
+    provenance: { source: 'ledger', initiationGrounding: { evidenceId: 'forged' } },
+  }), /must not replace initiation grounding/)
+})
+
+test('fails closed when grounded decision lineage is malformed', () => {
+  assert.throws(() => createAgencyAuthorizationConsumption({
+    decision: groundedDecision({ initiationGrounding: { evidenceId: 'evidence-1' } }),
+    consumer: { id: 'runtime-1', role: 'agency-runtime' },
+    reason: 'Malformed grounding.',
+    provenance: { source: 'ledger' },
+  }), /invalid agency authorization decision/)
 })
 
 test('rejects rejected authorization decisions', () => {
@@ -52,18 +106,37 @@ test('rejects rejected authorization decisions', () => {
   }), /only an approved authorization decision may be consumed/)
 })
 
-test('fails closed on malformed or execution-like evidence', () => {
+test('keeps stored version 1 consumption evidence valid', () => {
   const record = {
     version: 1,
+    id: 'consumption-legacy',
+    consumedAt: '2026-09-06T00:01:00.000Z',
+    decisionId: 'decision-legacy',
+    soulId: 'soul-1',
+    capability: 'send-message',
+    scope: 'conversation:abc',
+    consumer: { id: 'runtime-1', role: 'agency-runtime' },
+    reason: 'Historical consumption.',
+    provenance: { source: 'legacy-ledger' },
+  }
+  assert.equal(validateAgencyAuthorizationConsumption(record).valid, true)
+})
+
+test('fails closed on malformed or execution-like evidence', () => {
+  const record = {
+    version: 2,
     id: 'consumption-1',
     consumedAt: '2026-09-06T00:01:00.000Z',
     decisionId: 'decision-1',
+    intentId: 'intent-1',
+    requestId: 'request-1',
     soulId: 'soul-1',
     capability: 'send-message',
     scope: 'conversation:abc',
     consumer: { id: 'runtime-1', role: 'agency-runtime' },
     reason: 'Reserve authorization.',
     provenance: { source: 'test' },
+    groundingMode: 'legacy-ungrounded',
     executed: true,
   }
   const validation = validateAgencyAuthorizationConsumption(record)
