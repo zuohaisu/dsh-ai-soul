@@ -104,6 +104,7 @@ export async function apply(ctx, rawConfig = {}) {
 export * from './core/index.js'
 export { MAX_DSH_EXPERIENCE_TEXT_CHARS, mapDshHumanMessageToExperience, normalizeDshHumanInteraction } from './adapters/runtime-event.js'
 export { DSH_AGENCY_PRESENCE_VERSION, projectAgencyIntentToDshPresence } from './adapters/agency-presence.js'
+export { createDshAgencyPresenceView, renderDshAgencyPresence } from './adapters/agency-presence-view.js'
 export { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js'
 export {
   EXPLICIT_DURABLE_PREFERENCE_POLICY,
