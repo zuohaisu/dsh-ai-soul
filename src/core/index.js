@@ -26,6 +26,13 @@ export {
 } from './agency-intent.js'
 
 export {
+  AGENCY_TRIGGER_EVIDENCE_VERSION,
+  AGENCY_TRIGGER_EVIDENCE_TYPES,
+  createAgencyTriggerEvidence,
+  validateAgencyTriggerEvidence,
+} from './agency-trigger-evidence.js'
+
+export {
   AGENCY_INITIATION_ELIGIBILITY_VERSION,
   AGENCY_INITIATION_TRIGGER_CLASSES,
   assessAgencyInitiationEligibility,

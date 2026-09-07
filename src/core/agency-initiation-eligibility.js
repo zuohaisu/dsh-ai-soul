@@ -1,4 +1,6 @@
-export const AGENCY_INITIATION_ELIGIBILITY_VERSION = 1
+import { validateAgencyTriggerEvidence } from './agency-trigger-evidence.js'
+
+export const AGENCY_INITIATION_ELIGIBILITY_VERSION = 2
 
 export const AGENCY_INITIATION_TRIGGER_CLASSES = Object.freeze([
   'explicit-user-request',
@@ -19,6 +21,7 @@ export function assessAgencyInitiationEligibility({
   soulId,
   candidateSoulId,
   triggerClass,
+  triggerEvidence,
   reason,
   contextRefs,
   provenance,
@@ -40,10 +43,14 @@ export function assessAgencyInitiationEligibility({
 
   if (!isRecord(provenance) || Object.keys(provenance).length === 0) reasons.push('provenance-required')
 
+  const evidenceValidation = validateAgencyTriggerEvidence(triggerEvidence, { soulId, triggerClass })
+  reasons.push(...evidenceValidation.reasons)
+
   return Object.freeze({
     version: AGENCY_INITIATION_ELIGIBILITY_VERSION,
     eligible: reasons.length === 0,
     reasons: Object.freeze(reasons),
+    triggerEvidenceId: evidenceValidation.valid ? triggerEvidence.id : null,
     authority: 'none',
     effects: Object.freeze({
       permission: false,
