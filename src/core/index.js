@@ -26,6 +26,12 @@ export {
 } from './agency-intent.js'
 
 export {
+  AGENCY_INITIATION_ELIGIBILITY_VERSION,
+  AGENCY_INITIATION_TRIGGER_CLASSES,
+  assessAgencyInitiationEligibility,
+} from './agency-initiation-eligibility.js'
+
+export {
   AGENCY_PERMISSION_REQUEST_MAX_CAPABILITY_LENGTH,
   AGENCY_PERMISSION_REQUEST_MAX_JUSTIFICATION_LENGTH,
   AGENCY_PERMISSION_REQUEST_MAX_SCOPE_LENGTH,
