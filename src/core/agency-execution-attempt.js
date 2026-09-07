@@ -19,9 +19,9 @@ function validateGrounding(attempt, errors) {
     errors.push('groundingMode must be grounded or legacy-ungrounded')
     return
   }
-  if (!attempt.intentId || typeof attempt.intentId !== 'string') errors.push('intentId is required')
-  if (!attempt.requestId || typeof attempt.requestId !== 'string') errors.push('requestId is required')
   if (attempt.groundingMode === 'grounded') {
+    if (!attempt.intentId || typeof attempt.intentId !== 'string') errors.push('intentId is required for grounded execution attempts')
+    if (!attempt.requestId || typeof attempt.requestId !== 'string') errors.push('requestId is required for grounded execution attempts')
     if (!isRecord(attempt.initiationGrounding)) {
       errors.push('initiationGrounding is required for grounded execution attempts')
       return
@@ -31,8 +31,10 @@ function validateGrounding(attempt, errors) {
     if (!grounding.evidenceType || typeof grounding.evidenceType !== 'string') errors.push('initiationGrounding.evidenceType is required')
     if (!isRecord(grounding.source)) errors.push('initiationGrounding.source is required')
     if (!isRecord(grounding.provenance)) errors.push('initiationGrounding.provenance is required')
-  } else if (Object.hasOwn(attempt, 'initiationGrounding')) {
-    errors.push('legacy-ungrounded execution attempts must not invent initiationGrounding')
+  } else {
+    if (Object.hasOwn(attempt, 'initiationGrounding')) errors.push('legacy-ungrounded execution attempts must not invent initiationGrounding')
+    if (Object.hasOwn(attempt, 'intentId') && attempt.intentId !== undefined && typeof attempt.intentId !== 'string') errors.push('intentId must be a string when present')
+    if (Object.hasOwn(attempt, 'requestId') && attempt.requestId !== undefined && typeof attempt.requestId !== 'string') errors.push('requestId must be a string when present')
   }
 }
 
@@ -70,8 +72,8 @@ export function createAgencyExecutionAttempt({ id = crypto.randomUUID(), attempt
     id, attemptedAt,
     consumptionId: consumption.id,
     decisionId: consumption.decisionId,
-    intentId: consumption.intentId,
-    requestId: consumption.requestId,
+    ...(consumption.intentId !== undefined ? { intentId: consumption.intentId } : {}),
+    ...(consumption.requestId !== undefined ? { requestId: consumption.requestId } : {}),
     soulId: consumption.soulId,
     capability: consumption.capability,
     scope: consumption.scope,
