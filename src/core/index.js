@@ -38,6 +38,8 @@ export {
   assessAgencyInitiationEligibility,
 } from './agency-initiation-eligibility.js'
 
+export { createAgencyIntentFromExplicitUserRequest } from './agency-initiation.js'
+
 export {
   AGENCY_PERMISSION_REQUEST_MAX_CAPABILITY_LENGTH,
   AGENCY_PERMISSION_REQUEST_MAX_JUSTIFICATION_LENGTH,
