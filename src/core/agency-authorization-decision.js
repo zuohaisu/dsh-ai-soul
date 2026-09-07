@@ -1,6 +1,7 @@
 import { validateAgencyPermissionRequest } from './agency-permission-request.js'
 
-export const AGENCY_AUTHORIZATION_DECISION_VERSION = 1
+export const AGENCY_AUTHORIZATION_DECISION_VERSION = 2
+export const AGENCY_AUTHORIZATION_DECISION_LEGACY_VERSION = 1
 export const AGENCY_AUTHORIZATION_DECISIONS = ['approved', 'rejected']
 export const AGENCY_AUTHORIZATION_DECISION_MAX_ACTOR_ID_LENGTH = 160
 export const AGENCY_AUTHORIZATION_DECISION_MAX_ACTOR_ROLE_LENGTH = 120
@@ -19,10 +20,31 @@ function validateBoundedString(value, name, maxLength, errors) {
   else if (value.length > maxLength) errors.push(`${name} must be <= ${maxLength} characters`)
 }
 
+function validateGrounding(decision, errors) {
+  if (decision.version === AGENCY_AUTHORIZATION_DECISION_LEGACY_VERSION) return
+  if (!['grounded', 'legacy-ungrounded'].includes(decision.groundingMode)) {
+    errors.push('groundingMode must be grounded or legacy-ungrounded')
+    return
+  }
+  if (decision.groundingMode === 'grounded') {
+    if (!isRecord(decision.initiationGrounding)) {
+      errors.push('initiationGrounding is required for grounded authorization decisions')
+      return
+    }
+    const grounding = decision.initiationGrounding
+    if (!grounding.evidenceId || typeof grounding.evidenceId !== 'string') errors.push('initiationGrounding.evidenceId is required')
+    if (!grounding.evidenceType || typeof grounding.evidenceType !== 'string') errors.push('initiationGrounding.evidenceType is required')
+    if (!isRecord(grounding.source)) errors.push('initiationGrounding.source is required')
+    if (!isRecord(grounding.provenance)) errors.push('initiationGrounding.provenance is required')
+  } else if (Object.hasOwn(decision, 'initiationGrounding')) {
+    errors.push('legacy-ungrounded authorization decisions must not invent initiationGrounding')
+  }
+}
+
 export function validateAgencyAuthorizationDecision(decision) {
   const errors = []
   if (!isRecord(decision)) return { valid: false, errors: ['agency authorization decision must be an object'] }
-  if (decision.version !== AGENCY_AUTHORIZATION_DECISION_VERSION) errors.push(`version must be ${AGENCY_AUTHORIZATION_DECISION_VERSION}`)
+  if (![AGENCY_AUTHORIZATION_DECISION_LEGACY_VERSION, AGENCY_AUTHORIZATION_DECISION_VERSION].includes(decision.version)) errors.push(`version must be ${AGENCY_AUTHORIZATION_DECISION_LEGACY_VERSION} or ${AGENCY_AUTHORIZATION_DECISION_VERSION}`)
   if (!decision.id || typeof decision.id !== 'string') errors.push('id is required')
   if (!decision.at || typeof decision.at !== 'string') errors.push('at is required')
   if (!decision.soulId || typeof decision.soulId !== 'string') errors.push('soulId is required')
@@ -35,6 +57,7 @@ export function validateAgencyAuthorizationDecision(decision) {
   if (!decision.capability || typeof decision.capability !== 'string') errors.push('capability is required')
   if (!decision.scope || typeof decision.scope !== 'string') errors.push('scope is required')
   if (!isRecord(decision.provenance)) errors.push('provenance is required')
+  validateGrounding(decision, errors)
   if (decision.decision === 'approved' && decision.authority !== 'authorized') errors.push('approved decision authority must be authorized')
   if (decision.decision === 'rejected' && decision.authority !== 'none') errors.push('rejected decision authority must be none')
   for (const forbidden of ['executed', 'scheduled', 'execution', 'schedule', 'toolCall', 'actuator', 'result', 'evidence']) {
@@ -58,7 +81,12 @@ export function createAgencyAuthorizationDecision({
   if (!requestValidation.valid) throw new TypeError(`invalid agency permission request: ${requestValidation.errors.join('; ')}`)
   if (capability !== request.capability) throw new TypeError('authorization capability must exactly match the permission request')
   if (scope !== request.scope) throw new TypeError('authorization scope must exactly match the permission request')
+  if (!isRecord(provenance)) throw new TypeError('authorization provenance is required')
+  if (Object.hasOwn(provenance, 'triggerEvidence') || Object.hasOwn(provenance, 'initiationGrounding')) {
+    throw new TypeError('authorization provenance must not replace initiation grounding')
+  }
 
+  const grounded = request.version !== 1 && request.groundingMode === 'grounded'
   const authorizationDecision = {
     version: AGENCY_AUTHORIZATION_DECISION_VERSION,
     id,
@@ -72,6 +100,8 @@ export function createAgencyAuthorizationDecision({
     capability,
     scope,
     provenance: clone(provenance),
+    groundingMode: grounded ? 'grounded' : 'legacy-ungrounded',
+    ...(grounded ? { initiationGrounding: clone(request.initiationGrounding) } : {}),
     authority: decision === 'approved' ? 'authorized' : 'none',
   }
   const validation = validateAgencyAuthorizationDecision(authorizationDecision)
