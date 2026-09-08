@@ -105,6 +105,7 @@ export * from './core/index.js'
 export { MAX_DSH_EXPERIENCE_TEXT_CHARS, mapDshHumanMessageToExperience, normalizeDshHumanInteraction } from './adapters/runtime-event.js'
 export { DSH_AGENCY_PRESENCE_VERSION, projectAgencyIntentToDshPresence } from './adapters/agency-presence.js'
 export { createDshAgencyPresenceView, renderDshAgencyPresence } from './adapters/agency-presence-view.js'
+export { DSH_SOUL_PRESENCE_RUNTIME_ID, DSH_SOUL_PRESENCE_SURFACES, projectDshSoulPresence } from './adapters/soul-presence.js'
 export { EXPLICIT_USER_REQUEST_EVIDENCE_POLICY, deriveExplicitUserRequestEvidenceFromDsh } from './adapters/explicit-user-request-evidence.js'
 export { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js'
 export {
