@@ -29,6 +29,7 @@ export {
   SOUL_PRESENCE_STATES,
   SOUL_PRESENCE_VERSION,
   createSoulPresence,
+  transitionSoulPresence,
   validateSoulPresence,
   validateSoulPresenceBinding,
 } from './soul-presence.js'

@@ -65,3 +65,23 @@ export function validateSoulPresenceBinding(presence, { soulId, runtimeId, surfa
   }
   return { valid: errors.length === 0, errors }
 }
+
+export function transitionSoulPresence(presence, targetState, {
+  observedAt = new Date().toISOString(),
+} = {}) {
+  const validation = validateSoulPresence(presence)
+  if (!validation.valid) {
+    throw new TypeError(`invalid source Soul Presence: ${validation.errors.join('; ')}`)
+  }
+  if (!SOUL_PRESENCE_STATES.includes(targetState)) {
+    throw new TypeError(`target state must be one of: ${SOUL_PRESENCE_STATES.join(', ')}`)
+  }
+
+  return createSoulPresence({
+    soulId: presence.soulId,
+    runtimeId: presence.runtimeId,
+    surfaceId: presence.surfaceId,
+    state: targetState,
+    observedAt,
+  })
+}

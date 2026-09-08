@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   createSoulPresence,
+  transitionSoulPresence,
   validateSoulPresence,
   validateSoulPresenceBinding,
 } from '../src/core/soul-presence.js'
@@ -38,6 +39,33 @@ test('presence lifecycle is explicit and bounded', () => {
     assert.equal(validateSoulPresence(presence({ state })).valid, true)
   }
   assert.throws(() => presence({ state: 'thinking' }), /state must be one of/)
+})
+
+test('TUI lifecycle transition preserves binding while Web presence stays independent', () => {
+  const tui = presence({ surfaceId: 'tui' })
+  const web = presence({ surfaceId: 'web' })
+  const absentAt = '2026-09-08T09:05:00.000Z'
+  const tuiAbsent = transitionSoulPresence(tui, 'absent', { observedAt: absentAt })
+  const tuiDetached = transitionSoulPresence(tuiAbsent, 'detached', { observedAt: '2026-09-08T09:06:00.000Z' })
+
+  assert.deepEqual(
+    { soulId: tuiAbsent.soulId, runtimeId: tuiAbsent.runtimeId, surfaceId: tuiAbsent.surfaceId },
+    { soulId: tui.soulId, runtimeId: tui.runtimeId, surfaceId: tui.surfaceId },
+  )
+  assert.equal(tuiAbsent.state, 'absent')
+  assert.equal(tuiAbsent.observedAt, absentAt)
+  assert.equal(tuiAbsent.authority, 'none')
+  assert.equal(tuiDetached.state, 'detached')
+  assert.equal(web.state, 'present')
+  assert.equal(web.surfaceId, 'web')
+  assert.equal(web.soulId, tuiDetached.soulId)
+})
+
+test('presence transition fails closed on malformed source or unknown target state', () => {
+  const base = presence()
+  assert.throws(() => transitionSoulPresence({ ...base, authority: 'execute' }, 'absent'), /invalid source Soul Presence/)
+  assert.throws(() => transitionSoulPresence({ ...base, memory: { injected: true } }, 'absent'), /invalid source Soul Presence/)
+  assert.throws(() => transitionSoulPresence(base, 'thinking'), /target state must be one of/)
 })
 
 test('binding validation fails closed on Soul, runtime, or surface mismatch', () => {
