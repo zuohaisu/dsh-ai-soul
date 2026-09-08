@@ -40,7 +40,7 @@ test('projection fails closed on unknown or missing DSH surfaces', () => {
 test('projection cannot be used to smuggle cognition or action authority', () => {
   const record = projectDshSoulPresence(loadedSoul, { surfaceId: 'web', observedAt })
   assert.deepEqual(Object.keys(record).sort(), [
-    'authority', 'observedAt', 'runtimeId', 'schemaVersion', 'soulId', 'state', 'surfaceId',
+    'authority', 'observedAt', 'runtimeId', 'soulId', 'state', 'surfaceId', 'version',
   ])
 
   for (const forbidden of ['transcript', 'attention', 'experience', 'memory', 'proposal', 'mutation', 'schedule', 'toolCall', 'actuator']) {
