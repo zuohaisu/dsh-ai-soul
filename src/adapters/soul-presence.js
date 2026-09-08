@@ -1,4 +1,5 @@
 import { createSoulPresence } from '../core/soul-presence.js'
+import { createSoulPresenceSnapshot } from '../core/soul-presence-snapshot.js'
 
 export const DSH_SOUL_PRESENCE_RUNTIME_ID = 'deepseek-harness'
 export const DSH_SOUL_PRESENCE_SURFACES = Object.freeze(['tui', 'web'])
@@ -30,4 +31,24 @@ export function projectDshSoulPresence(state, {
     state: presenceState,
     observedAt,
   })
+}
+
+export function composeDshSoulPresenceSnapshot(state, surfaceObservations = []) {
+  const loadedSoul = requireLoadedSoul(state)
+  if (!Array.isArray(surfaceObservations)) {
+    throw new TypeError('DSH Soul Presence surface observations must be an array')
+  }
+
+  const presences = surfaceObservations.map((observation) => {
+    if (!observation || typeof observation !== 'object' || Array.isArray(observation)) {
+      throw new TypeError('DSH Soul Presence surface observation must be an object')
+    }
+    return projectDshSoulPresence(loadedSoul, {
+      surfaceId: observation.surfaceId,
+      presenceState: observation.state,
+      observedAt: observation.observedAt,
+    })
+  })
+
+  return createSoulPresenceSnapshot({ soulId: loadedSoul.soulId, presences })
 }
