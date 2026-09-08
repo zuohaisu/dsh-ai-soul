@@ -18,6 +18,14 @@ export {
 } from './homeostasis.js'
 
 export {
+  HOMEOSTASIS_ASSESSMENT_VERSION,
+  assertMatchingHomeostasisAssessment,
+  createHomeostasisAssessment,
+  fingerprintHomeostasisEvidence,
+  verifyHomeostasisAssessment,
+} from './homeostasis-assessment.js'
+
+export {
   AGENCY_INTENT_KINDS,
   AGENCY_INTENT_MAX_ACTION_LENGTH,
   AGENCY_INTENT_VERSION,
