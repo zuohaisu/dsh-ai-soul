@@ -30,7 +30,7 @@ test('one Soul snapshot preserves independent TUI and Web Presence', () => {
     ['web', 'present'],
   ])
 
-  const tuiAbsent = transitionSoulPresence(tui, { state: 'absent', observedAt: '2026-09-09T00:01:00.000Z' })
+  const tuiAbsent = transitionSoulPresence(tui, 'absent', { observedAt: '2026-09-09T00:01:00.000Z' })
   const changed = createSoulPresenceSnapshot({ soulId: 'soul:one', presences: [tuiAbsent, web] })
   assert.deepEqual(changed.presences.map(({ surfaceId, state }) => [surfaceId, state]), [
     ['tui', 'absent'],
