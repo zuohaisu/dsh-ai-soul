@@ -26,6 +26,14 @@ export {
 } from './homeostasis-assessment.js'
 
 export {
+  SOUL_PRESENCE_STATES,
+  SOUL_PRESENCE_VERSION,
+  createSoulPresence,
+  validateSoulPresence,
+  validateSoulPresenceBinding,
+} from './soul-presence.js'
+
+export {
   AGENCY_INTENT_KINDS,
   AGENCY_INTENT_MAX_ACTION_LENGTH,
   AGENCY_INTENT_VERSION,
