@@ -35,6 +35,12 @@ export {
 } from './soul-presence.js'
 
 export {
+  MAX_SOUL_PRESENCE_SURFACES,
+  SOUL_PRESENCE_SNAPSHOT_VERSION,
+  createSoulPresenceSnapshot,
+} from './soul-presence-snapshot.js'
+
+export {
   AGENCY_INTENT_KINDS,
   AGENCY_INTENT_MAX_ACTION_LENGTH,
   AGENCY_INTENT_VERSION,
