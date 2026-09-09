@@ -1,4 +1,8 @@
-import { createGovernanceInbox, deriveCognitionCapacityGuidance } from '../core/index.js'
+import {
+  assessCognitionCapacityPreflight,
+  createGovernanceInbox,
+  deriveCognitionCapacityGuidance,
+} from '../core/index.js'
 
 function assertEventApi(ctx) {
   if (!ctx || typeof ctx.on !== 'function' || typeof ctx.emit !== 'function') {
@@ -11,27 +15,13 @@ function normalizeReviewPayload(payload) {
     throw new TypeError('governance review event requires an object payload')
   }
 
-  const {
-    soulId,
-    proposalId,
-    reviewer,
-    decision,
-    reason,
-    provenance,
-    at,
-    conflicts,
-  } = payload
-
+  const { soulId, proposalId, reviewer, decision, reason, provenance, at, conflicts } = payload
   if (!soulId || typeof soulId !== 'string') throw new TypeError('governance review requires soulId')
   if (!proposalId || typeof proposalId !== 'string') throw new TypeError('governance review requires proposalId')
   if (!reviewer || typeof reviewer !== 'string') throw new TypeError('governance review requires reviewer')
-  if (decision !== 'approved' && decision !== 'rejected') {
-    throw new TypeError('governance review decision must be approved or rejected')
-  }
+  if (decision !== 'approved' && decision !== 'rejected') throw new TypeError('governance review decision must be approved or rejected')
   if (!reason || typeof reason !== 'string') throw new TypeError('governance review requires reason')
-  if (!provenance || typeof provenance !== 'object' || Array.isArray(provenance)) {
-    throw new TypeError('governance review requires provenance')
-  }
+  if (!provenance || typeof provenance !== 'object' || Array.isArray(provenance)) throw new TypeError('governance review requires provenance')
 
   return {
     soulId,
@@ -46,15 +36,9 @@ function normalizeReviewPayload(payload) {
 }
 
 function normalizeSnapshotRequest(payload) {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    throw new TypeError('governance snapshot request requires an object payload')
-  }
-  if (!payload.soulId || typeof payload.soulId !== 'string') {
-    throw new TypeError('governance snapshot request requires soulId')
-  }
-  if (!payload.requestId || typeof payload.requestId !== 'string') {
-    throw new TypeError('governance snapshot request requires requestId')
-  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new TypeError('governance snapshot request requires an object payload')
+  if (!payload.soulId || typeof payload.soulId !== 'string') throw new TypeError('governance snapshot request requires soulId')
+  if (!payload.requestId || typeof payload.requestId !== 'string') throw new TypeError('governance snapshot request requires requestId')
   return { soulId: payload.soulId, requestId: payload.requestId }
 }
 
@@ -65,26 +49,16 @@ function enqueue(queue, task) {
 function projectPendingEntry(entry, state) {
   const detached = structuredClone(entry)
   if (state == null) return detached
-  const capacityGuidance = deriveCognitionCapacityGuidance({ state, proposal: entry.proposal })
   return {
     ...detached,
-    capacityPreflight: capacityGuidance.status === 'consolidation-required'
-      ? {
-          status: capacityGuidance.status,
-          target: capacityGuidance.target,
-          count: state[capacityGuidance.target]?.length,
-          capacity: 8,
-        }
-      : undefined,
-    capacityGuidance,
+    capacityPreflight: assessCognitionCapacityPreflight({ state, proposal: entry.proposal }),
+    capacityGuidance: deriveCognitionCapacityGuidance({ state, proposal: entry.proposal }),
   }
 }
 
 export function createDshGovernanceConsumer(ctx, { store, getState } = {}) {
   assertEventApi(ctx)
-  if (getState != null && typeof getState !== 'function') {
-    throw new TypeError('DSH governance consumer getState must be a function when supplied')
-  }
+  if (getState != null && typeof getState !== 'function') throw new TypeError('DSH governance consumer getState must be a function when supplied')
   const inbox = createGovernanceInbox({ store })
 
   let proposalQueue = Promise.resolve()
@@ -98,9 +72,7 @@ export function createDshGovernanceConsumer(ctx, { store, getState } = {}) {
     reviewQueue = enqueue(reviewQueue, async () => {
       const review = normalizeReviewPayload(payload)
       const resolved = await inbox.review(review)
-      if (resolved.persisted) {
-        await ctx.emit('ai-soul/state-committed', { soulId: resolved.soulId })
-      }
+      if (resolved.persisted) await ctx.emit('ai-soul/state-committed', { soulId: resolved.soulId })
       await ctx.emit('ai-soul/governance-resolved', structuredClone(resolved))
       return resolved
     })
