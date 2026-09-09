@@ -12,6 +12,8 @@ export {
   getCurrentCognitionCapacity,
 } from './cognitive-capacity.js'
 
+export { assessCognitionCapacityPreflight } from './cognition-capacity-preflight.js'
+
 export {
   SOUL_HOMEOSTASIS_CHECK_VERSION,
   evaluateSoulHomeostasis,
