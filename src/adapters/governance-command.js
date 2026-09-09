@@ -98,7 +98,7 @@ function createHumanConsolidationProposal({ payload, state, soulId, reviewerId, 
     evidence: [{ kind: 'explicit-human-consolidation-command', soulId, ...(commandId == null ? {} : { commandId: String(commandId) }) }],
     provenance: { source: 'dsh-command', boundary: 'soul-review-consolidate-v1', ...(commandId == null ? {} : { commandId: String(commandId) }) },
     confidence: 1,
-    proposer: `${reviewerId}:consolidation-proposer`,
+    proposer: reviewerId,
   })
 }
 
@@ -138,6 +138,7 @@ export function createDshGovernanceCommand({ ctx, consumer, soulId, reviewerId, 
       }
       const entry = pending.find((item) => item.proposal.id === parsed.proposalId)
       if (!entry) return commandError(`Pending governance proposal not found: ${parsed.proposalId}`)
+      if (entry.proposal.proposer === reviewerId) return commandError('Independent review required: the proposal creator cannot review this proposal.')
       if (parsed.action === 'reject' && !parsed.reason) return commandError('Reject requires a reason: /soul-review reject <proposalId> <reason>')
       const reason = parsed.reason || 'Approved by the configured human reviewer through the DSH command plane.'
       const decision = parsed.action === 'approve' ? 'approved' : 'rejected'
