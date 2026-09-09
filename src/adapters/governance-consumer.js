@@ -1,4 +1,4 @@
-import { createGovernanceInbox, assessCognitionCapacityPreflight } from '../core/index.js'
+import { createGovernanceInbox, deriveCognitionCapacityGuidance } from '../core/index.js'
 
 function assertEventApi(ctx) {
   if (!ctx || typeof ctx.on !== 'function' || typeof ctx.emit !== 'function') {
@@ -59,17 +59,24 @@ function normalizeSnapshotRequest(payload) {
 }
 
 function enqueue(queue, task) {
-  // A rejected event must fail closed for that invocation without poisoning the
-  // serial boundary for every later, independently valid governance event.
   return queue.then(task, task)
 }
 
 function projectPendingEntry(entry, state) {
   const detached = structuredClone(entry)
   if (state == null) return detached
+  const capacityGuidance = deriveCognitionCapacityGuidance({ state, proposal: entry.proposal })
   return {
     ...detached,
-    capacityPreflight: assessCognitionCapacityPreflight({ state, proposal: entry.proposal }),
+    capacityPreflight: capacityGuidance.status === 'consolidation-required'
+      ? {
+          status: capacityGuidance.status,
+          target: capacityGuidance.target,
+          count: state[capacityGuidance.target]?.length,
+          capacity: 8,
+        }
+      : undefined,
+    capacityGuidance,
   }
 }
 
@@ -91,27 +98,15 @@ export function createDshGovernanceConsumer(ctx, { store, getState } = {}) {
     reviewQueue = enqueue(reviewQueue, async () => {
       const review = normalizeReviewPayload(payload)
       const resolved = await inbox.review(review)
-
-      // Persistence happens inside inbox.review(). Only after an approved state
-      // is durably saved may the consumer tell AI Soul to refresh its validated
-      // in-memory prompt snapshot. Await that refresh so a completed human review
-      // cannot race the next prompt assembly.
       if (resolved.persisted) {
         await ctx.emit('ai-soul/state-committed', { soulId: resolved.soulId })
       }
-
-      // This is an audit/UI signal only. It carries the reviewed proposal and
-      // outcome but grants no mutation authority.
       await ctx.emit('ai-soul/governance-resolved', structuredClone(resolved))
       return resolved
     })
     return reviewQueue
   })
 
-  // Runtime surfaces inspect governance state through an event boundary instead
-  // of receiving a mutable reference to the inbox. Capacity is an optional,
-  // read-time observation of current state: it is not persisted into the inbox,
-  // cannot reserve capacity, and grants no review/apply authority.
   ctx.on('ai-soul/governance-snapshot-request', (payload) => {
     const { soulId, requestId } = normalizeSnapshotRequest(payload)
     const state = getState == null ? null : getState()
