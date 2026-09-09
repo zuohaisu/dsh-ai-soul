@@ -68,7 +68,7 @@ export async function apply(ctx, rawConfig = {}) {
 
   renderCurrentSoulContext(currentState, config.soulId)
   ctx.systemPrompt.context({ name: `ai-soul:${config.soulId}`, order: config.contextOrder, text: () => renderCurrentSoulContext(currentState, config.soulId) })
-  const governanceConsumer = createDshGovernanceConsumer(ctx, { store })
+  const governanceConsumer = createDshGovernanceConsumer(ctx, { store, getState: () => currentState })
 
   let interactionQueue = Promise.resolve()
   ctx.on('session/event', (session, event) => {
