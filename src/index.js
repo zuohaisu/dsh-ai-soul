@@ -95,7 +95,7 @@ export async function apply(ctx, rawConfig = {}) {
     return refreshQueue
   })
 
-  registerDshGovernanceCommand(ctx, { consumer: governanceConsumer, soulId: config.soulId, reviewerId: `human:${config.firstEncounterParticipant.id}` })
+  registerDshGovernanceCommand(ctx, { consumer: governanceConsumer, soulId: config.soulId, reviewerId: `human:${config.firstEncounterParticipant.id}`, getState: () => currentState })
   registerDshSoulStatusCommand(ctx, { soulId: config.soulId, getContext: () => projectSoulContext(currentState) })
   registerDshSoulContextCommand(ctx, { soulId: config.soulId, getContext: () => projectSoulContext(currentState) })
   console.log(`[dsh-ai-soul] loaded Soul ${config.soulId}`)
