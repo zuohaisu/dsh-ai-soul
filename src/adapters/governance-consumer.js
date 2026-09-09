@@ -1,4 +1,5 @@
-import { createGovernanceInbox, assessCognitionCapacityPreflight } from '../core/index.js'
+import { assessCognitionCapacityPreflight, createGovernanceInbox } from '../core/index.js'
+import { deriveCognitionCapacityGuidance } from '../core/cognition-capacity-guidance.js'
 
 function assertEventApi(ctx) {
   if (!ctx || typeof ctx.on !== 'function' || typeof ctx.emit !== 'function') {
@@ -11,27 +12,13 @@ function normalizeReviewPayload(payload) {
     throw new TypeError('governance review event requires an object payload')
   }
 
-  const {
-    soulId,
-    proposalId,
-    reviewer,
-    decision,
-    reason,
-    provenance,
-    at,
-    conflicts,
-  } = payload
-
+  const { soulId, proposalId, reviewer, decision, reason, provenance, at, conflicts } = payload
   if (!soulId || typeof soulId !== 'string') throw new TypeError('governance review requires soulId')
   if (!proposalId || typeof proposalId !== 'string') throw new TypeError('governance review requires proposalId')
   if (!reviewer || typeof reviewer !== 'string') throw new TypeError('governance review requires reviewer')
-  if (decision !== 'approved' && decision !== 'rejected') {
-    throw new TypeError('governance review decision must be approved or rejected')
-  }
+  if (decision !== 'approved' && decision !== 'rejected') throw new TypeError('governance review decision must be approved or rejected')
   if (!reason || typeof reason !== 'string') throw new TypeError('governance review requires reason')
-  if (!provenance || typeof provenance !== 'object' || Array.isArray(provenance)) {
-    throw new TypeError('governance review requires provenance')
-  }
+  if (!provenance || typeof provenance !== 'object' || Array.isArray(provenance)) throw new TypeError('governance review requires provenance')
 
   return {
     soulId,
@@ -46,21 +33,13 @@ function normalizeReviewPayload(payload) {
 }
 
 function normalizeSnapshotRequest(payload) {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    throw new TypeError('governance snapshot request requires an object payload')
-  }
-  if (!payload.soulId || typeof payload.soulId !== 'string') {
-    throw new TypeError('governance snapshot request requires soulId')
-  }
-  if (!payload.requestId || typeof payload.requestId !== 'string') {
-    throw new TypeError('governance snapshot request requires requestId')
-  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new TypeError('governance snapshot request requires an object payload')
+  if (!payload.soulId || typeof payload.soulId !== 'string') throw new TypeError('governance snapshot request requires soulId')
+  if (!payload.requestId || typeof payload.requestId !== 'string') throw new TypeError('governance snapshot request requires requestId')
   return { soulId: payload.soulId, requestId: payload.requestId }
 }
 
 function enqueue(queue, task) {
-  // A rejected event must fail closed for that invocation without poisoning the
-  // serial boundary for every later, independently valid governance event.
   return queue.then(task, task)
 }
 
@@ -70,14 +49,13 @@ function projectPendingEntry(entry, state) {
   return {
     ...detached,
     capacityPreflight: assessCognitionCapacityPreflight({ state, proposal: entry.proposal }),
+    capacityGuidance: deriveCognitionCapacityGuidance({ state, proposal: entry.proposal }),
   }
 }
 
 export function createDshGovernanceConsumer(ctx, { store, getState } = {}) {
   assertEventApi(ctx)
-  if (getState != null && typeof getState !== 'function') {
-    throw new TypeError('DSH governance consumer getState must be a function when supplied')
-  }
+  if (getState != null && typeof getState !== 'function') throw new TypeError('DSH governance consumer getState must be a function when supplied')
   const inbox = createGovernanceInbox({ store })
 
   let proposalQueue = Promise.resolve()
@@ -91,27 +69,13 @@ export function createDshGovernanceConsumer(ctx, { store, getState } = {}) {
     reviewQueue = enqueue(reviewQueue, async () => {
       const review = normalizeReviewPayload(payload)
       const resolved = await inbox.review(review)
-
-      // Persistence happens inside inbox.review(). Only after an approved state
-      // is durably saved may the consumer tell AI Soul to refresh its validated
-      // in-memory prompt snapshot. Await that refresh so a completed human review
-      // cannot race the next prompt assembly.
-      if (resolved.persisted) {
-        await ctx.emit('ai-soul/state-committed', { soulId: resolved.soulId })
-      }
-
-      // This is an audit/UI signal only. It carries the reviewed proposal and
-      // outcome but grants no mutation authority.
+      if (resolved.persisted) await ctx.emit('ai-soul/state-committed', { soulId: resolved.soulId })
       await ctx.emit('ai-soul/governance-resolved', structuredClone(resolved))
       return resolved
     })
     return reviewQueue
   })
 
-  // Runtime surfaces inspect governance state through an event boundary instead
-  // of receiving a mutable reference to the inbox. Capacity is an optional,
-  // read-time observation of current state: it is not persisted into the inbox,
-  // cannot reserve capacity, and grants no review/apply authority.
   ctx.on('ai-soul/governance-snapshot-request', (payload) => {
     const { soulId, requestId } = normalizeSnapshotRequest(payload)
     const state = getState == null ? null : getState()
