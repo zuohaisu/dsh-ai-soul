@@ -104,10 +104,11 @@ test('consolidation command fails closed when governance transport does not acce
 
 test('the same configured human cannot review the consolidation proposal they created', async () => {
   const state = stateWithClaims()
-  const { command } = commandFor({ state })
+  const { command, pending } = commandFor({ state })
   const proposed = await command.handler(invocation(payload))
-  const proposalId = proposed.text.match(/proposal[^\s]*$/u)?.[0]
-  assert.ok(proposalId)
+  assert.equal(proposed.kind, 'success')
+  assert.equal(pending.length, 1)
+  const proposalId = pending[0].proposal.id
 
   const reviewed = await command.handler({ rawInput: `approve ${proposalId}`, commandId: 'command-review-330' })
   assert.equal(reviewed.kind, 'error')
