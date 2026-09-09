@@ -11,6 +11,13 @@ export {
 } from './appraisal-input.js'
 
 export {
+  APPRAISAL_DIMENSIONS,
+  APPRAISAL_DIMENSION_LEVELS,
+  APPRAISAL_RESULT_VERSION,
+  createAppraisalResult,
+} from './appraisal-result.js'
+
+export {
   CURRENT_COGNITION_TARGETS,
   MAX_CURRENT_COGNITION_ENTRIES_PER_DOMAIN,
   assertCurrentCognitionAppendCapacity,
