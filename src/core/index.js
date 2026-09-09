@@ -25,6 +25,8 @@ export {
   verifyHomeostasisAssessment,
 } from './homeostasis-assessment.js'
 
+export { preflightStateTransitionProposal } from './state-transition-preflight.js'
+
 export {
   SOUL_PRESENCE_STATES,
   SOUL_PRESENCE_VERSION,
