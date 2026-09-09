@@ -6,6 +6,11 @@ export {
 } from './soul-state.js'
 
 export {
+  APPRAISAL_INPUT_VERSION,
+  createAppraisalInput,
+} from './appraisal-input.js'
+
+export {
   CURRENT_COGNITION_TARGETS,
   MAX_CURRENT_COGNITION_ENTRIES_PER_DOMAIN,
   assertCurrentCognitionAppendCapacity,
