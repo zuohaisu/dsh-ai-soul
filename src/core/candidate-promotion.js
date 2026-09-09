@@ -17,6 +17,7 @@ export function createCandidatePromotionProposal(candidate, {
   provenance,
   operation = 'append',
   previousValue,
+  previousValues,
 } = {}) {
   const validation = validateCandidateClaim(candidate)
   if (!validation.valid) {
@@ -34,14 +35,20 @@ export function createCandidatePromotionProposal(candidate, {
   if (!isRecord(provenance)) {
     throw new TypeError('provenance is required')
   }
-  if (!['append', 'replace'].includes(operation)) {
-    throw new TypeError('candidate promotion operation must be append or replace')
+  if (!['append', 'replace', 'retire', 'consolidate'].includes(operation)) {
+    throw new TypeError('candidate promotion operation must be append, replace, retire, or consolidate')
   }
-  if (operation === 'replace' && !isRecord(previousValue)) {
-    throw new TypeError('previousValue is required for candidate replacement')
+  if ((operation === 'replace' || operation === 'retire') && !isRecord(previousValue)) {
+    throw new TypeError('previousValue is required for candidate replacement or retirement')
   }
-  if (operation === 'append' && previousValue !== undefined) {
-    throw new TypeError('previousValue is only valid for candidate replacement')
+  if (operation !== 'replace' && operation !== 'retire' && previousValue !== undefined) {
+    throw new TypeError('previousValue is only valid for candidate replacement or retirement')
+  }
+  if (operation === 'consolidate' && (!Array.isArray(previousValues) || previousValues.length < 2)) {
+    throw new TypeError('previousValues must contain at least two values for candidate consolidation')
+  }
+  if (operation !== 'consolidate' && previousValues !== undefined) {
+    throw new TypeError('previousValues is only valid for candidate consolidation')
   }
 
   return createStateTransitionProposal({
@@ -49,10 +56,9 @@ export function createCandidatePromotionProposal(candidate, {
     at,
     target: candidate.target,
     operation,
-    ...(operation === 'replace' ? { previousValue: clone(previousValue) } : {}),
-    value: {
-      claim: candidate.statement,
-    },
+    ...((operation === 'replace' || operation === 'retire') ? { previousValue: clone(previousValue) } : {}),
+    ...(operation === 'consolidate' ? { previousValues: clone(previousValues) } : {}),
+    ...(operation === 'retire' ? {} : { value: { claim: candidate.statement } }),
     reason,
     evidence: [{
       type: 'candidate-claim-v1',
