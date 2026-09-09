@@ -1,8 +1,5 @@
-import {
-  assessCognitionCapacityPreflight,
-  createGovernanceInbox,
-  deriveCognitionCapacityGuidance,
-} from '../core/index.js'
+import { assessCognitionCapacityPreflight, createGovernanceInbox } from '../core/index.js'
+import { deriveCognitionCapacityGuidance } from '../core/cognition-capacity-guidance.js'
 
 function assertEventApi(ctx) {
   if (!ctx || typeof ctx.on !== 'function' || typeof ctx.emit !== 'function') {
