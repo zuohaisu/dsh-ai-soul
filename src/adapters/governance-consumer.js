@@ -1,4 +1,4 @@
-import { createGovernanceInbox } from '../core/index.js'
+import { createGovernanceInbox, assessCognitionCapacityPreflight } from '../core/index.js'
 
 function assertEventApi(ctx) {
   if (!ctx || typeof ctx.on !== 'function' || typeof ctx.emit !== 'function') {
@@ -64,8 +64,20 @@ function enqueue(queue, task) {
   return queue.then(task, task)
 }
 
-export function createDshGovernanceConsumer(ctx, { store } = {}) {
+function projectPendingEntry(entry, state) {
+  const detached = structuredClone(entry)
+  if (state == null) return detached
+  return {
+    ...detached,
+    capacityPreflight: assessCognitionCapacityPreflight({ state, proposal: entry.proposal }),
+  }
+}
+
+export function createDshGovernanceConsumer(ctx, { store, getState } = {}) {
   assertEventApi(ctx)
+  if (getState != null && typeof getState !== 'function') {
+    throw new TypeError('DSH governance consumer getState must be a function when supplied')
+  }
   const inbox = createGovernanceInbox({ store })
 
   let proposalQueue = Promise.resolve()
@@ -97,14 +109,18 @@ export function createDshGovernanceConsumer(ctx, { store } = {}) {
   })
 
   // Runtime surfaces inspect governance state through an event boundary instead
-  // of receiving a mutable reference to the inbox. The response is detached and
-  // scoped to one Soul; it carries no review/apply authority.
+  // of receiving a mutable reference to the inbox. Capacity is an optional,
+  // read-time observation of current state: it is not persisted into the inbox,
+  // cannot reserve capacity, and grants no review/apply authority.
   ctx.on('ai-soul/governance-snapshot-request', (payload) => {
     const { soulId, requestId } = normalizeSnapshotRequest(payload)
+    const state = getState == null ? null : getState()
     const snapshot = {
       requestId,
       soulId,
-      pending: inbox.listPending().filter((entry) => entry.soulId === soulId),
+      pending: inbox.listPending()
+        .filter((entry) => entry.soulId === soulId)
+        .map((entry) => projectPendingEntry(entry, state)),
       resolved: inbox.listResolved().filter((entry) => entry.soulId === soulId),
     }
     const detached = structuredClone(snapshot)
