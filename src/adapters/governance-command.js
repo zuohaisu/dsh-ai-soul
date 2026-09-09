@@ -1,5 +1,6 @@
 import { assessCognitionCapacityPreflight } from '../core/cognition-capacity-preflight.js'
 import { deriveCognitionCapacityGuidance } from '../core/cognition-capacity-guidance.js'
+import { createStateTransitionProposal, STATE_TRANSITION_TARGETS } from '../core/state-transition.js'
 
 function commandError(text) { return { kind: 'error', text } }
 function commandSuccess(text) { return { kind: 'success', text } }
@@ -7,6 +8,11 @@ function commandSuccess(text) { return { kind: 'success', text } }
 function parseCommandInput(rawInput = '') {
   const input = rawInput.trim()
   if (!input || input === 'list') return { action: 'list' }
+  if (input.startsWith('consolidate ')) {
+    const rawPayload = input.slice('consolidate '.length).trim()
+    try { return { action: 'consolidate', payload: JSON.parse(rawPayload) } }
+    catch { return { action: 'invalid-consolidate' } }
+  }
   const [action, proposalId, ...reasonParts] = input.split(/\s+/u)
   if (action !== 'approve' && action !== 'reject') return { action: 'invalid' }
   if (!proposalId) return { action: 'invalid' }
@@ -62,6 +68,40 @@ function formatPendingEntry(entry, index, state) {
   ].join('\n')
 }
 
+function currentTarget(state, target) {
+  if (target === 'relationship.state') return state?.relationship?.state
+  return state?.[target]
+}
+
+function deepEqual(left, right) { return JSON.stringify(left) === JSON.stringify(right) }
+
+function createHumanConsolidationProposal({ payload, state, soulId, reviewerId, commandId }) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new TypeError('consolidation payload must be a JSON object')
+  const { target, sources, claim, reason } = payload
+  if (!STATE_TRANSITION_TARGETS.includes(target)) throw new TypeError('consolidation target is not supported')
+  if (!Array.isArray(sources) || sources.length < 2) throw new TypeError('consolidation requires at least two source claims')
+  if (claim == null || typeof claim !== 'object' || Array.isArray(claim)) throw new TypeError('consolidated claim must be an object')
+  if (!reason || typeof reason !== 'string') throw new TypeError('consolidation requires a reason')
+  if (state == null) throw new TypeError('current Soul state is unavailable')
+  const current = currentTarget(state, target)
+  if (!Array.isArray(current)) throw new TypeError('consolidation target is not a current cognition array')
+  for (const source of sources) {
+    const matches = current.filter((entry) => deepEqual(entry, source)).length
+    if (matches !== 1) throw new TypeError('each consolidation source must exactly match one current claim')
+  }
+  return createStateTransitionProposal({
+    target,
+    operation: 'consolidate',
+    previousValues: sources,
+    value: claim,
+    reason,
+    evidence: [{ kind: 'explicit-human-consolidation-command', soulId, ...(commandId == null ? {} : { commandId: String(commandId) }) }],
+    provenance: { source: 'dsh-command', boundary: 'soul-review-consolidate-v1', ...(commandId == null ? {} : { commandId: String(commandId) }) },
+    confidence: 1,
+    proposer: `${reviewerId}:consolidation-proposer`,
+  })
+}
+
 export function createDshGovernanceCommand({ ctx, consumer, soulId, reviewerId, getState } = {}) {
   if (!ctx || typeof ctx.emit !== 'function') throw new TypeError('DSH governance command requires ctx.emit')
   if (!consumer || typeof consumer.listPending !== 'function') throw new TypeError('DSH governance command requires governance consumer')
@@ -71,12 +111,25 @@ export function createDshGovernanceCommand({ ctx, consumer, soulId, reviewerId, 
 
   return Object.freeze({
     name: 'soul-review',
-    description: 'review pending AI Soul growth proposals',
-    input: { hint: '[list|approve <proposalId> [reason]|reject <proposalId> <reason>]' },
+    description: 'review or explicitly propose governed AI Soul cognition changes',
+    input: { hint: '[list|approve <proposalId> [reason]|reject <proposalId> <reason>|consolidate <json>]' },
     recordInput: false,
     async handler(invocation = {}) {
       const parsed = parseCommandInput(invocation.rawInput)
-      if (parsed.action === 'invalid') return commandError('Usage: /soul-review [list|approve <proposalId> [reason]|reject <proposalId> <reason>]')
+      if (parsed.action === 'invalid-consolidate') return commandError('Consolidate requires valid JSON: /soul-review consolidate {"target":"userModel","sources":[...],"claim":{...},"reason":"..."}')
+      if (parsed.action === 'invalid') return commandError('Usage: /soul-review [list|approve <proposalId> [reason]|reject <proposalId> <reason>|consolidate <json>]')
+      if (parsed.action === 'consolidate') {
+        let proposal
+        try {
+          proposal = createHumanConsolidationProposal({ payload: parsed.payload, state: getState?.(), soulId, reviewerId, commandId: invocation.commandId })
+        } catch (error) {
+          return commandError(`Consolidation proposal rejected: ${error.message}`)
+        }
+        const results = await ctx.emit('ai-soul/governance-proposal', { soulId, proposal })
+        const accepted = Array.isArray(results) ? results.some((result) => result?.proposal?.id === proposal.id && result?.status === 'pending') : false
+        if (!accepted) return commandError('Governance transport did not accept the consolidation proposal.')
+        return commandSuccess(`Proposed consolidation for independent review without Soul-state mutation: ${proposal.id}`)
+      }
       const pending = consumer.listPending().filter((entry) => entry.soulId === soulId)
       if (parsed.action === 'list') {
         if (pending.length === 0) return commandSuccess('No pending AI Soul governance proposals.')
