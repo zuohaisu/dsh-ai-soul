@@ -1,6 +1,17 @@
 import { APPRAISAL_RESULT_VERSION, APPRAISAL_DIMENSIONS, APPRAISAL_DIMENSION_LEVELS } from './appraisal-result.js'
 import { createAgencyIntent } from './agency-intent.js'
 
+const FORBIDDEN_AUTHORITY_FIELDS = Object.freeze([
+  'approved',
+  'executed',
+  'scheduled',
+  'execution',
+  'schedule',
+  'toolCall',
+  'actuator',
+  'authority',
+])
+
 function isRecord(value) {
   return value != null && typeof value === 'object' && !Array.isArray(value)
 }
@@ -32,10 +43,17 @@ function validateAppraisalResult(appraisal) {
   }
 }
 
+function rejectAuthorityFields(intent) {
+  for (const field of FORBIDDEN_AUTHORITY_FIELDS) {
+    if (Object.hasOwn(intent, field)) throw new TypeError(`${field} is not allowed on an appraised agency intent`)
+  }
+}
+
 export function createAppraisedAgencyIntent({ appraisal, soulId, contextRefs = [], provenance, ...intent } = {}) {
   validateAppraisalResult(appraisal)
   requireNonEmptyString(soulId, 'soulId')
   if (soulId !== appraisal.soulId) throw new TypeError('soulId must match appraisal.soulId')
+  rejectAuthorityFields(intent)
 
   const appraisalRef = {
     type: 'appraisal-result',
