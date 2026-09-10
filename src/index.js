@@ -107,6 +107,7 @@ export { DSH_AGENCY_PRESENCE_VERSION, projectAgencyIntentToDshPresence } from '.
 export { createDshAgencyPresenceView, renderDshAgencyPresence } from './adapters/agency-presence-view.js'
 export { composeDshSoulPresenceSnapshot, DSH_SOUL_PRESENCE_RUNTIME_ID, DSH_SOUL_PRESENCE_SURFACES, projectDshSoulPresence } from './adapters/soul-presence.js'
 export { EXPLICIT_USER_REQUEST_EVIDENCE_POLICY, deriveExplicitUserRequestEvidenceFromDsh } from './adapters/explicit-user-request-evidence.js'
+export { GOVERNED_REFLECTION_AGENCY_TRIGGER_POLICY, deriveAgencyTriggerEvidenceFromReflection } from './adapters/reflection-agency-trigger.js'
 export { captureFirstEncounterFromDshEvent } from './adapters/first-encounter.js'
 export {
   EXPLICIT_DURABLE_PREFERENCE_POLICY,
