@@ -3,12 +3,20 @@ import test from 'node:test'
 
 import { createAppraisalInput } from '../src/core/appraisal-input.js'
 import { produceAppraisal } from '../src/core/appraisal-producer.js'
+import { createRelationshipFact } from '../src/core/relationship-fact.js'
 import { createSoulState } from '../src/core/soul-state.js'
 
 function state({ includeRelationship = true } = {}) {
   const value = createSoulState({ soulId: 'soul-producer', createdAt: '2026-09-10T00:00:00.000Z' })
   if (includeRelationship) {
-    value.relationship.state.push({ id: 'rel-collaboration', statement: 'Long-term collaborators.' })
+    value.relationship.state.push(createRelationshipFact({
+      id: 'rel-collaboration',
+      subject: { type: 'participant', id: 'human-1' },
+      predicate: 'shared-project',
+      value: { projectId: 'atlas' },
+      confidence: 0.9,
+      provenance: { type: 'governed-proposal', id: 'proposal-rel-collaboration' },
+    }))
   }
   return value
 }
@@ -27,7 +35,7 @@ function input(current) {
   })
 }
 
-test('derives high relevance only from an explicit ref that resolves in current cognition', () => {
+test('derives high relevance only from an explicit ref that resolves in semantic current cognition', () => {
   const appraisalInput = input(state())
   const before = structuredClone(appraisalInput)
 
@@ -41,7 +49,7 @@ test('derives high relevance only from an explicit ref that resolves in current 
   assert.deepEqual(appraisalInput, before)
 })
 
-test('same event does not claim relevance when governed cognition no longer resolves the ref', () => {
+test('same event does not claim relevance when governed semantic cognition no longer resolves the ref', () => {
   const withRelationship = input(state())
   const withoutRelationship = input(state({ includeRelationship: false }))
 
