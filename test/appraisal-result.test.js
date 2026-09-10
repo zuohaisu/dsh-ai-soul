@@ -1,13 +1,21 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { createSoulState } from '../src/core/soul-state.js'
 import { createAppraisalInput } from '../src/core/appraisal-input.js'
 import { createAppraisalResult } from '../src/core/appraisal-result.js'
+import { createRelationshipFact } from '../src/core/relationship-fact.js'
+import { createSoulState } from '../src/core/soul-state.js'
 
-function inputWithRelationship(statement = 'Long-term collaborators.') {
+function inputWithRelationship(projectId = 'atlas') {
   const state = createSoulState({ soulId: 'soul-appraisal-result', createdAt: '2026-09-10T00:00:00.000Z' })
-  state.relationship.state.push({ id: 'rel-1', statement })
+  state.relationship.state.push(createRelationshipFact({
+    id: `rel-${projectId}`,
+    subject: { type: 'participant', id: 'human-1' },
+    predicate: 'shared-project',
+    value: { projectId },
+    confidence: 0.9,
+    provenance: { type: 'governed-proposal', id: `proposal-${projectId}` },
+  }))
   return {
     state,
     input: createAppraisalInput({
@@ -24,7 +32,7 @@ function inputWithRelationship(statement = 'Long-term collaborators.') {
 const relationalAssessment = (level) => ({
   relationalSignificance: {
     level,
-    evidence: [{ path: 'cognition.relational.0.statement' }],
+    evidence: [{ path: 'cognition.relational.0' }],
   },
 })
 
@@ -45,19 +53,19 @@ test('is deterministic for identical explicit input and assessment without mutat
   assert.deepEqual(input, inputBefore)
 })
 
-test('can explicitly appraise the same event differently when relational cognition differs', () => {
-  const established = inputWithRelationship('Long-term collaborators.').input
-  const newRelationship = inputWithRelationship('First interaction.').input
+test('can explicitly appraise the same event differently when semantic relational cognition differs', () => {
+  const atlas = inputWithRelationship('atlas').input
+  const orion = inputWithRelationship('orion').input
 
-  assert.deepEqual(established.event, newRelationship.event)
-  assert.notDeepEqual(established.cognition.relational, newRelationship.cognition.relational)
+  assert.deepEqual(atlas.event, orion.event)
+  assert.notDeepEqual(atlas.cognition.relational, orion.cognition.relational)
 
-  const establishedResult = createAppraisalResult({ input: established, assessment: relationalAssessment('high') })
-  const newResult = createAppraisalResult({ input: newRelationship, assessment: relationalAssessment('low') })
+  const atlasResult = createAppraisalResult({ input: atlas, assessment: relationalAssessment('high') })
+  const orionResult = createAppraisalResult({ input: orion, assessment: relationalAssessment('low') })
 
-  assert.equal(establishedResult.dimensions.relationalSignificance.level, 'high')
-  assert.equal(newResult.dimensions.relationalSignificance.level, 'low')
-  assert.equal(establishedResult.eventId, newResult.eventId)
+  assert.equal(atlasResult.dimensions.relationalSignificance.level, 'high')
+  assert.equal(orionResult.dimensions.relationalSignificance.level, 'low')
+  assert.equal(atlasResult.eventId, orionResult.eventId)
 })
 
 test('fails closed for unsupported dimensions, levels, evidence, or provenance', () => {
