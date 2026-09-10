@@ -57,3 +57,16 @@ export function getRelationshipFact(state, factId) {
   if (matches.length > 1) throw new TypeError(`ambiguous relationship fact id: ${factId}`)
   return matches.length === 1 ? clone(matches[0]) : null
 }
+
+export function projectRelationshipFacts(state) {
+  const entries = state?.relationship?.state
+  if (!Array.isArray(entries)) throw new TypeError('relationship.state must be an array')
+
+  const facts = entries.filter((entry) => validateRelationshipFact(entry).valid)
+  const seen = new Set()
+  for (const fact of facts) {
+    if (seen.has(fact.id)) throw new TypeError(`ambiguous relationship fact id: ${fact.id}`)
+    seen.add(fact.id)
+  }
+  return clone(facts)
+}
