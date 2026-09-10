@@ -6,6 +6,13 @@ export {
 } from './soul-state.js'
 
 export {
+  RELATIONSHIP_FACT_VERSION,
+  createRelationshipFact,
+  getRelationshipFact,
+  validateRelationshipFact,
+} from './relationship-fact.js'
+
+export {
   APPRAISAL_INPUT_VERSION,
   createAppraisalInput,
 } from './appraisal-input.js'
