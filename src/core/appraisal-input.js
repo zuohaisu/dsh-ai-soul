@@ -1,3 +1,4 @@
+import { projectRelationshipFacts } from './relationship-fact.js'
 import { validateSoulState } from './soul-state.js'
 
 export const APPRAISAL_INPUT_VERSION = 1
@@ -49,7 +50,7 @@ export function createAppraisalInput({
       self: clone(state.selfModel),
       other: clone(state.userModel),
       participants: clone(state.relationship.participants),
-      relational: clone(state.relationship.state),
+      relational: projectRelationshipFacts(state),
       world: clone(state.worldModel ?? []),
       beliefs: clone(state.beliefs),
     },
