@@ -18,6 +18,10 @@ export {
 } from './appraisal-result.js'
 
 export { produceAppraisal } from './appraisal-producer.js'
+export {
+  deriveCognitionReferences,
+  produceAppraisalFromRuntimeEvidence,
+} from './cognition-reference-linker.js'
 export { createAppraisedAgencyIntent } from './appraised-agency-intent.js'
 
 export {
