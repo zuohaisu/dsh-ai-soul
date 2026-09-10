@@ -17,6 +17,7 @@ export {
   createAppraisalResult,
 } from './appraisal-result.js'
 
+export { produceAppraisal } from './appraisal-producer.js'
 export { createAppraisedAgencyIntent } from './appraised-agency-intent.js'
 
 export {
