@@ -48,6 +48,7 @@ export function createAppraisalInput({
     cognition: {
       self: clone(state.selfModel),
       other: clone(state.userModel),
+      participants: clone(state.relationship.participants),
       relational: clone(state.relationship.state),
       world: clone(state.worldModel ?? []),
       beliefs: clone(state.beliefs),

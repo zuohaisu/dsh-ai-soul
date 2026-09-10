@@ -1,7 +1,7 @@
 import { APPRAISAL_INPUT_VERSION } from './appraisal-input.js'
 import { createAppraisalResult } from './appraisal-result.js'
 
-const COGNITION_DOMAINS = Object.freeze(['self', 'other', 'relational', 'world', 'beliefs'])
+const COGNITION_DOMAINS = Object.freeze(['self', 'other', 'participants', 'relational', 'world', 'beliefs'])
 
 function requireInput(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
