@@ -17,6 +17,8 @@ export {
   createAppraisalResult,
 } from './appraisal-result.js'
 
+export { createAppraisedAgencyIntent } from './appraised-agency-intent.js'
+
 export {
   CURRENT_COGNITION_TARGETS,
   MAX_CURRENT_COGNITION_ENTRIES_PER_DOMAIN,
