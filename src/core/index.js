@@ -9,6 +9,7 @@ export {
   RELATIONSHIP_FACT_VERSION,
   createRelationshipFact,
   getRelationshipFact,
+  projectRelationshipFacts,
   validateRelationshipFact,
 } from './relationship-fact.js'
 
