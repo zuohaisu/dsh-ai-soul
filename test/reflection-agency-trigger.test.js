@@ -10,14 +10,14 @@ import {
 
 function proposal() {
   return createStateTransitionProposal({
-    id: 'proposal:reflection:1',
+    id: 'proposal-reflection-trigger-1',
     at: '2026-09-11T00:00:00.000Z',
-    target: { domain: 'userModel' },
-    operation: 'append',
-    value: { preference: 'concise answers' },
-    reason: 'Explicit durable preference evidence',
+    target: 'userModel',
+    value: { claim: 'The user prefers concise answers.' },
+    reason: 'Explicit durable preference evidence.',
+    evidence: [{ type: 'experience', id: 'experience:1' }],
     confidence: 0.9,
-    provenance: { source: 'experience:1' },
+    provenance: { reflectionId: 'reflection:1' },
     proposer: 'reflection:test',
   })
 }
@@ -27,7 +27,7 @@ function reflection({ proposals = [proposal()] } = {}) {
     id: 'reflection:1',
     at: '2026-09-11T00:01:00.000Z',
     sources: [{ experienceId: 'experience:1', provenance: { runtime: 'test' } }],
-    observations: ['bounded observation'],
+    observations: [{ text: 'bounded observation' }],
     proposals,
     provenance: { process: 'reflection:test' },
   })
