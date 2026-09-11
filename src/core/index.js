@@ -42,6 +42,13 @@ export {
 export { assessCognitionCapacityPreflight } from './cognition-capacity-preflight.js'
 
 export {
+  COGNITIVE_MEMORY_RECORD_VERSION,
+  MAX_COGNITIVE_MEMORY_CONTENT_CHARS,
+  createCognitiveMemoryRecord,
+  validateCognitiveMemoryRecord,
+} from './cognitive-memory.js'
+
+export {
   SOUL_HOMEOSTASIS_CHECK_VERSION,
   evaluateSoulHomeostasis,
 } from './homeostasis.js'
