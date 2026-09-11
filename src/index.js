@@ -3,7 +3,9 @@ import { resolve } from 'node:path'
 import {
   createCandidatePromotionProposal,
   FileSoulStore,
+  projectCognitiveMemoryVisibility,
   projectSoulContext,
+  renderCognitiveMemoryVisibility,
   renderSoulContext,
 } from './core/index.js'
 import { createDshGovernanceConsumer } from './adapters/governance-consumer.js'
@@ -19,11 +21,23 @@ function validateConfig(config = {}) {
   if (!config.soulId || typeof config.soulId !== 'string') throw new TypeError('dsh-ai-soul config error: config.soulId is required')
   if (!config.storeDir || typeof config.storeDir !== 'string') throw new TypeError('dsh-ai-soul config error: config.storeDir is required')
   if (!config.firstEncounterParticipant?.id || typeof config.firstEncounterParticipant.id !== 'string') throw new TypeError('dsh-ai-soul config error: config.firstEncounterParticipant.id is required')
-  return { soulId: config.soulId, storeDir: resolve(config.storeDir), contextOrder: Number.isFinite(config.contextOrder) ? config.contextOrder : -10, firstEncounterParticipant: structuredClone(config.firstEncounterParticipant) }
+  if (config.cognitiveMemorySelection !== undefined && !Array.isArray(config.cognitiveMemorySelection)) throw new TypeError('dsh-ai-soul config error: config.cognitiveMemorySelection must be an explicitly supplied array')
+  return {
+    soulId: config.soulId,
+    storeDir: resolve(config.storeDir),
+    contextOrder: Number.isFinite(config.contextOrder) ? config.contextOrder : -10,
+    firstEncounterParticipant: structuredClone(config.firstEncounterParticipant),
+    cognitiveMemorySelection: config.cognitiveMemorySelection === undefined ? undefined : structuredClone(config.cognitiveMemorySelection),
+  }
 }
 
-function renderCurrentSoulContext(state, soulId) {
-  try { return renderSoulContext(projectSoulContext(state)) } catch (error) {
+function renderCurrentSoulContext(state, soulId, cognitiveMemorySelection) {
+  try {
+    const canonicalContext = renderSoulContext(projectSoulContext(state))
+    if (cognitiveMemorySelection === undefined) return canonicalContext
+    const memoryContext = renderCognitiveMemoryVisibility(projectCognitiveMemoryVisibility({ soulId, memories: cognitiveMemorySelection }))
+    return memoryContext ? `${canonicalContext}\n\n${memoryContext}` : canonicalContext
+  } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     throw new Error(`dsh-ai-soul context-projection error for soulId=${soulId}: ${detail}`, { cause: error })
   }
@@ -66,8 +80,8 @@ export async function apply(ctx, rawConfig = {}) {
     throw new Error(`dsh-ai-soul store-load error: unable to load soulId=${config.soulId} from storeDir=${config.storeDir}: ${detail}`, { cause: error })
   }
 
-  renderCurrentSoulContext(currentState, config.soulId)
-  ctx.systemPrompt.context({ name: `ai-soul:${config.soulId}`, order: config.contextOrder, text: () => renderCurrentSoulContext(currentState, config.soulId) })
+  renderCurrentSoulContext(currentState, config.soulId, config.cognitiveMemorySelection)
+  ctx.systemPrompt.context({ name: `ai-soul:${config.soulId}`, order: config.contextOrder, text: () => renderCurrentSoulContext(currentState, config.soulId, config.cognitiveMemorySelection) })
   const governanceConsumer = createDshGovernanceConsumer(ctx, { store, getState: () => currentState })
 
   let interactionQueue = Promise.resolve()
