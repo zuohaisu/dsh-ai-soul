@@ -47,6 +47,7 @@ export {
   createCognitiveMemoryRecord,
   validateCognitiveMemoryRecord,
 } from './cognitive-memory.js'
+export { FileCognitiveMemoryStore } from './cognitive-memory-store.js'
 
 export {
   SOUL_HOMEOSTASIS_CHECK_VERSION,
