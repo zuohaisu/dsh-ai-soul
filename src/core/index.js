@@ -48,6 +48,10 @@ export {
   validateCognitiveMemoryRecord,
 } from './cognitive-memory.js'
 export { FileCognitiveMemoryStore } from './cognitive-memory-store.js'
+export {
+  MAX_COGNITIVE_MEMORY_RETRIEVAL_RESULTS,
+  retrieveCognitiveMemories,
+} from './cognitive-memory-retrieval.js'
 
 export {
   SOUL_HOMEOSTASIS_CHECK_VERSION,
