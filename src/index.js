@@ -31,9 +31,19 @@ function validateConfig(config = {}) {
   }
 }
 
-function renderCurrentSoulContext(state, soulId, cognitiveMemorySelection) {
+function requestScopedMemorySelection(requestContext) {
+  if (!requestContext || typeof requestContext !== 'object' || Array.isArray(requestContext)) return undefined
+  if (!Object.hasOwn(requestContext, 'aiSoulCognitiveMemorySelection')) return undefined
+  const selection = requestContext.aiSoulCognitiveMemorySelection
+  if (!Array.isArray(selection)) throw new TypeError('dsh-ai-soul request context error: aiSoulCognitiveMemorySelection must be an explicitly supplied array')
+  return selection
+}
+
+function renderCurrentSoulContext(state, soulId, startupMemorySelection, requestContext) {
   try {
     const canonicalContext = renderSoulContext(projectSoulContext(state))
+    const requestSelection = requestScopedMemorySelection(requestContext)
+    const cognitiveMemorySelection = requestSelection === undefined ? startupMemorySelection : requestSelection
     if (cognitiveMemorySelection === undefined) return canonicalContext
     const memoryContext = renderCognitiveMemoryVisibility(projectCognitiveMemoryVisibility({ soulId, memories: cognitiveMemorySelection }))
     return memoryContext ? `${canonicalContext}\n\n${memoryContext}` : canonicalContext
@@ -81,7 +91,7 @@ export async function apply(ctx, rawConfig = {}) {
   }
 
   renderCurrentSoulContext(currentState, config.soulId, config.cognitiveMemorySelection)
-  ctx.systemPrompt.context({ name: `ai-soul:${config.soulId}`, order: config.contextOrder, text: () => renderCurrentSoulContext(currentState, config.soulId, config.cognitiveMemorySelection) })
+  ctx.systemPrompt.context({ name: `ai-soul:${config.soulId}`, order: config.contextOrder, text: (requestContext) => renderCurrentSoulContext(currentState, config.soulId, config.cognitiveMemorySelection, requestContext) })
   const governanceConsumer = createDshGovernanceConsumer(ctx, { store, getState: () => currentState })
 
   let interactionQueue = Promise.resolve()
