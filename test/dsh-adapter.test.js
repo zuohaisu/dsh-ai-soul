@@ -132,6 +132,63 @@ test('DSH cognitive memory visibility is explicit, bounded, same-Soul, and non-m
   }), /invalid cognitive memory/)
 })
 
+test('request-scoped Cognitive Memory overrides startup selection for one cognition only', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-request-memory-'))
+  const store = await unnamedGenesis(rootDir)
+  const before = await store.load('ember-147')
+  const runtime = runtimeContext()
+  const startupMemory = cognitiveMemory({ id: 'startup-memory', content: 'Startup fallback memory.' })
+  const requestMemory = cognitiveMemory({ id: 'request-memory', content: 'Only this cognition should see request memory.' })
+
+  await apply(runtime.ctx, {
+    soulId: 'ember-147',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+    cognitiveMemorySelection: [startupMemory],
+  })
+
+  const context = runtime.registrations[0].text
+  const requestText = context({ aiSoulCognitiveMemorySelection: [requestMemory] })
+  assert.match(requestText, /Only this cognition should see request memory/)
+  assert.doesNotMatch(requestText, /Startup fallback memory/)
+
+  const laterText = context({})
+  assert.match(laterText, /Startup fallback memory/)
+  assert.doesNotMatch(laterText, /Only this cognition should see request memory/)
+
+  const explicitEmpty = context({ aiSoulCognitiveMemorySelection: [] })
+  assert.doesNotMatch(explicitEmpty, /Selective Cognitive Memory/)
+  assert.deepEqual(await store.load('ember-147'), before)
+
+  assert.throws(
+    () => context({ aiSoulCognitiveMemorySelection: [cognitiveMemory({ soulId: 'other-soul' })] }),
+    /different Soul/,
+  )
+  assert.throws(
+    () => context({ aiSoulCognitiveMemorySelection: [cognitiveMemory({ authority: 'execute' })] }),
+    /invalid cognitive memory/,
+  )
+  assert.throws(
+    () => context({ aiSoulCognitiveMemorySelection: 'not-an-array' }),
+    /must be an explicitly supplied array/,
+  )
+})
+
+test('request-scoped memory does not leak into a later memory-free cognition', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-request-memory-no-leak-'))
+  await unnamedGenesis(rootDir)
+  const runtime = runtimeContext()
+  await apply(runtime.ctx, {
+    soulId: 'ember-147',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+  })
+
+  const context = runtime.registrations[0].text
+  assert.match(context({ aiSoulCognitiveMemorySelection: [cognitiveMemory()] }), /explicit architectural boundaries/)
+  assert.doesNotMatch(context({}), /Selective Cognitive Memory/)
+})
+
 test('records first human DSH user/message once and survives reload', async () => {
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-first-encounter-'))
   const store = await unnamedGenesis(rootDir)
