@@ -12,7 +12,7 @@ function assertAuthorityFreeInput(input) {
   }
 }
 
-export function createAgencyIntentFromExplicitUserRequest({
+export function createAgencyIntentFromTriggerEvidence({
   soulId,
   triggerEvidence,
   kind = 'request',
@@ -26,10 +26,11 @@ export function createAgencyIntentFromExplicitUserRequest({
 } = {}) {
   assertAuthorityFreeInput(extra)
 
+  const triggerClass = triggerEvidence?.triggerClass
   const eligibility = assessAgencyInitiationEligibility({
     soulId,
     candidateSoulId: triggerEvidence?.soulId,
-    triggerClass: 'explicit-user-request',
+    triggerClass,
     triggerEvidence,
     reason,
     contextRefs,
@@ -45,6 +46,7 @@ export function createAgencyIntentFromExplicitUserRequest({
     triggerEvidence: {
       id: triggerEvidence.id,
       type: triggerEvidence.type,
+      triggerClass: triggerEvidence.triggerClass,
       source: structuredClone(triggerEvidence.source),
       provenance: structuredClone(triggerEvidence.provenance),
     },
@@ -60,4 +62,11 @@ export function createAgencyIntentFromExplicitUserRequest({
     contextRefs,
     provenance: intentProvenance,
   })
+}
+
+export function createAgencyIntentFromExplicitUserRequest(input = {}) {
+  if (input?.triggerEvidence?.triggerClass !== 'explicit-user-request') {
+    throw new TypeError('agency initiation is not eligible: explicit-user-request trigger required')
+  }
+  return createAgencyIntentFromTriggerEvidence(input)
 }
