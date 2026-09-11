@@ -49,6 +49,23 @@ async function unnamedGenesis(rootDir, soulId = 'ember-147') {
   return store
 }
 
+function cognitiveMemory(overrides = {}) {
+  return {
+    version: 1,
+    id: 'mem-1',
+    soulId: 'ember-147',
+    experienceId: 'exp-1',
+    significanceAssessmentId: 'sig-1',
+    formedAt: '2026-09-11T00:00:00.000Z',
+    content: 'Haisu prefers explicit architectural boundaries.',
+    confidence: 0.9,
+    provenance: { source: 'test' },
+    canonical: false,
+    authority: 'none',
+    ...overrides,
+  }
+}
+
 const participant = { id: 'human-partner-147', kind: 'human' }
 
 test('loads configured unnamed Soul and registers DSH dynamic context', async () => {
@@ -69,8 +86,50 @@ test('loads configured unnamed Soul and registers DSH dynamic context', async ()
   const initialText = runtime.registrations[0].text({})
   assert.match(initialText, /Soul ID: ember-147/)
   assert.doesNotMatch(initialText, /\bName:/)
+  assert.doesNotMatch(initialText, /Selective Cognitive Memory/)
   assert.equal(typeof runtime.listeners.get('session/event'), 'function')
   assert.equal(typeof runtime.listeners.get('ai-soul/state-committed'), 'function')
+})
+
+test('DSH cognitive memory visibility is explicit, bounded, same-Soul, and non-mutating', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-memory-context-'))
+  const store = await unnamedGenesis(rootDir)
+  const before = await store.load('ember-147')
+
+  const visibleRuntime = runtimeContext()
+  await apply(visibleRuntime.ctx, {
+    soulId: 'ember-147',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+    cognitiveMemorySelection: [cognitiveMemory()],
+  })
+  const visibleText = visibleRuntime.registrations[0].text({})
+  assert.match(visibleText, /Soul ID: ember-147/)
+  assert.match(visibleText, /Selective Cognitive Memory \(non-canonical\)/)
+  assert.match(visibleText, /explicit architectural boundaries/)
+  assert.deepEqual(await store.load('ember-147'), before)
+
+  const emptyRuntime = runtimeContext()
+  await apply(emptyRuntime.ctx, {
+    soulId: 'ember-147',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+    cognitiveMemorySelection: [],
+  })
+  assert.doesNotMatch(emptyRuntime.registrations[0].text({}), /Selective Cognitive Memory/)
+
+  await assert.rejects(() => apply(runtimeContext().ctx, {
+    soulId: 'ember-147',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+    cognitiveMemorySelection: [cognitiveMemory({ soulId: 'other-soul' })],
+  }), /different Soul/)
+  await assert.rejects(() => apply(runtimeContext().ctx, {
+    soulId: 'ember-147',
+    storeDir: rootDir,
+    firstEncounterParticipant: participant,
+    cognitiveMemorySelection: [cognitiveMemory({ authority: 'execute' })],
+  }), /invalid cognitive memory/)
 })
 
 test('records first human DSH user/message once and survives reload', async () => {
