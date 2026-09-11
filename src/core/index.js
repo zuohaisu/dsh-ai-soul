@@ -52,6 +52,12 @@ export {
   MAX_COGNITIVE_MEMORY_RETRIEVAL_RESULTS,
   retrieveCognitiveMemories,
 } from './cognitive-memory-retrieval.js'
+export {
+  MAX_VISIBLE_COGNITIVE_MEMORIES,
+  MAX_COGNITIVE_MEMORY_VISIBILITY_CHARS,
+  projectCognitiveMemoryVisibility,
+  renderCognitiveMemoryVisibility,
+} from './cognitive-memory-visibility.js'
 
 export {
   SOUL_HOMEOSTASIS_CHECK_VERSION,
