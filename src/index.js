@@ -8,6 +8,7 @@ import {
   renderCognitiveMemoryVisibility,
   renderSoulContext,
 } from './core/index.js'
+import { renderDshContinuityDigest } from './adapters/continuity-digest-context.js'
 import { createDshGovernanceConsumer } from './adapters/governance-consumer.js'
 import { registerDshGovernanceCommand } from './adapters/governance-command.js'
 import { processDshHumanInteraction } from './adapters/interaction-processing.js'
@@ -42,11 +43,13 @@ function requestScopedMemorySelection(requestContext) {
 function renderCurrentSoulContext(state, soulId, startupMemorySelection, requestContext) {
   try {
     const canonicalContext = renderSoulContext(projectSoulContext(state))
+    const continuityContext = renderDshContinuityDigest(state)
+    const baseContext = continuityContext ? `${canonicalContext}\n\n${continuityContext}` : canonicalContext
     const requestSelection = requestScopedMemorySelection(requestContext)
     const cognitiveMemorySelection = requestSelection === undefined ? startupMemorySelection : requestSelection
-    if (cognitiveMemorySelection === undefined) return canonicalContext
+    if (cognitiveMemorySelection === undefined) return baseContext
     const memoryContext = renderCognitiveMemoryVisibility(projectCognitiveMemoryVisibility({ soulId, memories: cognitiveMemorySelection }))
-    return memoryContext ? `${canonicalContext}\n\n${memoryContext}` : canonicalContext
+    return memoryContext ? `${baseContext}\n\n${memoryContext}` : baseContext
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     throw new Error(`dsh-ai-soul context-projection error for soulId=${soulId}: ${detail}`, { cause: error })
