@@ -232,6 +232,11 @@ export {
 } from './state-transition.js'
 
 export {
+  STATE_TRANSITION_CONTINUITY_PREVIEW_VERSION,
+  projectStateTransitionContinuityPreview,
+} from './state-transition-continuity-preview.js'
+
+export {
   STATE_TRANSITION_REDACTED_ARCHIVE_VERSION,
   archiveRedactedStateTransitionProposal,
 } from './state-transition-redaction.js'
