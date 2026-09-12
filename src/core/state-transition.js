@@ -1,6 +1,7 @@
 import { appendTransition, validateSoulState } from './soul-state.js'
 import { assertCurrentCognitionAppendCapacity } from './cognitive-capacity.js'
 import { createHomeostasisAssessment, assertMatchingHomeostasisAssessment } from './homeostasis-assessment.js'
+import { projectContinuityDigestDelta } from './continuity-digest-delta.js'
 
 export const STATE_TRANSITION_PROPOSAL_VERSION = 1
 export const STATE_TRANSITION_TARGETS = Object.freeze([
@@ -116,11 +117,12 @@ export function applyStateTransitionProposal(state,proposal){
     if(proposal.operation==='replace') target[matches[0]]=clone(proposal.value)
     else target.splice(matches[0],1)
   }
+  const continuityImpact=projectContinuityDigestDelta({before:state,after:next})
   const change={target:proposal.target,operation:proposal.operation,confidence:proposal.confidence,proposer:proposal.proposer}
   if(['replace','retire'].includes(proposal.operation)) change.previousValue=clone(proposal.previousValue)
   if(proposal.operation==='consolidate') change.previousValues=clone(proposal.previousValues)
   if(proposal.operation!=='retire') change.value=clone(proposal.value)
-  const candidate=appendTransition(next,{ kind:'governed-state-transition',reason:proposal.reason,provenance:{proposalId:proposal.id,proposal:clone(proposal.provenance),evidence:clone(proposal.evidence),review:{decision:proposal.review.decision,reviewer:proposal.review.reviewer,at:proposal.review.at,reason:proposal.review.reason,provenance:clone(proposal.review.provenance),policy:clone(proposal.review.policy),conflicts:clone(proposal.review.conflicts),conflictResolution:clone(proposal.review.conflictResolution),proposalFingerprint:proposal.review.proposalFingerprint,reviewFingerprint:proposal.review.reviewFingerprint}},change })
+  const candidate=appendTransition(next,{ kind:'governed-state-transition',reason:proposal.reason,provenance:{proposalId:proposal.id,proposal:clone(proposal.provenance),evidence:clone(proposal.evidence),review:{decision:proposal.review.decision,reviewer:proposal.review.reviewer,at:proposal.review.at,reason:proposal.review.reason,provenance:clone(proposal.review.provenance),policy:clone(proposal.review.policy),conflicts:clone(proposal.review.conflicts),conflictResolution:clone(proposal.review.conflictResolution),proposalFingerprint:proposal.review.proposalFingerprint,reviewFingerprint:proposal.review.reviewFingerprint}},change,continuityImpact:clone(continuityImpact) })
   const assessment=createHomeostasisAssessment({baseline:state,proposal,candidate})
   assertMatchingHomeostasisAssessment({assessment,baseline:state,proposal,candidate})
   return candidate
