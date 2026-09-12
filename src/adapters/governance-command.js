@@ -1,5 +1,6 @@
 import { assessCognitionCapacityPreflight } from '../core/cognition-capacity-preflight.js'
 import { deriveCognitionCapacityGuidance } from '../core/cognition-capacity-guidance.js'
+import { projectStateTransitionContinuityPreview } from '../core/state-transition-continuity-preview.js'
 import { createStateTransitionProposal, STATE_TRANSITION_TARGETS } from '../core/state-transition.js'
 
 function commandError(text) { return { kind: 'error', text } }
@@ -48,6 +49,25 @@ function formatCapacityGuidance(guidance) {
   ]
 }
 
+function formatContinuityPreview(state, proposal) {
+  if (state == null) return []
+  try {
+    const { delta } = projectStateTransitionContinuityPreview({ state, proposal })
+    const effects = [
+      ...delta.added.map((entry) => `     + ${entry.sourcePath}: ${entry.text}`),
+      ...delta.removed.map((entry) => `     - ${entry.sourcePath}: ${entry.text}`),
+      ...delta.changed.map((entry) => `     ~ ${entry.sourcePath}: ${entry.beforeText} -> ${entry.afterText}`),
+    ]
+    const lines = effects.length === 0
+      ? ['   continuity impact: no model-visible continuity delta (canonical state may still change)']
+      : ['   continuity impact:', ...effects]
+    if (delta.beforeOmittedEntryCount > 0 || delta.afterOmittedEntryCount > 0) lines.push(`   continuity omitted entries: ${delta.beforeOmittedEntryCount} -> ${delta.afterOmittedEntryCount}`)
+    return lines
+  } catch (error) {
+    return [`   continuity impact: unavailable (${error.message})`]
+  }
+}
+
 function formatPendingEntry(entry, index, state) {
   const proposal = entry.proposal
   const claim = formatProposalValue(proposal.value)
@@ -61,6 +81,7 @@ function formatPendingEntry(entry, index, state) {
     ...formatMutationDetails(proposal),
     ...formatCapacityPreflight(preflight),
     ...formatCapacityGuidance(guidance),
+    ...formatContinuityPreview(state, proposal),
     `   claim: ${claim}`,
     `   confidence: ${proposal.confidence}`,
     `   proposer: ${proposal.proposer}`,
