@@ -334,3 +334,8 @@ export {
   MAX_CONTINUITY_DIGEST_ENTRY_CHARS,
   projectContinuityDigest,
 } from './continuity-digest.js'
+
+export {
+  CONTINUITY_DIGEST_DELTA_VERSION,
+  projectContinuityDigestDelta,
+} from './continuity-digest-delta.js'
