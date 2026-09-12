@@ -328,3 +328,9 @@ export {
   projectSoulContext,
   renderSoulContext,
 } from './context-projection.js'
+
+export {
+  MAX_CONTINUITY_DIGEST_ENTRIES,
+  MAX_CONTINUITY_DIGEST_ENTRY_CHARS,
+  projectContinuityDigest,
+} from './continuity-digest.js'
