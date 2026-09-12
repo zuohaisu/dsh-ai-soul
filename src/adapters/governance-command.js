@@ -1,5 +1,6 @@
 import { assessCognitionCapacityPreflight } from '../core/cognition-capacity-preflight.js'
 import { deriveCognitionCapacityGuidance } from '../core/cognition-capacity-guidance.js'
+import { projectStateTransitionContinuityPreview } from '../core/state-transition-continuity-preview.js'
 import { createStateTransitionProposal, STATE_TRANSITION_TARGETS } from '../core/state-transition.js'
 
 function commandError(text) { return { kind: 'error', text } }
@@ -43,9 +44,28 @@ function formatCapacityPreflight(preflight) {
 
 function formatCapacityGuidance(guidance) {
   if (!guidance || guidance.status !== 'consolidation-required') return []
-  return [
-    `   next step: ${guidance.nextStep.operation} at least ${guidance.nextStep.minimumSources} current claims through ${guidance.nextStep.authority}`,
-  ]
+  return [`   next step: ${guidance.nextStep.operation} at least ${guidance.nextStep.minimumSources} current claims through ${guidance.nextStep.authority}`]
+}
+
+function formatContinuityEffect(effect) {
+  if (effect.kind === 'added') return `     + ${effect.sourcePath}: ${effect.after}`
+  if (effect.kind === 'removed') return `     - ${effect.sourcePath}: ${effect.before}`
+  return `     ~ ${effect.sourcePath}: ${effect.before} -> ${effect.after}`
+}
+
+function formatContinuityPreview(state, proposal) {
+  if (state == null) return []
+  try {
+    const preview = projectStateTransitionContinuityPreview({ state, proposal })
+    const { effects, beforeOmittedEntryCount, afterOmittedEntryCount } = preview.delta
+    const lines = effects.length === 0
+      ? ['   continuity impact: no model-visible continuity delta (canonical state may still change)']
+      : ['   continuity impact:', ...effects.map(formatContinuityEffect)]
+    if (beforeOmittedEntryCount > 0 || afterOmittedEntryCount > 0) lines.push(`   continuity omitted entries: ${beforeOmittedEntryCount} -> ${afterOmittedEntryCount}`)
+    return lines
+  } catch (error) {
+    return [`   continuity impact: unavailable (${error.message})`]
+  }
 }
 
 function formatPendingEntry(entry, index, state) {
@@ -61,6 +81,7 @@ function formatPendingEntry(entry, index, state) {
     ...formatMutationDetails(proposal),
     ...formatCapacityPreflight(preflight),
     ...formatCapacityGuidance(guidance),
+    ...formatContinuityPreview(state, proposal),
     `   claim: ${claim}`,
     `   confidence: ${proposal.confidence}`,
     `   proposer: ${proposal.proposer}`,
@@ -120,11 +141,8 @@ export function createDshGovernanceCommand({ ctx, consumer, soulId, reviewerId, 
       if (parsed.action === 'invalid') return commandError('Usage: /soul-review [list|approve <proposalId> [reason]|reject <proposalId> <reason>|consolidate <json>]')
       if (parsed.action === 'consolidate') {
         let proposal
-        try {
-          proposal = createHumanConsolidationProposal({ payload: parsed.payload, state: getState?.(), soulId, reviewerId, commandId: invocation.commandId })
-        } catch (error) {
-          return commandError(`Consolidation proposal rejected: ${error.message}`)
-        }
+        try { proposal = createHumanConsolidationProposal({ payload: parsed.payload, state: getState?.(), soulId, reviewerId, commandId: invocation.commandId }) }
+        catch (error) { return commandError(`Consolidation proposal rejected: ${error.message}`) }
         const results = await ctx.emit('ai-soul/governance-proposal', { soulId, proposal })
         const accepted = Array.isArray(results) ? results.some((result) => result?.proposal?.id === proposal.id && result?.status === 'pending') : false
         if (!accepted) return commandError('Governance transport did not accept the consolidation proposal.')
@@ -143,11 +161,7 @@ export function createDshGovernanceCommand({ ctx, consumer, soulId, reviewerId, 
       const reason = parsed.reason || 'Approved by the configured human reviewer through the DSH command plane.'
       const decision = parsed.action === 'approve' ? 'approved' : 'rejected'
       const reviewResults = await ctx.emit('ai-soul/governance-review', {
-        soulId,
-        proposalId: parsed.proposalId,
-        reviewer: reviewerId,
-        decision,
-        reason,
+        soulId, proposalId: parsed.proposalId, reviewer: reviewerId, decision, reason,
         provenance: { source: 'dsh-command', boundary: 'soul-review-v1', ...(invocation.commandId == null ? {} : { commandId: String(invocation.commandId) }) },
       })
       const resolved = Array.isArray(reviewResults) ? reviewResults.find((result) => result?.proposal?.id === parsed.proposalId) : undefined
