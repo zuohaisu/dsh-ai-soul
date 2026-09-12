@@ -47,21 +47,19 @@ function formatCapacityGuidance(guidance) {
   return [`   next step: ${guidance.nextStep.operation} at least ${guidance.nextStep.minimumSources} current claims through ${guidance.nextStep.authority}`]
 }
 
-function formatContinuityEffect(effect) {
-  if (effect.kind === 'added') return `     + ${effect.sourcePath}: ${effect.after}`
-  if (effect.kind === 'removed') return `     - ${effect.sourcePath}: ${effect.before}`
-  return `     ~ ${effect.sourcePath}: ${effect.before} -> ${effect.after}`
-}
-
 function formatContinuityPreview(state, proposal) {
   if (state == null) return []
   try {
-    const preview = projectStateTransitionContinuityPreview({ state, proposal })
-    const { effects, beforeOmittedEntryCount, afterOmittedEntryCount } = preview.delta
+    const { delta } = projectStateTransitionContinuityPreview({ state, proposal })
+    const effects = [
+      ...delta.added.map((entry) => `     + ${entry.sourcePath}: ${entry.text}`),
+      ...delta.removed.map((entry) => `     - ${entry.sourcePath}: ${entry.text}`),
+      ...delta.changed.map((entry) => `     ~ ${entry.sourcePath}: ${entry.beforeText} -> ${entry.afterText}`),
+    ]
     const lines = effects.length === 0
       ? ['   continuity impact: no model-visible continuity delta (canonical state may still change)']
-      : ['   continuity impact:', ...effects.map(formatContinuityEffect)]
-    if (beforeOmittedEntryCount > 0 || afterOmittedEntryCount > 0) lines.push(`   continuity omitted entries: ${beforeOmittedEntryCount} -> ${afterOmittedEntryCount}`)
+      : ['   continuity impact:', ...effects]
+    if (delta.beforeOmittedEntryCount > 0 || delta.afterOmittedEntryCount > 0) lines.push(`   continuity omitted entries: ${delta.beforeOmittedEntryCount} -> ${delta.afterOmittedEntryCount}`)
     return lines
   } catch (error) {
     return [`   continuity impact: unavailable (${error.message})`]
@@ -74,7 +72,6 @@ function formatPendingEntry(entry, index, state) {
   const provenanceSource = typeof proposal.provenance?.source === 'string' ? proposal.provenance.source : 'unknown'
   const preflight = state == null ? null : assessCognitionCapacityPreflight({ state, proposal })
   const guidance = state == null ? null : deriveCognitionCapacityGuidance({ state, proposal })
-
   return [
     `${index + 1}. ${proposal.id}`,
     `   target: ${proposal.target}`,
@@ -93,7 +90,6 @@ function currentTarget(state, target) {
   if (target === 'relationship.state') return state?.relationship?.state
   return state?.[target]
 }
-
 function deepEqual(left, right) { return JSON.stringify(left) === JSON.stringify(right) }
 
 function createHumanConsolidationProposal({ payload, state, soulId, reviewerId, commandId }) {
@@ -111,15 +107,10 @@ function createHumanConsolidationProposal({ payload, state, soulId, reviewerId, 
     if (matches !== 1) throw new TypeError('each consolidation source must exactly match one current claim')
   }
   return createStateTransitionProposal({
-    target,
-    operation: 'consolidate',
-    previousValues: sources,
-    value: claim,
-    reason,
+    target, operation: 'consolidate', previousValues: sources, value: claim, reason,
     evidence: [{ kind: 'explicit-human-consolidation-command', soulId, ...(commandId == null ? {} : { commandId: String(commandId) }) }],
     provenance: { source: 'dsh-command', boundary: 'soul-review-consolidate-v1', ...(commandId == null ? {} : { commandId: String(commandId) }) },
-    confidence: 1,
-    proposer: reviewerId,
+    confidence: 1, proposer: reviewerId,
   })
 }
 
@@ -129,12 +120,9 @@ export function createDshGovernanceCommand({ ctx, consumer, soulId, reviewerId, 
   if (!soulId || typeof soulId !== 'string') throw new TypeError('DSH governance command requires soulId')
   if (!reviewerId || typeof reviewerId !== 'string') throw new TypeError('DSH governance command requires reviewerId')
   if (getState != null && typeof getState !== 'function') throw new TypeError('DSH governance command getState must be a function')
-
   return Object.freeze({
-    name: 'soul-review',
-    description: 'review or explicitly propose governed AI Soul cognition changes',
-    input: { hint: '[list|approve <proposalId> [reason]|reject <proposalId> <reason>|consolidate <json>]' },
-    recordInput: false,
+    name: 'soul-review', description: 'review or explicitly propose governed AI Soul cognition changes',
+    input: { hint: '[list|approve <proposalId> [reason]|reject <proposalId> <reason>|consolidate <json>]' }, recordInput: false,
     async handler(invocation = {}) {
       const parsed = parseCommandInput(invocation.rawInput)
       if (parsed.action === 'invalid-consolidate') return commandError('Consolidate requires valid JSON: /soul-review consolidate {"target":"userModel","sources":[...],"claim":{...},"reason":"..."}')
@@ -160,10 +148,7 @@ export function createDshGovernanceCommand({ ctx, consumer, soulId, reviewerId, 
       if (parsed.action === 'reject' && !parsed.reason) return commandError('Reject requires a reason: /soul-review reject <proposalId> <reason>')
       const reason = parsed.reason || 'Approved by the configured human reviewer through the DSH command plane.'
       const decision = parsed.action === 'approve' ? 'approved' : 'rejected'
-      const reviewResults = await ctx.emit('ai-soul/governance-review', {
-        soulId, proposalId: parsed.proposalId, reviewer: reviewerId, decision, reason,
-        provenance: { source: 'dsh-command', boundary: 'soul-review-v1', ...(invocation.commandId == null ? {} : { commandId: String(invocation.commandId) }) },
-      })
+      const reviewResults = await ctx.emit('ai-soul/governance-review', { soulId, proposalId: parsed.proposalId, reviewer: reviewerId, decision, reason, provenance: { source: 'dsh-command', boundary: 'soul-review-v1', ...(invocation.commandId == null ? {} : { commandId: String(invocation.commandId) }) } })
       const resolved = Array.isArray(reviewResults) ? reviewResults.find((result) => result?.proposal?.id === parsed.proposalId) : undefined
       if (resolved && resolved.status !== decision) return commandError(`Governance review did not resolve as ${decision}.`)
       return commandSuccess(decision === 'approved' ? `Approved and persisted governance proposal: ${parsed.proposalId}` : `Rejected governance proposal without Soul-state mutation: ${parsed.proposalId}`)
