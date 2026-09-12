@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { createDshGovernanceCommand } from '../src/adapters/governance-command.js'
+import { createStateTransitionProposal } from '../src/core/state-transition.js'
 
 function state() {
   return {
@@ -15,12 +16,19 @@ function state() {
 }
 
 function proposal(overrides = {}) {
-  return {
-    id: 'proposal-preview-1', target: 'userModel', operation: 'append',
+  return createStateTransitionProposal({
+    id: 'proposal-preview-1',
+    at: '2026-09-12T00:01:00.000Z',
+    target: 'userModel',
+    operation: 'append',
     value: { claim: 'The user prefers falsifiable engineering notes.' },
-    reason: 'explicit preference', evidence: [{ kind: 'test' }],
-    provenance: { source: 'test' }, confidence: 1, proposer: 'reflection:test', ...overrides,
-  }
+    reason: 'explicit preference',
+    evidence: [{ kind: 'test' }],
+    provenance: { source: 'test' },
+    confidence: 1,
+    proposer: 'reflection:test',
+    ...overrides,
+  })
 }
 
 function command(currentState, pendingProposal) {
