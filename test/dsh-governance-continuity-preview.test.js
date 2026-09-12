@@ -6,7 +6,7 @@ import { createStateTransitionProposal } from '../src/core/state-transition.js'
 
 function state() {
   return {
-    version: 1,
+    schemaVersion: 1,
     soulId: 'ember-review-preview',
     genesis: { id: 'genesis-1', at: '2026-09-12T00:00:00.000Z', provenance: { source: 'test' } },
     identity: { invariants: [] },
