@@ -89,6 +89,45 @@ test('erase removes exactly one detached memory across fresh store instances wit
   assert.deepEqual(await fresh.list('soul-a'), [memory({ id: 'memory-2', experienceId: 'experience-2', significanceAssessmentId: 'significance-2', content: 'Keep this memory.' })])
 }))
 
+test('repeated erase is idempotent without claiming a false second success', async () => withStore(async (rootDir) => {
+  const store = new FileCognitiveMemoryStore({ rootDir })
+  await store.save(memory())
+
+  assert.equal((await store.erase('soul-a', 'memory-1')).erased, true)
+  assert.deepEqual(await store.erase('soul-a', 'memory-1'), {
+    erased: false,
+    soulId: 'soul-a',
+    memoryId: 'memory-1',
+    reason: 'not-found',
+  })
+  assert.equal(await store.exists('soul-a', 'memory-1'), false)
+}))
+
+test('post-validation remove race reports already-absent without false deletion authorship', async () => withStore(async (rootDir) => {
+  let removeCalls = 0
+  const removeFile = async (path) => {
+    removeCalls += 1
+    if (removeCalls === 1) {
+      await rm(path)
+      const error = new Error('simulated concurrent removal')
+      error.code = 'ENOENT'
+      throw error
+    }
+    await rm(path)
+  }
+  const store = new FileCognitiveMemoryStore({ rootDir, removeFile })
+  await store.save(memory())
+
+  assert.deepEqual(await store.erase('soul-a', 'memory-1'), {
+    erased: false,
+    soulId: 'soul-a',
+    memoryId: 'memory-1',
+    reason: 'already-absent',
+  })
+  assert.equal(removeCalls, 1)
+  assert.equal(await store.exists('soul-a', 'memory-1'), false)
+}))
+
 test('erase reports missing target explicitly and cannot erase another Soul memory', async () => withStore(async (rootDir) => {
   const store = new FileCognitiveMemoryStore({ rootDir })
   await store.save(memory())
