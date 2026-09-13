@@ -18,9 +18,11 @@ function stableRecord(record) {
 }
 
 export class FileCognitiveMemoryStore {
-  constructor({ rootDir }) {
+  constructor({ rootDir, removeFile = rm }) {
     if (!rootDir || typeof rootDir !== 'string') throw new TypeError('rootDir is required')
+    if (typeof removeFile !== 'function') throw new TypeError('removeFile must be a function')
     this.rootDir = rootDir
+    this.removeFile = removeFile
   }
 
   async exists(soulId, memoryId) {
@@ -95,7 +97,7 @@ export class FileCognitiveMemoryStore {
     }
 
     try {
-      await rm(path)
+      await this.removeFile(path)
     } catch (error) {
       if (error?.code === 'ENOENT') {
         return Object.freeze({ erased: false, soulId, memoryId, reason: 'already-absent' })
