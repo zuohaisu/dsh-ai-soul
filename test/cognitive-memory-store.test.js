@@ -103,6 +103,20 @@ test('repeated erase is idempotent without claiming a false second success', asy
   assert.equal(await store.exists('soul-a', 'memory-1'), false)
 }))
 
+test('concurrent erase has exactly one deletion author and no raw filesystem race', async () => withStore(async (rootDir) => {
+  const store = new FileCognitiveMemoryStore({ rootDir })
+  await store.save(memory())
+
+  const outcomes = await Promise.all([
+    store.erase('soul-a', 'memory-1'),
+    store.erase('soul-a', 'memory-1'),
+  ])
+  assert.equal(outcomes.filter((outcome) => outcome.erased).length, 1)
+  assert.equal(outcomes.filter((outcome) => !outcome.erased).length, 1)
+  assert.ok(['already-absent', 'not-found'].includes(outcomes.find((outcome) => !outcome.erased).reason))
+  assert.equal(await store.exists('soul-a', 'memory-1'), false)
+}))
+
 test('erase reports missing target explicitly and cannot erase another Soul memory', async () => withStore(async (rootDir) => {
   const store = new FileCognitiveMemoryStore({ rootDir })
   await store.save(memory())
