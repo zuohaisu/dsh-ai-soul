@@ -31,7 +31,7 @@ export function createPrivacyErasureAuditRecord({ request, decision, execution =
   if (execution) {
     if (execution.requestId !== request.id) throw new TypeError('privacy erasure execution does not match request')
     if (!sameTarget(target, targetOf(execution, 'execution'))) throw new TypeError('privacy erasure execution target does not match request target')
-    if (execution.cascade !== false || execution.canonicalSoulMutation !== false) {
+    if (execution.executed === true && (execution.cascade !== false || execution.canonicalSoulMutation !== false)) {
       throw new TypeError('privacy erasure execution must remain non-cascade and non-canonical')
     }
   }
