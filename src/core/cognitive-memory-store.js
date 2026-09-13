@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises'
+import { access, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
 import { validateCognitiveMemoryRecord } from './cognitive-memory.js'
@@ -80,5 +80,27 @@ export class FileCognitiveMemoryStore {
     await writeFile(temporaryPath, serialized, { encoding: 'utf8', mode: 0o600 })
     await rename(temporaryPath, path)
     return path
+  }
+
+  async erase(soulId, memoryId) {
+    const path = memoryPath(this.rootDir, soulId, memoryId)
+    let record
+    try {
+      record = await this.load(soulId, memoryId)
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        return Object.freeze({ erased: false, soulId, memoryId, reason: 'not-found' })
+      }
+      throw error
+    }
+
+    await rm(path)
+    return Object.freeze({
+      erased: true,
+      soulId: record.soulId,
+      memoryId: record.id,
+      experienceId: record.experienceId,
+      significanceAssessmentId: record.significanceAssessmentId,
+    })
   }
 }
