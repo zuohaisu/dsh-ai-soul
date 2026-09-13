@@ -72,14 +72,18 @@ export function appendTransition(state, transition) {
   }
 
   const next = clone(state)
-  next.evolution.push({
+  const entry = {
     id: transition.id ?? crypto.randomUUID(),
     at: transition.at ?? new Date().toISOString(),
     kind: transition.kind,
     reason: transition.reason,
     provenance: clone(transition.provenance),
     change: clone(transition.change ?? null),
-  })
+  }
+  if (Object.prototype.hasOwnProperty.call(transition, 'continuityImpact')) {
+    entry.continuityImpact = clone(transition.continuityImpact)
+  }
+  next.evolution.push(entry)
 
   return next
 }
