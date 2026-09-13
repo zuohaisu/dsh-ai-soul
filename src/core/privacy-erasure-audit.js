@@ -20,6 +20,39 @@ function sameTarget(left, right) {
   return left.type === right.type && left.soulId === right.soulId && left.memoryId === right.memoryId
 }
 
+function provenanceIdentifiers(provenance) {
+  if (!provenance || typeof provenance !== 'object' || Array.isArray(provenance)) return {}
+  return Object.freeze(Object.fromEntries(Object.entries(provenance).filter(([key, value]) => (
+    (key === 'source' || key.endsWith('Id')) && typeof value === 'string' && value.length > 0
+  ))))
+}
+
+function validateAuditRecord(record) {
+  if (!record || record.version !== 1 || record.kind !== 'privacy-erasure-audit') {
+    throw new TypeError('valid privacy erasure audit record is required')
+  }
+  targetOf(record, 'record')
+  requiredString(record.requestId, 'record.requestId')
+  requiredString(record.requester, 'record.requester')
+  if (record.decision !== 'approved' && record.decision !== 'rejected') throw new TypeError('record.decision is invalid')
+  requiredString(record.decidedBy, 'record.decidedBy')
+  requiredString(record.decisionReason, 'record.decisionReason')
+  requiredString(record.recordedAt, 'record.recordedAt')
+  if (typeof record.executed !== 'boolean') throw new TypeError('record.executed must be boolean')
+  if (record.cascade !== false || record.canonicalSoulMutation !== false) {
+    throw new TypeError('privacy erasure audit must remain non-cascade and non-canonical')
+  }
+  if (!record.requestProvenance || typeof record.requestProvenance !== 'object' || Array.isArray(record.requestProvenance)) {
+    throw new TypeError('record.requestProvenance must contain provenance identifiers')
+  }
+  for (const [key, value] of Object.entries(record.requestProvenance)) {
+    if ((key !== 'source' && !key.endsWith('Id')) || typeof value !== 'string' || !value) {
+      throw new TypeError('record.requestProvenance must contain identifiers only')
+    }
+  }
+  return record
+}
+
 export function createPrivacyErasureAuditRecord({ request, decision, execution = null, recordedAt = new Date().toISOString() }) {
   if (!request || request.kind !== 'privacy-erasure-request') throw new TypeError('valid privacy erasure request is required')
   if (!decision || decision.kind !== 'privacy-erasure-decision') throw new TypeError('valid privacy erasure decision is required')
@@ -42,7 +75,7 @@ export function createPrivacyErasureAuditRecord({ request, decision, execution =
     requestId: requiredString(request.id, 'request.id'),
     target,
     requester: requiredString(request.requester, 'request.requester'),
-    requestProvenance: structuredClone(request.provenance),
+    requestProvenance: provenanceIdentifiers(request.provenance),
     decision: decision.decision,
     decidedBy: requiredString(decision.decidedBy, 'decision.decidedBy'),
     decisionReason: requiredString(decision.reason, 'decision.reason'),
@@ -60,11 +93,9 @@ export class FilePrivacyErasureAuditStore {
   }
 
   async append(record) {
-    if (!record || record.kind !== 'privacy-erasure-audit') throw new TypeError('valid privacy erasure audit record is required')
-    const soulId = requiredString(record.target?.soulId, 'record.target.soulId')
-    const memoryId = requiredString(record.target?.memoryId, 'record.target.memoryId')
-    if (record.target.type !== 'cognitive-memory') throw new TypeError('audit target must be cognitive-memory')
-    if (JSON.stringify(record).includes('"content"')) throw new TypeError('privacy erasure audit must not persist memory content')
+    validateAuditRecord(record)
+    const soulId = record.target.soulId
+    const memoryId = record.target.memoryId
 
     const dir = path.join(this.rootDir, encodeURIComponent(soulId))
     await mkdir(dir, { recursive: true })
@@ -81,6 +112,6 @@ export class FilePrivacyErasureAuditStore {
       if (error?.code === 'ENOENT') return []
       throw error
     }
-    return text.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line))
+    return text.trim().split('\n').filter(Boolean).map((line) => validateAuditRecord(JSON.parse(line)))
   }
 }
