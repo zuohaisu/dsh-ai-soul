@@ -94,7 +94,14 @@ export class FileCognitiveMemoryStore {
       throw error
     }
 
-    await rm(path)
+    try {
+      await rm(path)
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        return Object.freeze({ erased: false, soulId, memoryId, reason: 'already-absent' })
+      }
+      throw error
+    }
     return Object.freeze({
       erased: true,
       soulId: record.soulId,
