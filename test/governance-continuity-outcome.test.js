@@ -34,7 +34,9 @@ function proposal(overrides = {}) {
 
 function afterState(beforeState, candidate) {
   const preview = projectStateTransitionContinuityPreview({ state: beforeState, proposal: candidate })
-  const after = structuredClone(preview.projectedState)
+  const after = structuredClone(beforeState)
+  const target = candidate.target === 'relationship.state' ? after.relationship.state : after[candidate.target]
+  target.push(structuredClone(candidate.value))
   after.evolution.push({
     id: 'evolution-1',
     at: '2026-09-13T00:02:00.000Z',
@@ -52,9 +54,7 @@ test('projects verified visible post-apply continuity outcome without mutating e
   const candidate = proposal()
   const after = afterState(before, candidate)
   const snapshot = structuredClone({ before, candidate, after })
-
   const result = projectGovernanceContinuityOutcome({ beforeState: before, afterState: after, proposal: candidate })
-
   assert.equal(result.verified, true)
   assert.equal(result.proposalId, candidate.id)
   assert.equal(result.delta.hasVisibleChanges, true)
@@ -66,9 +66,7 @@ test('reports opaque canonical mutation as zero model-visible delta without clai
   const before = state()
   const candidate = proposal({ target: 'relationship.state', value: { predicate: 'opaque', value: 'x' } })
   const after = afterState(before, candidate)
-
   const result = projectGovernanceContinuityOutcome({ beforeState: before, afterState: after, proposal: candidate })
-
   assert.equal(result.verified, true)
   assert.equal(result.delta.hasVisibleChanges, false)
   assert.match(result.text, /canonical state changed/)
@@ -78,7 +76,6 @@ test('fails closed when proposal-bound evidence is missing or ambiguous', () => 
   const before = state()
   const candidate = proposal()
   const after = afterState(before, candidate)
-
   assert.throws(() => projectGovernanceContinuityOutcome({ beforeState: before, afterState: { ...after, evolution: [] }, proposal: candidate }), /exactly one governed transition evidence entry/)
   assert.throws(() => projectGovernanceContinuityOutcome({ beforeState: before, afterState: { ...after, evolution: [...after.evolution, structuredClone(after.evolution[0])] }, proposal: candidate }), /exactly one governed transition evidence entry/)
 })
@@ -88,6 +85,5 @@ test('fails closed when persisted continuity evidence is tampered', () => {
   const candidate = proposal()
   const after = afterState(before, candidate)
   after.evolution[0].continuityImpact = { ...after.evolution[0].continuityImpact, hasVisibleChanges: false }
-
   assert.throws(() => projectGovernanceContinuityOutcome({ beforeState: before, afterState: after, proposal: candidate }), /preview continuity delta does not match actual continuity impact/)
 })
