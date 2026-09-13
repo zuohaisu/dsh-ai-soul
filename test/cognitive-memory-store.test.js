@@ -103,17 +103,28 @@ test('repeated erase is idempotent without claiming a false second success', asy
   assert.equal(await store.exists('soul-a', 'memory-1'), false)
 }))
 
-test('concurrent erase has exactly one deletion author and no raw filesystem race', async () => withStore(async (rootDir) => {
-  const store = new FileCognitiveMemoryStore({ rootDir })
+test('post-validation remove race reports already-absent without false deletion authorship', async () => withStore(async (rootDir) => {
+  let removeCalls = 0
+  const removeFile = async (path) => {
+    removeCalls += 1
+    if (removeCalls === 1) {
+      await rm(path)
+      const error = new Error('simulated concurrent removal')
+      error.code = 'ENOENT'
+      throw error
+    }
+    await rm(path)
+  }
+  const store = new FileCognitiveMemoryStore({ rootDir, removeFile })
   await store.save(memory())
 
-  const outcomes = await Promise.all([
-    store.erase('soul-a', 'memory-1'),
-    store.erase('soul-a', 'memory-1'),
-  ])
-  assert.equal(outcomes.filter((outcome) => outcome.erased).length, 1)
-  assert.equal(outcomes.filter((outcome) => !outcome.erased).length, 1)
-  assert.ok(['already-absent', 'not-found'].includes(outcomes.find((outcome) => !outcome.erased).reason))
+  assert.deepEqual(await store.erase('soul-a', 'memory-1'), {
+    erased: false,
+    soulId: 'soul-a',
+    memoryId: 'memory-1',
+    reason: 'already-absent',
+  })
+  assert.equal(removeCalls, 1)
   assert.equal(await store.exists('soul-a', 'memory-1'), false)
 }))
 
