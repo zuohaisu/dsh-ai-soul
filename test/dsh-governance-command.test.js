@@ -47,9 +47,7 @@ function createRuntime({ withCommands = true } = {}) {
     async emit(name, ...args) {
       emitted.push({ name, args: structuredClone(args) })
       const results = []
-      for (const handler of handlers.get(name) ?? []) {
-        results.push(await handler(...args))
-      }
+      for (const handler of handlers.get(name) ?? []) results.push(await handler(...args))
       return results
     },
   }
@@ -70,48 +68,27 @@ async function genesis(rootDir, soulId) {
 
 function explicitPreferenceEvent(seq = 1) {
   return {
-    type: 'user/message',
-    seq,
-    time: Date.parse('2026-09-03T07:31:00.000Z'),
-    data: {
-      role: 'user',
-      source: { kind: 'user', via: 'web' },
-      content: [{ type: 'text', text: 'Please remember that I prefer concise implementation notes.' }],
-    },
+    type: 'user/message', seq, time: Date.parse('2026-09-03T07:31:00.000Z'),
+    data: { role: 'user', source: { kind: 'user', via: 'web' }, content: [{ type: 'text', text: 'Please remember that I prefer concise implementation notes.' }] },
   }
 }
 
 function invocation(rawInput, commandId = 'command-190') {
-  return {
-    commandId,
-    rawInput,
-    agent: { id: 'agent-human-surface' },
-    attachments: [],
-    signal: new AbortController().signal,
-  }
+  return { commandId, rawInput, agent: { id: 'agent-human-surface' }, attachments: [], signal: new AbortController().signal }
 }
 
-test('human /soul-review lists and approves a live proposal, persists it, and refreshes model context', async () => {
+test('human /soul-review lists and approves a live proposal, persists it, verifies continuity, and refreshes model context', async () => {
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-governance-command-'))
   const store = await genesis(rootDir, 'ember-190-approve')
   const runtime = createRuntime()
-
-  await apply(runtime.ctx, {
-    soulId: 'ember-190-approve',
-    storeDir: rootDir,
-    firstEncounterParticipant: participant,
-  })
+  await apply(runtime.ctx, { soulId: 'ember-190-approve', storeDir: rootDir, firstEncounterParticipant: participant })
 
   assert.deepEqual(runtime.commands.map((item) => item.name).sort(), ['soul-context', 'soul-review', 'soul-status'])
   const command = runtime.commands.find((item) => item.name === 'soul-review')
   assert.ok(command)
   assert.equal(command.recordInput, false)
 
-  const [processed] = await runtime.ctx.emit(
-    'session/event',
-    { id: 'session-190-approve' },
-    explicitPreferenceEvent(),
-  )
+  const [processed] = await runtime.ctx.emit('session/event', { id: 'session-190-approve' }, explicitPreferenceEvent())
   assert.equal(processed.significanceAssessment.recommendPromotion, true)
 
   const list = await command.handler(invocation(' list'))
@@ -129,6 +106,7 @@ test('human /soul-review lists and approves a live proposal, persists it, and re
   const approved = await command.handler(invocation(` approve ${proposalId} Human explicitly requested durable retention.`))
   assert.equal(approved.kind, 'success')
   assert.match(approved.text, /Approved and persisted/)
+  assert.match(approved.text, /Verified actual continuity impact/)
 
   const persisted = await store.load('ember-190-approve')
   assert.equal(persisted.userModel.length, 1)
@@ -144,33 +122,32 @@ test('human /soul-review lists and approves a live proposal, persists it, and re
   assert.equal(after.text, 'No pending AI Soul governance proposals.')
 })
 
+test('approved mutation remains committed when post-persistence continuity verification fails', async () => {
+  const before = { soulId: 'ember-390-failure', evolution: [], userModel: [] }
+  const after = structuredClone(before)
+  after.userModel.push({ claim: 'durable' })
+  let current = before
+  const proposal = { id: 'proposal-390-failure', target: 'userModel', operation: 'append', value: { claim: 'durable' }, proposer: 'reflection:test' }
+  const consumer = { listPending: () => [{ soulId: before.soulId, proposal }] }
+  const ctx = {
+    async emit(name) {
+      if (name === 'ai-soul/governance-review') current = after
+      return [{ proposal, status: 'approved' }]
+    },
+  }
+  const command = createDshGovernanceCommand({ ctx, consumer, soulId: before.soulId, reviewerId: 'human:reviewer', getState: () => current })
+  const result = await command.handler(invocation(`approve ${proposal.id} approve`, 'command-390-failure'))
+  assert.equal(result.kind, 'success')
+  assert.match(result.text, /Approved and persisted/)
+  assert.match(result.text, /Continuity verification failed after persistence/)
+  assert.equal(current.userModel[0].claim, 'durable')
+})
+
 test('human /soul-review renders consolidation sources and result before review', async () => {
   const first = { claim: 'The user prefers concise status updates.' }
   const second = { claim: 'The user prefers explicit acceptance criteria.' }
   const consolidated = { claim: 'The user prefers concise, falsifiable engineering communication.' }
-  const command = createDshGovernanceCommand({
-    ctx: { async emit() { return [] } },
-    soulId: 'ember-222-consolidation',
-    reviewerId: 'human:human-partner-222',
-    consumer: {
-      listPending() {
-        return [{
-          soulId: 'ember-222-consolidation',
-          proposal: {
-            id: 'proposal-consolidation-222',
-            target: 'userModel',
-            operation: 'consolidate',
-            previousValues: [first, second],
-            value: consolidated,
-            confidence: 0.95,
-            proposer: 'reflection:test',
-            provenance: { source: 'dsh-session-event' },
-          },
-        }]
-      },
-    },
-  })
-
+  const command = createDshGovernanceCommand({ ctx: { async emit() { return [] } }, soulId: 'ember-222-consolidation', reviewerId: 'human:human-partner-222', consumer: { listPending() { return [{ soulId: 'ember-222-consolidation', proposal: { id: 'proposal-consolidation-222', target: 'userModel', operation: 'consolidate', previousValues: [first, second], value: consolidated, confidence: 0.95, proposer: 'reflection:test', provenance: { source: 'dsh-session-event' } } }] } } })
   const list = await command.handler(invocation('list', 'command-222-list'))
   assert.equal(list.kind, 'success')
   assert.match(list.text, /operation: consolidate/)
@@ -181,45 +158,11 @@ test('human /soul-review renders consolidation sources and result before review'
 })
 
 test('human /soul-review renders exact previous claim for replace and retire proposals', async () => {
-  const consumer = {
-    listPending() {
-      return [
-        {
-          soulId: 'ember-222-previous',
-          proposal: {
-            id: 'proposal-replace-222',
-            target: 'userModel',
-            operation: 'replace',
-            previousValue: { claim: 'The user prefers concise answers.' },
-            value: { claim: 'The user prefers detailed answers.' },
-            confidence: 0.95,
-            proposer: 'reflection:test',
-            provenance: { source: 'dsh-session-event' },
-          },
-        },
-        {
-          soulId: 'ember-222-previous',
-          proposal: {
-            id: 'proposal-retire-222',
-            target: 'userModel',
-            operation: 'retire',
-            previousValue: { claim: 'The user prefers weekly summaries.' },
-            value: undefined,
-            confidence: 0.95,
-            proposer: 'reflection:test',
-            provenance: { source: 'dsh-session-event' },
-          },
-        },
-      ]
-    },
-  }
-  const command = createDshGovernanceCommand({
-    ctx: { async emit() { return [] } },
-    consumer,
-    soulId: 'ember-222-previous',
-    reviewerId: 'human:human-partner-222',
-  })
-
+  const consumer = { listPending() { return [
+    { soulId: 'ember-222-previous', proposal: { id: 'proposal-replace-222', target: 'userModel', operation: 'replace', previousValue: { claim: 'The user prefers concise answers.' }, value: { claim: 'The user prefers detailed answers.' }, confidence: 0.95, proposer: 'reflection:test', provenance: { source: 'dsh-session-event' } } },
+    { soulId: 'ember-222-previous', proposal: { id: 'proposal-retire-222', target: 'userModel', operation: 'retire', previousValue: { claim: 'The user prefers weekly summaries.' }, value: undefined, confidence: 0.95, proposer: 'reflection:test', provenance: { source: 'dsh-session-event' } } },
+  ] } }
+  const command = createDshGovernanceCommand({ ctx: { async emit() { return [] } }, consumer, soulId: 'ember-222-previous', reviewerId: 'human:human-partner-222' })
   const list = await command.handler(invocation('list', 'command-222-previous'))
   assert.match(list.text, /operation: replace/)
   assert.match(list.text, /previous claim: The user prefers concise answers\./)
@@ -231,24 +174,16 @@ test('human /soul-review reject resolves without canonical mutation', async () =
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-governance-reject-'))
   const store = await genesis(rootDir, 'ember-190-reject')
   const runtime = createRuntime()
-
-  await apply(runtime.ctx, {
-    soulId: 'ember-190-reject',
-    storeDir: rootDir,
-    firstEncounterParticipant: participant,
-  })
+  await apply(runtime.ctx, { soulId: 'ember-190-reject', storeDir: rootDir, firstEncounterParticipant: participant })
   await runtime.ctx.emit('session/event', { id: 'session-190-reject' }, explicitPreferenceEvent(2))
-
   const command = runtime.commands.find((item) => item.name === 'soul-review')
   assert.ok(command)
   const list = await command.handler(invocation(''))
   const proposalId = list.text.match(/proposal:dsh-live:[^\n]+/u)?.[0]
   assert.ok(proposalId)
-
   const missingReason = await command.handler(invocation(` reject ${proposalId}`))
   assert.equal(missingReason.kind, 'error')
   assert.match(missingReason.text, /Reject requires a reason/)
-
   const rejected = await command.handler(invocation(` reject ${proposalId} This should not become durable state.`))
   assert.equal(rejected.kind, 'success')
   assert.match(rejected.text, /without Soul-state mutation/)
@@ -260,12 +195,7 @@ test('governance command fails closed for malformed or unknown proposal ids', as
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-governance-invalid-'))
   await genesis(rootDir, 'ember-190-invalid')
   const runtime = createRuntime()
-  await apply(runtime.ctx, {
-    soulId: 'ember-190-invalid',
-    storeDir: rootDir,
-    firstEncounterParticipant: participant,
-  })
-
+  await apply(runtime.ctx, { soulId: 'ember-190-invalid', storeDir: rootDir, firstEncounterParticipant: participant })
   const command = runtime.commands.find((item) => item.name === 'soul-review')
   assert.ok(command)
   assert.equal((await command.handler(invocation(' delete everything'))).kind, 'error')
@@ -278,13 +208,7 @@ test('UI-less runtime degrades cleanly when optional commands service is absent'
   const rootDir = await mkdtemp(join(tmpdir(), 'dsh-ai-soul-governance-headless-'))
   await genesis(rootDir, 'ember-190-headless')
   const runtime = createRuntime({ withCommands: false })
-
-  await apply(runtime.ctx, {
-    soulId: 'ember-190-headless',
-    storeDir: rootDir,
-    firstEncounterParticipant: participant,
-  })
-
+  await apply(runtime.ctx, { soulId: 'ember-190-headless', storeDir: rootDir, firstEncounterParticipant: participant })
   assert.equal(runtime.commands.length, 0)
   assert.equal(runtime.contexts.length, 1)
   assert.equal(typeof runtime.contexts[0].text, 'function')

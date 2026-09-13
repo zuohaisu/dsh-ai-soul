@@ -2,6 +2,7 @@ import { assessCognitionCapacityPreflight } from '../core/cognition-capacity-pre
 import { deriveCognitionCapacityGuidance } from '../core/cognition-capacity-guidance.js'
 import { projectStateTransitionContinuityPreview } from '../core/state-transition-continuity-preview.js'
 import { createStateTransitionProposal, STATE_TRANSITION_TARGETS } from '../core/state-transition.js'
+import { projectGovernanceContinuityOutcome } from './governance-continuity-outcome.js'
 
 function commandError(text) { return { kind: 'error', text } }
 function commandSuccess(text) { return { kind: 'success', text } }
@@ -163,6 +164,7 @@ export function createDshGovernanceCommand({ ctx, consumer, soulId, reviewerId, 
       if (parsed.action === 'reject' && !parsed.reason) return commandError('Reject requires a reason: /soul-review reject <proposalId> <reason>')
       const reason = parsed.reason || 'Approved by the configured human reviewer through the DSH command plane.'
       const decision = parsed.action === 'approve' ? 'approved' : 'rejected'
+      const beforeState = decision === 'approved' && getState != null ? structuredClone(getState()) : undefined
       const reviewResults = await ctx.emit('ai-soul/governance-review', {
         soulId,
         proposalId: parsed.proposalId,
@@ -173,7 +175,20 @@ export function createDshGovernanceCommand({ ctx, consumer, soulId, reviewerId, 
       })
       const resolved = Array.isArray(reviewResults) ? reviewResults.find((result) => result?.proposal?.id === parsed.proposalId) : undefined
       if (resolved && resolved.status !== decision) return commandError(`Governance review did not resolve as ${decision}.`)
-      return commandSuccess(decision === 'approved' ? `Approved and persisted governance proposal: ${parsed.proposalId}` : `Rejected governance proposal without Soul-state mutation: ${parsed.proposalId}`)
+      if (decision === 'rejected') return commandSuccess(`Rejected governance proposal without Soul-state mutation: ${parsed.proposalId}`)
+
+      const approvedText = `Approved and persisted governance proposal: ${parsed.proposalId}`
+      if (getState == null || beforeState == null) return commandSuccess(`${approvedText}\nContinuity verification unavailable: canonical before/after state access is not configured.`)
+      try {
+        const outcome = projectGovernanceContinuityOutcome({
+          beforeState,
+          afterState: getState(),
+          proposal: entry.proposal,
+        })
+        return commandSuccess(`${approvedText}\n${outcome.text}`)
+      } catch (error) {
+        return commandSuccess(`${approvedText}\nContinuity verification failed after persistence: ${error.message}`)
+      }
     },
   })
 }
