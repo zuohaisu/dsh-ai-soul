@@ -67,3 +67,55 @@ test('save rejects invalid records and path traversal identifiers', async () => 
   await assert.rejects(store.save(memory({ canonical: true })), /invalid cognitive memory/)
   await assert.rejects(store.load('../other', 'memory-1'), /unsupported characters/)
 }))
+
+test('erase removes exactly one detached memory across fresh store instances without copying content into receipt', async () => withStore(async (rootDir) => {
+  const store = new FileCognitiveMemoryStore({ rootDir })
+  await store.save(memory())
+  await store.save(memory({ id: 'memory-2', experienceId: 'experience-2', significanceAssessmentId: 'significance-2', content: 'Keep this memory.' }))
+
+  const receipt = await store.erase('soul-a', 'memory-1')
+  assert.deepEqual(receipt, {
+    erased: true,
+    soulId: 'soul-a',
+    memoryId: 'memory-1',
+    experienceId: 'experience-1',
+    significanceAssessmentId: 'significance-1',
+  })
+  assert.equal(Object.hasOwn(receipt, 'content'), false)
+  assert.equal(await store.exists('soul-a', 'memory-1'), false)
+
+  const fresh = new FileCognitiveMemoryStore({ rootDir })
+  await assert.rejects(fresh.load('soul-a', 'memory-1'), { code: 'ENOENT' })
+  assert.deepEqual(await fresh.list('soul-a'), [memory({ id: 'memory-2', experienceId: 'experience-2', significanceAssessmentId: 'significance-2', content: 'Keep this memory.' })])
+}))
+
+test('erase reports missing target explicitly and cannot erase another Soul memory', async () => withStore(async (rootDir) => {
+  const store = new FileCognitiveMemoryStore({ rootDir })
+  await store.save(memory())
+
+  assert.deepEqual(await store.erase('soul-a', 'missing'), {
+    erased: false,
+    soulId: 'soul-a',
+    memoryId: 'missing',
+    reason: 'not-found',
+  })
+  assert.deepEqual(await store.erase('soul-b', 'memory-1'), {
+    erased: false,
+    soulId: 'soul-b',
+    memoryId: 'memory-1',
+    reason: 'not-found',
+  })
+  assert.equal(await store.exists('soul-a', 'memory-1'), true)
+}))
+
+test('erase fails closed on tampered stored memory and invalid identifiers', async () => withStore(async (rootDir) => {
+  const store = new FileCognitiveMemoryStore({ rootDir })
+  const path = await store.save(memory())
+  const stored = JSON.parse(await readFile(path, 'utf8'))
+  stored.authority = 'execute'
+  await writeFile(path, `${JSON.stringify(stored)}\n`)
+
+  await assert.rejects(store.erase('soul-a', 'memory-1'), /invalid stored cognitive memory/)
+  assert.equal(await store.exists('soul-a', 'memory-1'), true)
+  await assert.rejects(store.erase('../other', 'memory-1'), /unsupported characters/)
+}))
