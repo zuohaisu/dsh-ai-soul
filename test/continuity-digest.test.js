@@ -53,6 +53,23 @@ test('digest is bounded by entry count and per-entry character limit', () => {
   assert.ok(digest.entries.every((entry) => entry.text.length <= MAX_CONTINUITY_DIGEST_ENTRY_CHARS))
 })
 
+test('mutable domains cannot starve later populated domains under bounded projection', () => {
+  const state = stateWithFacts()
+  state.selfModel = Array.from({ length: MAX_CONTINUITY_DIGEST_ENTRIES * 2 }, (_, index) => ({ claim: `self-${index}` }))
+  state.userModel = Array.from({ length: 3 }, (_, index) => ({ claim: `user-${index}` }))
+  state.worldModel = Array.from({ length: 3 }, (_, index) => ({ claim: `world-${index}` }))
+  state.beliefs = Array.from({ length: 3 }, (_, index) => ({ claim: `belief-${index}` }))
+
+  const first = projectContinuityDigest(state)
+  const second = projectContinuityDigest(state)
+  assert.deepEqual(first, second)
+  assert.ok(first.entries.length <= MAX_CONTINUITY_DIGEST_ENTRIES)
+  assert.ok(first.entries.some((entry) => entry.sourcePath.startsWith('selfModel')))
+  assert.ok(first.entries.some((entry) => entry.sourcePath.startsWith('userModel')))
+  assert.ok(first.entries.some((entry) => entry.sourcePath.startsWith('worldModel')))
+  assert.ok(first.entries.some((entry) => entry.sourcePath.startsWith('beliefs')))
+})
+
 test('a supported governed fact changes only its attributed digest entry', () => {
   const before = stateWithFacts()
   const after = stateWithFacts()
