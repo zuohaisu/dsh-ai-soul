@@ -41,6 +41,23 @@ test('composes matching explicit request evidence into an authority-free AgencyI
   assert.equal(Object.hasOwn(intent, 'toolCall'), false)
 })
 
+test('fails closed when DSH experience source identity is substituted across provenance', () => {
+  assert.throws(
+    () => evidence({ source: { type: 'experience', id: 'experience:dsh:session-1:event-2' } }),
+    /trigger-evidence-source-provenance-mismatch/,
+  )
+
+  const valid = evidence()
+  const tampered = {
+    ...valid,
+    source: { type: 'experience', id: 'experience:dsh:session-1:event-2' },
+  }
+  assert.throws(
+    () => createAgencyIntentFromExplicitUserRequest({ ...grounded, triggerEvidence: tampered }),
+    /agency initiation is not eligible: trigger-evidence-source-provenance-mismatch/,
+  )
+})
+
 test('generic initiation accepts governed reflection and safety evidence without creating authority', () => {
   for (const triggerClass of ['governed-reflection-result', 'governed-safety-concern']) {
     const triggerEvidence = evidence({
