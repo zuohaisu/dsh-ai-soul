@@ -42,6 +42,9 @@ function validateAuditRecord(record, { expectedSoulId = null } = {}) {
   requiredString(record.decisionReason, 'record.decisionReason')
   requiredString(record.recordedAt, 'record.recordedAt')
   if (typeof record.executed !== 'boolean') throw new TypeError('record.executed must be boolean')
+  if (record.executed && record.decision !== 'approved') {
+    throw new TypeError('executed privacy erasure audit requires approved decision')
+  }
   if (record.cascade !== false || record.canonicalSoulMutation !== false) {
     throw new TypeError('privacy erasure audit must remain non-cascade and non-canonical')
   }
@@ -67,6 +70,9 @@ export function createPrivacyErasureAuditRecord({ request, decision, execution =
   if (execution) {
     if (execution.requestId !== request.id) throw new TypeError('privacy erasure execution does not match request')
     if (!sameTarget(target, targetOf(execution, 'execution'))) throw new TypeError('privacy erasure execution target does not match request target')
+    if (execution.executed === true && decision.decision !== 'approved') {
+      throw new TypeError('privacy erasure execution requires approved decision')
+    }
     if (execution.executed === true && (execution.cascade !== false || execution.canonicalSoulMutation !== false)) {
       throw new TypeError('privacy erasure execution must remain non-cascade and non-canonical')
     }
