@@ -46,8 +46,18 @@ export function validateSoulState(state) {
   if (!state || typeof state !== 'object') errors.push('state must be an object')
   if (state?.schemaVersion !== SOUL_STATE_VERSION) errors.push(`schemaVersion must be ${SOUL_STATE_VERSION}`)
   if (!state?.soulId || typeof state.soulId !== 'string') errors.push('soulId is required')
-  if (state?.identity?.name != null && (typeof state.identity.name !== 'string' || state.identity.name.trim() === '')) {
-    errors.push('identity.name must be a non-empty string when provided')
+
+  const identity = state?.identity
+  if (!identity || typeof identity !== 'object' || Array.isArray(identity)) {
+    errors.push('identity must be an object')
+  } else {
+    if (identity.name != null && (typeof identity.name !== 'string' || identity.name.trim() === '')) {
+      errors.push('identity.name must be a non-empty string when provided')
+    }
+    if (typeof identity.createdAt !== 'string' || identity.createdAt.trim() === '') {
+      errors.push('identity.createdAt must be a non-empty string')
+    }
+    if (!Array.isArray(identity.invariants)) errors.push('identity.invariants must be an array')
   }
 
   for (const key of ['autobiography', 'selfModel', 'userModel', 'beliefs', 'evolution']) {

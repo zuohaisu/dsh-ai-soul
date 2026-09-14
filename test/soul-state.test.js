@@ -21,6 +21,44 @@ test('creates a minimal structured Soul state', () => {
   assert.equal(validateSoulState(soul).valid, true)
 })
 
+test('fails closed when canonical identity lineage is missing or malformed', () => {
+  const soul = createSoulState({
+    soulId: 'continuity-test',
+    name: null,
+    createdAt: '2026-08-28T15:00:00.000Z',
+  })
+
+  const cases = [
+    { label: 'identity', mutate: (state) => delete state.identity, expected: 'identity must be an object' },
+    { label: 'createdAt missing', mutate: (state) => delete state.identity.createdAt, expected: 'identity.createdAt must be a non-empty string' },
+    { label: 'createdAt blank', mutate: (state) => { state.identity.createdAt = '   ' }, expected: 'identity.createdAt must be a non-empty string' },
+    { label: 'invariants', mutate: (state) => { state.identity.invariants = null }, expected: 'identity.invariants must be an array' },
+  ]
+
+  for (const { label, mutate, expected } of cases) {
+    const candidate = structuredClone(soul)
+    mutate(candidate)
+    const before = structuredClone(candidate)
+    const result = validateSoulState(candidate)
+    assert.equal(result.valid, false, label)
+    assert.ok(result.errors.includes(expected), label)
+    assert.deepEqual(candidate, before, `${label} validation must not mutate input`)
+  }
+})
+
+test('accepts an unnamed Genesis-created Soul with intact identity lineage', () => {
+  const soul = createSoulState({
+    soulId: 'unnamed-soul',
+    name: null,
+    createdAt: '2026-08-28T15:00:00.000Z',
+    origin: null,
+  })
+
+  assert.equal(soul.identity.name, null)
+  assert.deepEqual(soul.identity.invariants, [])
+  assert.deepEqual(validateSoulState(soul), { valid: true, errors: [] })
+})
+
 test('requires provenance for evolution', () => {
   const soul = createSoulState({ soulId: 'test-soul', name: 'Test Soul' })
 
