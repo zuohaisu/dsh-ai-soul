@@ -15,6 +15,18 @@ function nonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+function validateCanonicalSourceBinding(evidence, reasons) {
+  if (
+    evidence?.source?.type === 'experience'
+    && evidence?.provenance?.source === 'dsh-session-event'
+    && nonEmptyString(evidence.provenance.sessionId)
+    && nonEmptyString(evidence.provenance.eventId)
+  ) {
+    const expectedSourceId = `experience:dsh:${evidence.provenance.sessionId}:${evidence.provenance.eventId}`
+    if (evidence.source.id !== expectedSourceId) reasons.push('trigger-evidence-source-provenance-mismatch')
+  }
+}
+
 export function validateAgencyTriggerEvidence(evidence, { soulId, triggerClass } = {}) {
   const reasons = []
   if (!isRecord(evidence)) return Object.freeze({ valid: false, reasons: Object.freeze(['trigger-evidence-required']) })
@@ -28,6 +40,7 @@ export function validateAgencyTriggerEvidence(evidence, { soulId, triggerClass }
   if (!expectedType || evidence.triggerClass !== triggerClass || evidence.type !== expectedType) reasons.push('trigger-evidence-class-mismatch')
   if (!isRecord(evidence.source) || !nonEmptyString(evidence.source.type) || !nonEmptyString(evidence.source.id)) reasons.push('trigger-evidence-source-required')
   if (!isRecord(evidence.provenance) || Object.keys(evidence.provenance).length === 0) reasons.push('trigger-evidence-provenance-required')
+  validateCanonicalSourceBinding(evidence, reasons)
   if (evidence.authority !== 'none') reasons.push('trigger-evidence-authority-invalid')
 
   return Object.freeze({ valid: reasons.length === 0, reasons: Object.freeze(reasons) })
