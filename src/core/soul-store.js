@@ -10,9 +10,10 @@ function soulPath(rootDir, soulId) {
 }
 
 export class FileSoulStore {
-  constructor({ rootDir }) {
+  constructor({ rootDir, evolutionLedger = null }) {
     if (!rootDir || typeof rootDir !== 'string') throw new TypeError('rootDir is required')
     this.rootDir = rootDir
+    this.evolutionLedger = evolutionLedger
   }
 
   async exists(soulId) {
@@ -28,7 +29,16 @@ export class FileSoulStore {
   async load(soulId) {
     const path = soulPath(this.rootDir, soulId)
     const raw = await readFile(path, 'utf8')
-    const state = JSON.parse(raw)
+    const stored = JSON.parse(raw)
+    const embeddedEvolution = Array.isArray(stored.evolution) ? stored.evolution : []
+
+    let evolution = embeddedEvolution
+    if (this.evolutionLedger) {
+      if (embeddedEvolution.length > 0) await this.evolutionLedger.ingest(soulId, embeddedEvolution)
+      evolution = await this.evolutionLedger.list(soulId)
+    }
+
+    const state = { ...stored, evolution }
     const validation = validateSoulState(state)
     if (!validation.valid) {
       throw new TypeError(`invalid stored Soul state: ${validation.errors.join('; ')}`)
@@ -42,11 +52,14 @@ export class FileSoulStore {
       throw new TypeError(`invalid Soul state: ${validation.errors.join('; ')}`)
     }
 
+    if (this.evolutionLedger) await this.evolutionLedger.ingest(state.soulId, state.evolution)
+
     const path = soulPath(this.rootDir, state.soulId)
     await mkdir(dirname(path), { recursive: true })
 
+    const persisted = this.evolutionLedger ? { ...state, evolution: [] } : state
     const temporaryPath = `${path}.${process.pid}.${Date.now()}.tmp`
-    await writeFile(temporaryPath, `${JSON.stringify(state, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 })
+    await writeFile(temporaryPath, `${JSON.stringify(persisted, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 })
     await rename(temporaryPath, path)
 
     return path
