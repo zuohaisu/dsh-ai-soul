@@ -97,3 +97,22 @@ test('reload fails closed on a structurally malformed persisted audit record', a
 
   await assert.rejects(() => new FilePrivacyErasureAuditStore({ rootDir }).list('soul-a'), /record.requestId is required/)
 })
+
+test('reload fails closed when a valid-looking record belongs to another Soul', async () => {
+  const req = request()
+  const decision = decidePrivacyErasure({ request: req, decision: 'approved', decidedBy: 'user:a', reason: 'confirmed' })
+  const record = createPrivacyErasureAuditRecord({ request: req, decision, recordedAt: '2026-09-14T00:00:00.000Z' })
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), 'privacy-erasure-audit-cross-soul-'))
+  const dir = path.join(rootDir, encodeURIComponent('soul-a'))
+  await mkdir(dir, { recursive: true })
+  await appendFile(
+    path.join(dir, 'privacy-erasure-audit.jsonl'),
+    `${JSON.stringify({ ...record, target: { ...record.target, soulId: 'soul-b' } })}\n`,
+    'utf8',
+  )
+
+  await assert.rejects(
+    () => new FilePrivacyErasureAuditStore({ rootDir }).list('soul-a'),
+    /does not match requested Soul/,
+  )
+})

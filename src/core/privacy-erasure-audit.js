@@ -27,11 +27,14 @@ function provenanceIdentifiers(provenance) {
   ))))
 }
 
-function validateAuditRecord(record) {
+function validateAuditRecord(record, { expectedSoulId = null } = {}) {
   if (!record || record.version !== 1 || record.kind !== 'privacy-erasure-audit') {
     throw new TypeError('valid privacy erasure audit record is required')
   }
-  targetOf(record, 'record')
+  const target = targetOf(record, 'record')
+  if (expectedSoulId !== null && target.soulId !== expectedSoulId) {
+    throw new TypeError('privacy erasure audit record does not match requested Soul')
+  }
   requiredString(record.requestId, 'record.requestId')
   requiredString(record.requester, 'record.requester')
   if (record.decision !== 'approved' && record.decision !== 'rejected') throw new TypeError('record.decision is invalid')
@@ -104,7 +107,8 @@ export class FilePrivacyErasureAuditStore {
   }
 
   async list(soulId) {
-    const file = path.join(this.rootDir, encodeURIComponent(requiredString(soulId, 'soulId')), 'privacy-erasure-audit.jsonl')
+    const expectedSoulId = requiredString(soulId, 'soulId')
+    const file = path.join(this.rootDir, encodeURIComponent(expectedSoulId), 'privacy-erasure-audit.jsonl')
     let text
     try {
       text = await readFile(file, 'utf8')
@@ -112,6 +116,6 @@ export class FilePrivacyErasureAuditStore {
       if (error?.code === 'ENOENT') return []
       throw error
     }
-    return text.trim().split('\n').filter(Boolean).map((line) => validateAuditRecord(JSON.parse(line)))
+    return text.trim().split('\n').filter(Boolean).map((line) => validateAuditRecord(JSON.parse(line), { expectedSoulId }))
   }
 }
