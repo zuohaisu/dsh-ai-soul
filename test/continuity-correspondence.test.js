@@ -10,7 +10,7 @@ function state() {
     schemaVersion: 1,
     soulId: 'ember-correspondence',
     genesis: { id: 'genesis-1', at: '2026-09-13T00:00:00.000Z', provenance: { source: 'test' } },
-    identity: { invariants: [] },
+    identity: { createdAt: '2026-09-13T00:00:00.000Z', invariants: [] },
     relationship: { participants: [], state: [], covenants: [] },
     selfModel: [], userModel: [], beliefs: [], worldModel: [], autobiography: [], evolution: [],
   }
