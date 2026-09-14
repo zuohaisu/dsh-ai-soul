@@ -116,3 +116,22 @@ test('reload fails closed when a valid-looking record belongs to another Soul', 
     /does not match requested Soul/,
   )
 })
+
+test('reload fails closed when persisted audit claims execution under rejected authority', async () => {
+  const req = request()
+  const decision = decidePrivacyErasure({ request: req, decision: 'rejected', decidedBy: 'user:a', reason: 'cancelled' })
+  const record = createPrivacyErasureAuditRecord({ request: req, decision, recordedAt: '2026-09-14T00:00:00.000Z' })
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), 'privacy-erasure-audit-authority-'))
+  const dir = path.join(rootDir, encodeURIComponent('soul-a'))
+  await mkdir(dir, { recursive: true })
+  await appendFile(
+    path.join(dir, 'privacy-erasure-audit.jsonl'),
+    `${JSON.stringify({ ...record, executed: true, erasureOutcome: 'erased' })}\n`,
+    'utf8',
+  )
+
+  await assert.rejects(
+    () => new FilePrivacyErasureAuditStore({ rootDir }).list('soul-a'),
+    /requires approved decision/,
+  )
+})
