@@ -63,7 +63,7 @@ async function fixture() {
   const bootstrapStore = new FileSoulStore({ rootDir })
   await persistGenesisSoul(bootstrapStore, createGenesisRecord({
     id: `${soulId}-genesis`,
-    at: '2026-09-15T02:00:00.000Z',
+    at: '2026-09-15T01:59:00.000Z',
     soulId,
     provenance: { source: 'test-genesis', issue: 415 },
   }))
