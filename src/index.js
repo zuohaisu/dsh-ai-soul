@@ -87,7 +87,10 @@ export async function apply(ctx, rawConfig = {}) {
   if (typeof ctx.on !== 'function' || typeof ctx.emit !== 'function') throw new TypeError('dsh-ai-soul runtime error: required DSH event API is unavailable')
 
   const config = validateConfig(rawConfig)
-  const evolutionLedger = new FileEvolutionLedgerStore({ rootDir: resolve(config.storeDir, '.evolution') })
+  // Keep the append-only audit ledger physically detached from the canonical Soul-store
+  // directory. FileSoulStore validates every entry under storeDir as Soul state, so a
+  // nested sidecar directory would violate the store boundary and make every load fail.
+  const evolutionLedger = new FileEvolutionLedgerStore({ rootDir: `${config.storeDir}.evolution` })
   const store = new FileSoulStore({ rootDir: config.storeDir, evolutionLedger })
   let currentState
   try { currentState = await store.load(config.soulId) } catch (error) {
