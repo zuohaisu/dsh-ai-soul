@@ -116,7 +116,8 @@ test('real-shape DSH interaction grows next-turn cognition only after independen
   const ledger = new FileEvolutionLedgerStore({ rootDir: join(rootDir, '.evolution') })
   const evolution = await ledger.list(soulId)
   assert.ok(evolution.length > 0)
-  assert.equal(evolution.at(-1).provenance.source, 'dsh-session-event')
+  assert.equal(evolution.at(-1).provenance.proposal.source, 'dsh-session-event')
+  assert.equal(evolution.at(-1).provenance.review.provenance.source, 'automated-closed-loop-test')
 
   const reloaded = await new FileSoulStore({ rootDir, evolutionLedger: ledger }).load(soulId)
   assert.equal(reloaded.soulId, soulId)
