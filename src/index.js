@@ -8,6 +8,7 @@ import {
   renderCognitiveMemoryVisibility,
   renderSoulContext,
 } from './core/index.js'
+import { FileEvolutionLedgerStore } from './core/evolution-ledger-store.js'
 import { renderDshContinuityDigest } from './adapters/continuity-digest-context.js'
 import { createDshGovernanceConsumer } from './adapters/governance-consumer.js'
 import { registerDshGovernanceCommand } from './adapters/governance-command.js'
@@ -86,7 +87,8 @@ export async function apply(ctx, rawConfig = {}) {
   if (typeof ctx.on !== 'function' || typeof ctx.emit !== 'function') throw new TypeError('dsh-ai-soul runtime error: required DSH event API is unavailable')
 
   const config = validateConfig(rawConfig)
-  const store = new FileSoulStore({ rootDir: config.storeDir })
+  const evolutionLedger = new FileEvolutionLedgerStore({ rootDir: resolve(config.storeDir, '.evolution') })
+  const store = new FileSoulStore({ rootDir: config.storeDir, evolutionLedger })
   let currentState
   try { currentState = await store.load(config.soulId) } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
