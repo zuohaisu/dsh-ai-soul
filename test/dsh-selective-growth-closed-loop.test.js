@@ -75,8 +75,14 @@ async function fixture() {
 test('real-shape DSH interaction grows next-turn cognition only after independent governance and detached persistence', async () => {
   const { rootDir, soulId, runtime } = await fixture()
   const provider = runtime.registrations[0].text
+
+  // Establish first encounter before taking the cognitive-growth baseline. First encounter is
+  // a legitimate lifecycle transition distinct from selective cognitive growth, so allowing
+  // it to occur inside the negative control would conflate two independent invariants.
+  await runtime.ctx.emit('session/event', { id: 'session-415' }, humanMessage(0, 'Hello.'))
   const baseline = provider({})
   assert.doesNotMatch(baseline, /concise implementation notes/)
+  assert.equal(runtime.emitted.some((event) => event.name === 'ai-soul/governance-proposal'), false)
 
   await runtime.ctx.emit('session/event', { id: 'session-415' }, humanMessage(1, 'That build finished quickly.'))
   assert.equal(runtime.emitted.some((event) => event.name === 'ai-soul/governance-proposal'), false)
