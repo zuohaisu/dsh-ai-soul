@@ -1,0 +1,154 @@
+name: Branch Hygiene
+
+on:
+  schedule:
+    # Monday 02:00 UTC = Monday 10:00 China Standard Time.
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report candidates without deleting branches"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: branch-hygiene
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clean stale branches safely
+        uses: actions/github-script@v8
+        env:
+          MAX_AGE_DAYS: "7"
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        with:
+          script: |
+            const maxAgeDays = Number(process.env.MAX_AGE_DAYS || "7");
+            const dryRun = process.env.DRY_RUN === "true";
+            const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+            const { owner, repo } = context.repo;
+
+            const repository = await github.rest.repos.get({ owner, repo });
+            const defaultBranch = repository.data.default_branch;
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const deleted = [];
+            const kept = [];
+            let candidates = 0;
+
+            for (const branch of branches) {
+              const name = branch.name;
+
+              if (name === defaultBranch) {
+                kept.push([name, "default branch"]);
+                continue;
+              }
+              if (branch.protected) {
+                kept.push([name, "protected branch"]);
+                continue;
+              }
+
+              // GitHub does not expose a branch-created timestamp. Use the
+              // earliest commit reachable from the branch as a conservative
+              // approximation. If history cannot be established, fail closed.
+              let commits;
+              try {
+                commits = await github.paginate(github.rest.repos.listCommits, {
+                  owner,
+                  repo,
+                  sha: name,
+                  per_page: 100,
+                });
+              } catch (error) {
+                kept.push([name, `cannot inspect history: ${error.message}`]);
+                continue;
+              }
+
+              if (!commits.length) {
+                kept.push([name, "cannot establish branch age"]);
+                continue;
+              }
+
+              const oldest = commits[commits.length - 1];
+              const oldestDate = oldest.commit?.committer?.date || oldest.commit?.author?.date;
+              if (!oldestDate || new Date(oldestDate).getTime() > cutoff) {
+                kept.push([name, `younger than ${maxAgeDays} days or age unknown`]);
+                continue;
+              }
+              candidates += 1;
+
+              const openPRs = await github.paginate(github.rest.pulls.list, {
+                owner,
+                repo,
+                state: "open",
+                head: `${owner}:${name}`,
+                per_page: 100,
+              });
+              if (openPRs.length) {
+                kept.push([name, `open PR: ${openPRs.map(pr => `#${pr.number}`).join(", ")}`]);
+                continue;
+              }
+
+              // If all branch commits are already reachable from main, deletion
+              // is intrinsically safe: the branch ref is only a redundant name.
+              let compare;
+              try {
+                compare = await github.rest.repos.compareCommitsWithBasehead({
+                  owner,
+                  repo,
+                  basehead: `${defaultBranch}...${name}`,
+                });
+              } catch (error) {
+                kept.push([name, `cannot compare with ${defaultBranch}: ${error.message}`]);
+                continue;
+              }
+
+              if (compare.data.ahead_by !== 0) {
+                kept.push([name, `${compare.data.ahead_by} commit(s) not in ${defaultBranch}`]);
+                continue;
+              }
+
+              if (dryRun) {
+                kept.push([name, "safe to delete (dry run)"]);
+                continue;
+              }
+
+              try {
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `heads/${name}`,
+                });
+                deleted.push(name);
+              } catch (error) {
+                kept.push([name, `delete failed: ${error.message}`]);
+              }
+            }
+
+            await core.summary
+              .addHeading("Branch Hygiene")
+              .addRaw(`Repository: ${owner}/${repo}\n\n`)
+              .addRaw(`Policy: inspect branches at least ${maxAgeDays} days old; fail closed.\n\n`)
+              .addRaw(`Candidates: ${candidates}\n\n`)
+              .addRaw(`Deleted: ${deleted.length}\n\n`)
+              .addList(deleted.length ? deleted : ["None"])
+              .addRaw(`\nKept: ${kept.length}\n\n`)
+              .addTable([
+                [{ data: "Branch", header: true }, { data: "Reason", header: true }],
+                ...kept.map(([branch, reason]) => [branch, reason]),
+              ])
+              .write();
+
+            core.info(`Deleted ${deleted.length} branch(es); kept ${kept.length}.`);
