@@ -49,6 +49,19 @@ jobs:
             const kept = [];
             let staleCandidates = 0;
 
+            async function deleteBranch(name, reason) {
+              if (dryRun) {
+                kept.push([name, `safe to delete (${reason}); dry run`]);
+                return;
+              }
+              try {
+                await github.rest.git.deleteRef({ owner, repo, ref: `heads/${name}` });
+                deleted.push([name, reason]);
+              } catch (error) {
+                kept.push([name, `delete failed: ${error.message}`]);
+              }
+            }
+
             for (const branch of branches) {
               const name = branch.name;
 
@@ -61,8 +74,8 @@ jobs:
                 continue;
               }
 
-              // Branches do not have a reliable created_at timestamp in Git.
-              // Define staleness by the HEAD commit's last activity instead.
+              // Git has no reliable branch created_at. Staleness therefore means
+              // that the branch HEAD has had no commit activity for STALE_DAYS.
               let headCommit;
               try {
                 const response = await github.rest.repos.getCommit({
@@ -78,14 +91,9 @@ jobs:
 
               const lastActivity =
                 headCommit.commit?.committer?.date || headCommit.commit?.author?.date;
-              if (!lastActivity) {
-                kept.push([name, "HEAD commit has no usable timestamp"]);
-                continue;
-              }
-
-              const lastActivityMs = new Date(lastActivity).getTime();
+              const lastActivityMs = lastActivity ? new Date(lastActivity).getTime() : NaN;
               if (!Number.isFinite(lastActivityMs)) {
-                kept.push([name, `invalid HEAD timestamp: ${lastActivity}`]);
+                kept.push([name, "HEAD commit has no valid timestamp"]);
                 continue;
               }
               if (lastActivityMs > cutoff) {
@@ -94,13 +102,20 @@ jobs:
               }
               staleCandidates += 1;
 
-              const openPRs = await github.paginate(github.rest.pulls.list, {
-                owner,
-                repo,
-                state: "open",
-                head: `${owner}:${name}`,
-                per_page: 100,
-              });
+              // Open work always wins over cleanup.
+              let openPRs;
+              try {
+                openPRs = await github.paginate(github.rest.pulls.list, {
+                  owner,
+                  repo,
+                  state: "open",
+                  head: `${owner}:${name}`,
+                  per_page: 100,
+                });
+              } catch (error) {
+                kept.push([name, `cannot inspect open PRs: ${error.message}`]);
+                continue;
+              }
               if (openPRs.length) {
                 kept.push([
                   name,
@@ -109,6 +124,7 @@ jobs:
                 continue;
               }
 
+              // First proof: every branch commit is already reachable from main.
               let compare;
               try {
                 compare = await github.rest.repos.compareCommitsWithBasehead({
@@ -121,39 +137,60 @@ jobs:
                 continue;
               }
 
-              if (compare.data.ahead_by !== 0) {
-                staleUnmerged.push([
-                  name,
-                  `${compare.data.ahead_by} commit(s) not in ${defaultBranch}; last activity ${lastActivity}`,
-                ]);
+              if (compare.data.ahead_by === 0) {
+                await deleteBranch(name, `fully reachable from ${defaultBranch}`);
                 continue;
               }
 
-              if (dryRun) {
-                kept.push([name, `safe to delete; dry run (${lastActivity})`]);
-                continue;
-              }
-
+              // Second proof: a PR whose head is exactly this branch was merged
+              // into the current default branch. This covers squash/rebase merges,
+              // where the original branch commit SHAs are not reachable from main.
+              // We intentionally do not treat merely CLOSED PRs as deletion proof.
+              let historicalPRs;
               try {
-                await github.rest.git.deleteRef({
+                historicalPRs = await github.paginate(github.rest.pulls.list, {
                   owner,
                   repo,
-                  ref: `heads/${name}`,
+                  state: "closed",
+                  head: `${owner}:${name}`,
+                  base: defaultBranch,
+                  sort: "updated",
+                  direction: "desc",
+                  per_page: 100,
                 });
-                deleted.push(name);
               } catch (error) {
-                kept.push([name, `delete failed: ${error.message}`]);
+                kept.push([name, `cannot inspect historical PRs: ${error.message}`]);
+                continue;
               }
+
+              const mergedPRs = historicalPRs.filter(pr => pr.merged_at);
+              if (mergedPRs.length) {
+                const pr = mergedPRs[0];
+                await deleteBranch(
+                  name,
+                  `merged PR #${pr.number} into ${defaultBranch} at ${pr.merged_at}`,
+                );
+                continue;
+              }
+
+              staleUnmerged.push([
+                name,
+                `${compare.data.ahead_by} commit(s) not in ${defaultBranch}; no merged PR evidence; last activity ${lastActivity}`,
+              ]);
             }
 
             const summary = core.summary
               .addHeading("Branch Hygiene")
               .addRaw(`Repository: ${owner}/${repo}\n\n`)
               .addRaw(`Policy: HEAD inactive for at least ${staleDays} days; fail closed.\n\n`)
+              .addRaw(`Deletion proofs: fully reachable from ${defaultBranch}, or merged PR into ${defaultBranch}.\n\n`)
               .addRaw(`Dry run: ${dryRun}\n\n`)
               .addRaw(`Stale candidates: ${staleCandidates}\n\n`)
               .addRaw(`Deleted: ${deleted.length}\n\n`)
-              .addList(deleted.length ? deleted : ["None"])
+              .addTable([
+                [{ data: "Deleted branch", header: true }, { data: "Evidence", header: true }],
+                ...(deleted.length ? deleted : [["None", "-"]]),
+              ])
               .addHeading("Stale but unmerged", 2)
               .addTable([
                 [{ data: "Branch", header: true }, { data: "Reason", header: true }],
