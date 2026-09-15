@@ -7,9 +7,14 @@ function assertIdentifier(value, label) {
   return value
 }
 
-function entryPath(rootDir, soulId, index, entryId) {
+function assertEntryId(value) {
+  if (!value || typeof value !== 'string') throw new TypeError('entry id is required')
+  return value
+}
+
+function entryPath(rootDir, soulId, index) {
   const sequence = String(index).padStart(12, '0')
-  return join(rootDir, assertIdentifier(soulId, 'soulId'), `${sequence}-${assertIdentifier(entryId, 'entry id')}.json`)
+  return join(rootDir, assertIdentifier(soulId, 'soulId'), `${sequence}.json`)
 }
 
 function stableRecord(record) {
@@ -50,9 +55,9 @@ export class FileEvolutionLedgerStore {
     assertIdentifier(soulId, 'soulId')
     if (!entry || typeof entry !== 'object') throw new TypeError('evolution entry is required')
     if (!Number.isSafeInteger(index) || index < 0) throw new TypeError('evolution index must be a non-negative integer')
-    const entryId = assertIdentifier(entry.id, 'entry id')
+    assertEntryId(entry.id)
     const record = { soulId, index, entry: structuredClone(entry) }
-    const path = entryPath(this.rootDir, soulId, index, entryId)
+    const path = entryPath(this.rootDir, soulId, index)
     await mkdir(dirname(path), { recursive: true })
     const serialized = stableRecord(record)
 
