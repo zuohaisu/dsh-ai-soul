@@ -5,12 +5,12 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 import {
-  FileEvolutionLedgerStore,
   FileSoulStore,
   apply,
   createGenesisRecord,
   persistGenesisSoul,
 } from '../src/index.js'
+import { FileEvolutionLedgerStore } from '../src/core/evolution-ledger-store.js'
 
 const participant = { id: 'human-415', kind: 'human' }
 
