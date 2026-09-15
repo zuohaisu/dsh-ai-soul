@@ -11,6 +11,7 @@ import {
   persistGenesisSoul,
 } from '../src/index.js'
 import { createDshGovernanceCommand } from '../src/adapters/governance-command.js'
+import { FileEvolutionLedgerStore } from '../src/core/evolution-ledger-store.js'
 
 const participant = { id: 'human-partner-190', kind: 'human' }
 
@@ -108,7 +109,9 @@ test('human /soul-review lists and approves a live proposal, persists it, verifi
   assert.match(approved.text, /Approved and persisted/)
   assert.match(approved.text, /Verified actual continuity impact/)
 
-  const persisted = await store.load('ember-190-approve')
+  const ledger = new FileEvolutionLedgerStore({ rootDir: `${rootDir}.evolution` })
+  const runtimeStore = new FileSoulStore({ rootDir, evolutionLedger: ledger })
+  const persisted = await runtimeStore.load('ember-190-approve')
   assert.equal(persisted.userModel.length, 1)
   assert.equal(persisted.userModel[0].claim, 'The user prefers concise implementation notes.')
   assert.equal(persisted.evolution.at(-1).provenance.review.reviewer, 'human:human-partner-190')
