@@ -42,10 +42,15 @@ export {
 export { assessCognitionCapacityPreflight } from './cognition-capacity-preflight.js'
 
 export {
+  COGNITIVE_MEMORY_RECALL_KEY_PATTERN,
   COGNITIVE_MEMORY_RECORD_VERSION,
   MAX_COGNITIVE_MEMORY_CONTENT_CHARS,
+  MAX_COGNITIVE_MEMORY_RECALL_KEY_CHARS,
+  MAX_COGNITIVE_MEMORY_RECALL_KEYS,
   createCognitiveMemoryRecord,
+  deriveRecallKeysFromExperience,
   validateCognitiveMemoryRecord,
+  validateRecallKeys,
 } from './cognitive-memory.js'
 export { FileCognitiveMemoryStore } from './cognitive-memory-store.js'
 export {

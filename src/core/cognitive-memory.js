@@ -3,6 +3,9 @@ import { validateSignificanceAssessment } from './significance.js'
 
 export const COGNITIVE_MEMORY_RECORD_VERSION = 1
 export const MAX_COGNITIVE_MEMORY_CONTENT_CHARS = 1200
+export const MAX_COGNITIVE_MEMORY_RECALL_KEYS = 8
+export const MAX_COGNITIVE_MEMORY_RECALL_KEY_CHARS = 128
+export const COGNITIVE_MEMORY_RECALL_KEY_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/
 
 const FORBIDDEN_AUTHORITY_FIELDS = new Set([
   'approved', 'authorization', 'authorized', 'canonicalMutation', 'execution',
@@ -17,6 +20,51 @@ function assertObject(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new TypeError(`${label} must be an object`)
   }
+}
+
+function recallKeyErrors(value) {
+  const errors = []
+  if (!Array.isArray(value)) {
+    errors.push('recallKeys must be an array when provided')
+    return errors
+  }
+  if (value.length === 0) errors.push(`recallKeys must contain at least 1 key`)
+  if (value.length > MAX_COGNITIVE_MEMORY_RECALL_KEYS) errors.push(`recallKeys must contain <= ${MAX_COGNITIVE_MEMORY_RECALL_KEYS} keys`)
+  const seen = new Set()
+  for (const key of value) {
+    if (typeof key !== 'string' || key.length === 0 || key.length > MAX_COGNITIVE_MEMORY_RECALL_KEY_CHARS) {
+      errors.push(`each recall key must be a non-empty string <= ${MAX_COGNITIVE_MEMORY_RECALL_KEY_CHARS} characters`)
+      continue
+    }
+    if (!COGNITIVE_MEMORY_RECALL_KEY_PATTERN.test(key)) errors.push(`recall key must match ${COGNITIVE_MEMORY_RECALL_KEY_PATTERN}: ${key}`)
+    if (seen.has(key)) errors.push(`recall keys must not contain duplicates: ${key}`)
+    seen.add(key)
+  }
+  return errors
+}
+
+export function validateRecallKeys(value) {
+  const errors = recallKeyErrors(value)
+  if (errors.length > 0) throw new TypeError(`invalid cognitive memory recall keys: ${errors.join('; ')}`)
+  return Object.freeze(structuredClone(value))
+}
+
+/**
+ * Deterministic recall keys derived only from explicit structured evidence that
+ * the canonical Experience boundary already carries. Today that evidence is the
+ * payload participant identity; message text is never inspected and no key is
+ * invented when the evidence is absent or malformed.
+ */
+export function deriveRecallKeysFromExperience(experience) {
+  const validation = validateExperienceRecord(experience)
+  if (!validation.valid) {
+    throw new TypeError(`invalid experience record: ${validation.errors.join('; ')}`)
+  }
+  const participantId = experience.payload?.participant?.id
+  if (typeof participantId !== 'string' || !/^[a-zA-Z0-9._-]+$/.test(participantId)) {
+    return Object.freeze([])
+  }
+  return Object.freeze([`participant:${participantId}`])
 }
 
 export function validateCognitiveMemoryRecord(record) {
@@ -34,6 +82,7 @@ export function validateCognitiveMemoryRecord(record) {
   if (!record?.provenance || typeof record.provenance !== 'object' || Array.isArray(record.provenance)) errors.push('provenance is required')
   if (record?.canonical !== false) errors.push('canonical must be false')
   if (record?.authority !== 'none') errors.push('authority must be none')
+  if (record?.recallKeys !== undefined) errors.push(...recallKeyErrors(record.recallKeys))
   return { valid: errors.length === 0, errors }
 }
 
@@ -46,6 +95,7 @@ export function createCognitiveMemoryRecord({
   confidence,
   formedAt = new Date().toISOString(),
   provenance,
+  recallKeys,
   ...extra
 } = {}) {
   for (const key of FORBIDDEN_AUTHORITY_FIELDS) {
@@ -65,6 +115,7 @@ export function createCognitiveMemoryRecord({
     throw new TypeError(`content must be a non-empty string <= ${MAX_COGNITIVE_MEMORY_CONTENT_CHARS} characters`)
   }
   assertObject(provenance, 'provenance')
+  const safeRecallKeys = recallKeys === undefined ? undefined : validateRecallKeys(recallKeys)
 
   const record = {
     version: COGNITIVE_MEMORY_RECORD_VERSION,
@@ -79,6 +130,7 @@ export function createCognitiveMemoryRecord({
     canonical: false,
     authority: 'none',
   }
+  if (safeRecallKeys !== undefined) record.recallKeys = safeRecallKeys
   const validation = validateCognitiveMemoryRecord(record)
   if (!validation.valid) throw new TypeError(`invalid cognitive memory: ${validation.errors.join('; ')}`)
   return Object.freeze(record)

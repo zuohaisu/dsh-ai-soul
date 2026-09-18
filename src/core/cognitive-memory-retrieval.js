@@ -1,12 +1,18 @@
-import { validateCognitiveMemoryRecord } from './cognitive-memory.js'
+import { COGNITIVE_MEMORY_RECALL_KEY_PATTERN, validateCognitiveMemoryRecord } from './cognitive-memory.js'
 
 export const MAX_COGNITIVE_MEMORY_RETRIEVAL_RESULTS = 32
 
-const SELECTOR_FIELDS = new Set(['experienceId', 'significanceAssessmentId'])
+const SELECTOR_FIELDS = new Set(['experienceId', 'significanceAssessmentId', 'recallKey'])
 
 function assertIdentifier(value, label) {
   if (!value || typeof value !== 'string') throw new TypeError(`${label} is required`)
   if (!/^[a-zA-Z0-9._-]+$/.test(value)) throw new TypeError(`${label} contains unsupported characters`)
+  return value
+}
+
+function assertRecallKey(value, label) {
+  if (!value || typeof value !== 'string') throw new TypeError(`${label} is required`)
+  if (!COGNITIVE_MEMORY_RECALL_KEY_PATTERN.test(value)) throw new TypeError(`${label} contains unsupported characters`)
   return value
 }
 
@@ -18,7 +24,8 @@ function validateSelector(selector) {
   if (entries.length === 0) throw new TypeError('selector must contain at least one criterion')
   for (const [key, value] of entries) {
     if (!SELECTOR_FIELDS.has(key)) throw new TypeError(`unsupported cognitive memory selector field: ${key}`)
-    assertIdentifier(value, `selector.${key}`)
+    if (key === 'recallKey') assertRecallKey(value, `selector.${key}`)
+    else assertIdentifier(value, `selector.${key}`)
   }
   return structuredClone(selector)
 }
@@ -36,7 +43,10 @@ function compareRecords(left, right) {
 }
 
 function matches(record, selector) {
-  return Object.entries(selector).every(([key, value]) => record[key] === value)
+  return Object.entries(selector).every(([key, value]) => {
+    if (key === 'recallKey') return Array.isArray(record.recallKeys) && record.recallKeys.includes(value)
+    return record[key] === value
+  })
 }
 
 export async function retrieveCognitiveMemories({ store, soulId, selector, limit = 8 } = {}) {
