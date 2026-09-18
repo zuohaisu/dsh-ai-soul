@@ -18,7 +18,7 @@ A profile name never needs to match a Soul ID. A Soul ID is also not the Soul's 
 - DeepSeek Harness with an existing TUI, Web, or Headless application profile.
 - Access to the public npm registry.
 
-This repository remains experimental / pre-alpha. The current public prerelease is `dsh-ai-soul@0.1.0-rc.1`; use the exact prerelease version below rather than assuming a stable `latest` release.
+This repository remains experimental / pre-alpha. The current public prerelease is `dsh-ai-soul@0.2.0-rc.1`; use the exact prerelease version below rather than assuming a stable `latest` release.
 
 The examples use a newly activated, unnamed Soul whose machine identifier is `soul-001` and an existing DSH TUI profile named `dsh-tui` whose directory is `/absolute/path/to/dsh-tui-profile`.
 
@@ -65,10 +65,10 @@ Genesis creates and persists the Soul. It does not choose a DSH profile or UI su
 Install the exact public prerelease through DSH before configuring the selected Soul:
 
 ```sh
-dsh plugin --profile dsh-tui add dsh-ai-soul@0.1.0-rc.1
+dsh plugin --profile dsh-tui add dsh-ai-soul@0.2.0-rc.1
 ```
 
-This is the canonical ordinary-user install path because DSH owns the target profile and its package installation. #161 verified this exact public npm package spec in a fresh real DSH profile with no checkout, local tarball, Samuel default, or pre-existing Soul state.
+This is the canonical ordinary-user install path because DSH owns the target profile and its package installation. #161 verified the `0.1.0-rc.1` public npm package spec this way in a fresh real DSH profile with no checkout, local tarball, Samuel default, or pre-existing Soul state; each newly published prerelease requires its own equivalent verification before the same claim covers it.
 
 The existing profile must already provide the desired application surface; `dsh-ai-soul` does not install TUI, Web, or Headless for you.
 
