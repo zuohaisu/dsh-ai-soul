@@ -2,17 +2,21 @@ import { resolve } from 'node:path'
 
 import {
   createCandidatePromotionProposal,
+  FileCognitiveMemoryStore,
   FileSoulStore,
+  MAX_VISIBLE_COGNITIVE_MEMORIES,
   projectCognitiveMemoryVisibility,
   projectSoulContext,
   renderCognitiveMemoryVisibility,
   renderSoulContext,
+  retrieveCognitiveMemories,
 } from './core/index.js'
 import { FileEvolutionLedgerStore } from './core/evolution-ledger-store.js'
 import { renderDshContinuityDigest } from './adapters/continuity-digest-context.js'
 import { createDshGovernanceConsumer } from './adapters/governance-consumer.js'
 import { registerDshGovernanceCommand } from './adapters/governance-command.js'
 import { processDshHumanInteraction } from './adapters/interaction-processing.js'
+import { deriveDshInteractionRecallKey } from './adapters/request-memory-selector.js'
 import { registerDshSoulContextCommand } from './adapters/soul-context-command.js'
 import { registerDshSoulStatusCommand } from './adapters/soul-status-command.js'
 
@@ -24,12 +28,14 @@ function validateConfig(config = {}) {
   if (!config.storeDir || typeof config.storeDir !== 'string') throw new TypeError('dsh-ai-soul config error: config.storeDir is required')
   if (!config.firstEncounterParticipant?.id || typeof config.firstEncounterParticipant.id !== 'string') throw new TypeError('dsh-ai-soul config error: config.firstEncounterParticipant.id is required')
   if (config.cognitiveMemorySelection !== undefined && !Array.isArray(config.cognitiveMemorySelection)) throw new TypeError('dsh-ai-soul config error: config.cognitiveMemorySelection must be an explicitly supplied array')
+  if (config.cognitiveMemoryStoreDir !== undefined && (!config.cognitiveMemoryStoreDir || typeof config.cognitiveMemoryStoreDir !== 'string')) throw new TypeError('dsh-ai-soul config error: config.cognitiveMemoryStoreDir must be a directory path string')
   return {
     soulId: config.soulId,
     storeDir: resolve(config.storeDir),
     contextOrder: Number.isFinite(config.contextOrder) ? config.contextOrder : -10,
     firstEncounterParticipant: structuredClone(config.firstEncounterParticipant),
     cognitiveMemorySelection: config.cognitiveMemorySelection === undefined ? undefined : structuredClone(config.cognitiveMemorySelection),
+    cognitiveMemoryStoreDir: config.cognitiveMemoryStoreDir === undefined ? undefined : resolve(config.cognitiveMemoryStoreDir),
   }
 }
 
@@ -41,13 +47,43 @@ function requestScopedMemorySelection(requestContext) {
   return selection
 }
 
-function renderCurrentSoulContext(state, soulId, startupMemorySelection, requestContext) {
+function hasRequestScopedMemorySelector(requestContext) {
+  return Boolean(
+    requestContext
+    && typeof requestContext === 'object'
+    && !Array.isArray(requestContext)
+    && Object.hasOwn(requestContext, 'aiSoulCognitiveMemorySelector'),
+  )
+}
+
+/**
+ * Request-scoped Cognitive Memory authority resolution, strictest first:
+ * explicit materialized records, then the interaction-conditioned selection
+ * derived from the current provenance-bound human interaction, then the static
+ * startup selection. An explicit request-scoped selector requires the async
+ * runtime-neutral retrieval boundary and cannot be resolved by this synchronous
+ * renderer, so its presence fails closed instead of being silently ignored.
+ */
+function resolveMemorySelectionForRequest(requestContext, interactionSelection, startupSelection) {
+  const requestSelection = requestScopedMemorySelection(requestContext)
+  const requestSelector = hasRequestScopedMemorySelector(requestContext)
+  if (requestSelection !== undefined && requestSelector) {
+    throw new TypeError('dsh-ai-soul request context error: explicit Cognitive Memory records and selector are mutually exclusive')
+  }
+  if (requestSelector) {
+    throw new TypeError('dsh-ai-soul request context error: request-scoped Cognitive Memory selectors require the runtime-neutral resolveRequestScopedCognitiveMemorySelection boundary and are not resolvable by the live synchronous context renderer')
+  }
+  if (requestSelection !== undefined) return requestSelection
+  if (interactionSelection !== undefined) return interactionSelection
+  return startupSelection
+}
+
+function renderCurrentSoulContext(state, soulId, startupMemorySelection, requestContext, interactionSelection = undefined) {
   try {
     const canonicalContext = renderSoulContext(projectSoulContext(state))
     const continuityContext = renderDshContinuityDigest(state)
     const baseContext = continuityContext ? `${canonicalContext}\n\n${continuityContext}` : canonicalContext
-    const requestSelection = requestScopedMemorySelection(requestContext)
-    const cognitiveMemorySelection = requestSelection === undefined ? startupMemorySelection : requestSelection
+    const cognitiveMemorySelection = resolveMemorySelectionForRequest(requestContext, interactionSelection, startupMemorySelection)
     if (cognitiveMemorySelection === undefined) return baseContext
     const memoryContext = renderCognitiveMemoryVisibility(projectCognitiveMemoryVisibility({ soulId, memories: cognitiveMemorySelection }))
     return memoryContext ? `${baseContext}\n\n${memoryContext}` : baseContext
@@ -92,6 +128,14 @@ export async function apply(ctx, rawConfig = {}) {
   // nested sidecar directory would violate the store boundary and make every load fail.
   const evolutionLedger = new FileEvolutionLedgerStore({ rootDir: `${config.storeDir}.evolution` })
   const store = new FileSoulStore({ rootDir: config.storeDir, evolutionLedger })
+  // Interaction-conditioned Cognitive Memory recall stays detached and explicit:
+  // without cognitiveMemoryStoreDir the ordinary composition path is unchanged.
+  const cognitiveMemoryStore = config.cognitiveMemoryStoreDir === undefined
+    ? null
+    : new FileCognitiveMemoryStore({ rootDir: config.cognitiveMemoryStoreDir })
+  // Ephemeral request-scoped authority: the bounded selection derived from the
+  // latest accepted human interaction. Never persisted and recomputed per interaction.
+  let interactionMemorySelection
   let currentState
   try { currentState = await store.load(config.soulId) } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
@@ -99,7 +143,7 @@ export async function apply(ctx, rawConfig = {}) {
   }
 
   renderCurrentSoulContext(currentState, config.soulId, config.cognitiveMemorySelection)
-  ctx.systemPrompt.context({ name: `ai-soul:${config.soulId}`, order: config.contextOrder, text: (requestContext) => renderCurrentSoulContext(currentState, config.soulId, config.cognitiveMemorySelection, requestContext) })
+  ctx.systemPrompt.context({ name: `ai-soul:${config.soulId}`, order: config.contextOrder, text: (requestContext) => renderCurrentSoulContext(currentState, config.soulId, config.cognitiveMemorySelection, requestContext, interactionMemorySelection) })
   const governanceConsumer = createDshGovernanceConsumer(ctx, { store, getState: () => currentState })
 
   let interactionQueue = Promise.resolve()
@@ -110,6 +154,15 @@ export async function apply(ctx, rawConfig = {}) {
       if (processed.candidateClaim) {
         const proposal = createLiveGovernanceProposal(processed.candidateClaim, processed.transitionIntent)
         await ctx.emit('ai-soul/governance-proposal', { soulId: config.soulId, proposal })
+      }
+      const recallKey = deriveDshInteractionRecallKey({ session, event, participant: config.firstEncounterParticipant })
+      if (cognitiveMemoryStore && recallKey) {
+        interactionMemorySelection = await retrieveCognitiveMemories({
+          store: cognitiveMemoryStore,
+          soulId: config.soulId,
+          selector: { recallKey },
+          limit: MAX_VISIBLE_COGNITIVE_MEMORIES,
+        })
       }
       return processed
     })
@@ -156,6 +209,12 @@ export { EXPLICIT_RELATIONSHIP_STATE_POLICY, inferExplicitRelationshipState } fr
 export { EXPLICIT_SELF_MODEL_POLICY, inferExplicitSelfModel } from './adapters/self-model.js'
 export { EXPLICIT_WORLD_CONTEXT_POLICY, inferExplicitWorldContext } from './adapters/world-context.js'
 export { DSH_SIGNIFICANCE_BASELINE_POLICY, createFailClosedSignificanceAssessment, processDshHumanInteraction } from './adapters/interaction-processing.js'
+export {
+  DSH_COGNITIVE_MEMORY_SELECTION_FIELD,
+  DSH_COGNITIVE_MEMORY_SELECTOR_FIELD,
+  deriveDshInteractionRecallKey,
+  resolveRequestScopedCognitiveMemorySelection,
+} from './adapters/request-memory-selector.js'
 export { createDshGovernanceConsumer } from './adapters/governance-consumer.js'
 export { createDshGovernanceCommand, registerDshGovernanceCommand } from './adapters/governance-command.js'
 export { createDshSoulContextCommand, registerDshSoulContextCommand, renderDshSoulContext } from './adapters/soul-context-command.js'

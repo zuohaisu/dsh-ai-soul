@@ -68,3 +68,37 @@ test('selector and hard result limit fail closed', async () => {
   await assert.rejects(retrieveCognitiveMemories({ store: store(source), soulId: 'soul-a', selector: { experienceId: 'experience-1' }, limit: 0 }), /limit must be/)
   await assert.rejects(retrieveCognitiveMemories({ store: store(source), soulId: 'soul-a', selector: { experienceId: 'experience-1' }, limit: MAX_COGNITIVE_MEMORY_RETRIEVAL_RESULTS + 1 }), /limit must be/)
 })
+
+test('recallKey selector exactly matches explicit structured keys and stays deterministic', async () => {
+  const records = [
+    memory('memory-x', { recallKeys: ['participant:human-x'], formedAt: '2026-09-11T12:00:00.000Z' }),
+    memory('memory-y', { recallKeys: ['participant:human-y'], formedAt: '2026-09-11T11:00:00.000Z' }),
+    memory('memory-plain'),
+  ]
+  const selected = await retrieveCognitiveMemories({ store: store(records), soulId: 'soul-a', selector: { recallKey: 'participant:human-x' } })
+  assert.deepEqual(selected.map((record) => record.id), ['memory-x'])
+  const unrelated = await retrieveCognitiveMemories({ store: store(records), soulId: 'soul-a', selector: { recallKey: 'participant:human-z' } })
+  assert.deepEqual(unrelated, [])
+
+  const shared = [
+    memory('s2', { recallKeys: ['participant:shared'], formedAt: '2026-09-11T13:00:00.000Z' }),
+    memory('s1', { recallKeys: ['participant:shared'], formedAt: '2026-09-11T13:00:00.000Z' }),
+  ]
+  const both = await retrieveCognitiveMemories({ store: store(shared), soulId: 'soul-a', selector: { recallKey: 'participant:shared' } })
+  assert.deepEqual(both.map((record) => record.id), ['s1', 's2'])
+})
+
+test('recallKey selector rejects malformed keys and tampered stored keys', async () => {
+  await assert.rejects(
+    retrieveCognitiveMemories({ store: store([]), soulId: 'soul-a', selector: { recallKey: 'bad key' } }),
+    /unsupported characters/,
+  )
+  await assert.rejects(
+    retrieveCognitiveMemories({ store: store([memory('tampered', { recallKeys: 'participant:x' })]), soulId: 'soul-a', selector: { recallKey: 'participant:x' } }),
+    /invalid retrieved cognitive memory/,
+  )
+  await assert.rejects(
+    retrieveCognitiveMemories({ store: store([memory('crossed', { soulId: 'soul-b', recallKeys: ['participant:x'] })]), soulId: 'soul-a', selector: { recallKey: 'participant:x' } }),
+    /another Soul/,
+  )
+})

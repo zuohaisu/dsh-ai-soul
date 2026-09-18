@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { createCognitiveMemoryRecord } from '../src/core/cognitive-memory.js'
+import {
+  createCognitiveMemoryRecord,
+  deriveRecallKeysFromExperience,
+} from '../src/core/cognitive-memory.js'
 import { createExperienceRecord } from '../src/core/experience.js'
 import { createSignificanceAssessment } from '../src/core/significance.js'
 
@@ -73,4 +76,46 @@ test('unbounded content and authority smuggling fail closed', () => {
   for (const field of ['approved', 'authorization', 'authorized', 'canonicalMutation', 'execution', 'memoryWrite', 'permission', 'scheduled', 'toolCall']) {
     assert.throws(() => createCognitiveMemoryRecord(input({ [field]: true })), /rejects authority-bearing field/)
   }
+})
+
+test('explicit structured recall keys round-trip frozen and reject malformed input', () => {
+  const memory = createCognitiveMemoryRecord(input({ recallKeys: ['participant:human-1'] }))
+  assert.deepEqual(memory.recallKeys, ['participant:human-1'])
+  assert.equal(Object.isFrozen(memory.recallKeys), true)
+
+  assert.throws(() => createCognitiveMemoryRecord(input({ recallKeys: [] })), /at least 1 key/)
+  assert.throws(() => createCognitiveMemoryRecord(input({ recallKeys: ['participant:human-1', 'participant:human-1'] })), /duplicates/)
+  assert.throws(() => createCognitiveMemoryRecord(input({ recallKeys: ['bad key with spaces'] })), /recall key must match/)
+  assert.throws(() => createCognitiveMemoryRecord(input({ recallKeys: ['x'.repeat(129)] })), /recall key must be a non-empty string/)
+  assert.throws(() => createCognitiveMemoryRecord(input({ recallKeys: Array.from({ length: 9 }, (_, index) => `participant:p-${index}`) })), /<= 8 keys/)
+  assert.throws(() => createCognitiveMemoryRecord(input({ recallKeys: 'participant:human-1' })), /recallKeys must be an array/)
+})
+
+test('records without recall keys stay valid for backward compatibility', () => {
+  const memory = createCognitiveMemoryRecord(input())
+  assert.equal(memory.recallKeys, undefined)
+})
+
+test('recall keys derive deterministically from explicit participant evidence only', () => {
+  const withParticipant = createExperienceRecord({
+    id: 'experience-participant',
+    at: '2026-09-11T08:00:00.000Z',
+    kind: 'human-message',
+    source: { runtime: 'deepseek-harness', sessionId: 'session-1' },
+    provenance: { source: 'test', boundary: 'runtime-event-v1' },
+    payload: { participant: { id: 'human-7', kind: 'human' }, observation: { text: 'A bounded observation.' } },
+  })
+  assert.deepEqual(deriveRecallKeysFromExperience(withParticipant), ['participant:human-7'])
+
+  assert.deepEqual(deriveRecallKeysFromExperience(experience()), [])
+  const unsafeParticipant = createExperienceRecord({
+    id: 'experience-unsafe',
+    at: '2026-09-11T08:00:00.000Z',
+    kind: 'human-message',
+    source: { runtime: 'deepseek-harness', sessionId: 'session-1' },
+    provenance: { source: 'test', boundary: 'runtime-event-v1' },
+    payload: { participant: { id: 'not a safe id' }, observation: { text: 'A bounded observation.' } },
+  })
+  assert.deepEqual(deriveRecallKeysFromExperience(unsafeParticipant), [])
+  assert.throws(() => deriveRecallKeysFromExperience({ version: 2 }), /invalid experience record/)
 })

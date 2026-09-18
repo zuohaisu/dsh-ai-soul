@@ -1,7 +1,22 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { resolveRequestScopedCognitiveMemorySelection } from '../src/adapters/request-memory-selector.js'
+import { deriveDshInteractionRecallKey, resolveRequestScopedCognitiveMemorySelection } from '../src/adapters/request-memory-selector.js'
+
+const session = { id: 'session-1' }
+
+function humanMessage(seq, text) {
+  return {
+    type: 'user/message',
+    seq,
+    time: Date.parse('2026-09-19T05:00:00.000Z'),
+    data: {
+      role: 'user',
+      source: { kind: 'user', via: 'web' },
+      content: [{ type: 'text', text }],
+    },
+  }
+}
 
 function memory(id, overrides = {}) {
   return {
@@ -65,4 +80,25 @@ test('retrieval rejects cross-Soul and tampered durable records', async () => {
     requestContext: { aiSoulCognitiveMemorySelector: { experienceId: 'experience-1' } },
     store: store([memory('tampered', { authority: 'execute' })]), soulId: 'soul-a',
   }), /invalid retrieved cognitive memory/)
+})
+
+test('interaction recall cue derives the exact participant key for accepted human interactions', () => {
+  assert.equal(
+    deriveDshInteractionRecallKey({ session, event: humanMessage(1, 'hello'), participant: { id: 'human-x' } }),
+    'participant:human-x',
+  )
+})
+
+test('non-human, boundary-failing, and unsafe-identity interactions yield no cue', () => {
+  assert.equal(deriveDshInteractionRecallKey({}), null)
+  assert.equal(deriveDshInteractionRecallKey({
+    session,
+    event: { type: 'user/message', seq: 1, time: Date.parse('2026-09-19T05:00:00.000Z'), data: { source: { kind: 'plugin' }, content: [{ type: 'text', text: 'hello' }] } },
+    participant: { id: 'human-x' },
+  }), null)
+  assert.equal(deriveDshInteractionRecallKey({ session, event: humanMessage(1, 'hello'), participant: { id: 'unsafe id' } }), null)
+  assert.throws(
+    () => deriveDshInteractionRecallKey({ session, event: { type: 'user/message', seq: -1, time: Date.parse('2026-09-19T05:00:00.000Z'), data: { source: { kind: 'user' } } }, participant: { id: 'human-x' } }),
+    /non-negative event\.seq/,
+  )
 })
