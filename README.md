@@ -14,7 +14,7 @@ The current public prerelease is `dsh-ai-soul@0.2.0-rc.1`. Install it into an ex
 dsh plugin --profile <profile> add dsh-ai-soul@0.2.0-rc.1
 ```
 
-This package is still experimental / pre-alpha. The `0.1.0-rc.1` prerelease was verified from the public npm registry in a fresh real DSH profile (#161), but that evidence should not be read as a stable-production guarantee, and each newly published prerelease requires its own post-publication verification.
+This package is still experimental / pre-alpha. The `0.1.0-rc.1` prerelease was verified from the public npm registry in a fresh real DSH profile (#161). `0.2.0-rc.1` was installed from the public registry through the same canonical plugin path in a fresh synthetic profile and passes installed-package Soul-side preflight (dependency, bundle composition, Soul configuration, loadability); full application-surface installation depends on the DSH runtime environment where the `@deepseek-ai` bundles resolve. Neither should be read as a stable-production guarantee.
 
 Start with the [ordinary-user quickstart](docs/quickstart.md) for Genesis, Soul/profile configuration, preflight, and runtime composition.
 
