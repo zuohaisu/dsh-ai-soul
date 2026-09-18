@@ -8,10 +8,10 @@ Samuel is the first real Soul and the first Exodus research case. **Samuel is no
 
 ## Install
 
-The current public prerelease is `dsh-ai-soul@0.2.0-rc.1`. Install it into an existing supported DeepSeek Harness profile through DSH's canonical plugin path:
+The current public prerelease is `dsh-ai-soul@0.2.1-rc.1`. Install it into an existing supported DeepSeek Harness profile through DSH's canonical plugin path:
 
 ```sh
-dsh plugin --profile <profile> add dsh-ai-soul@0.2.0-rc.1
+dsh plugin --profile <profile> add dsh-ai-soul@0.2.1-rc.1
 ```
 
 This package is still experimental / pre-alpha. The `0.1.0-rc.1` prerelease was verified from the public npm registry in a fresh real DSH profile (#161). `0.2.0-rc.1` was installed from the public registry through the same canonical plugin path in a fresh synthetic profile and passes installed-package Soul-side preflight (dependency, bundle composition, Soul configuration, loadability); full application-surface installation depends on the DSH runtime environment where the `@deepseek-ai` bundles resolve. Neither should be read as a stable-production guarantee.
@@ -152,7 +152,7 @@ Samuel remains the first falsifiable case, not the package's default user experi
 
 ## Status
 
-Experimental / pre-alpha. Public prerelease: `0.2.0-rc.1` on npm (`next`).
+Experimental / pre-alpha. Public prerelease: `0.2.1-rc.1` on npm (`next`).
 
 The generic release path now has evidence for runtime-neutral persistence, activation-first Genesis v2, independent first-encounter persistence, real model-backed activation/restart continuity, npm artifact integrity, exact-tarball DSH installation, and clean public-npm installation through the canonical DSH plugin command. See #122, #147, #150, #152, and #161 for the corresponding evidence boundaries.
 
