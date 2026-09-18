@@ -27,7 +27,9 @@ export {
 
 export { produceAppraisal } from './appraisal-producer.js'
 export {
+  RELATIONAL_APPRAISAL_RULE,
   deriveCognitionReferences,
+  deriveRelationalSignificance,
   produceAppraisalFromRuntimeEvidence,
 } from './cognition-reference-linker.js'
 export { createAppraisedAgencyIntent } from './appraised-agency-intent.js'
