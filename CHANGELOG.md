@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.1-rc.1
+
+Third public prerelease candidate. A small additive release on the `0.2.x` line: two backward-compatible governed-cognition features. The package-level `exports`/`bin` surface is unchanged; prior behavior is preserved byte-for-byte wherever the new capabilities are not engaged.
+
+### Added
+
+- **Interaction-conditioned Cognitive Memory recall (M4.33).** The current provenance-bound DSH human interaction can causally select bounded, request-scoped memory visibility through an exact structured recall key: `CognitiveMemoryRecord` gains optional bounded `recallKeys` (1–8 charset-checked keys), retrieval gains an exact-match `recallKey` selector, and accepted human interactions yield a `participant:<id>` cue projected only from already-canonical payload evidence — message text is never inspected. Resolved live behind the new explicit `cognitiveMemoryStoreDir` config; byte-for-byte default-off without it; selection is request-ephemeral and never persisted; the authority order (explicit request records > interaction-conditioned selection > startup selection) and fail-closed behavior are preserved (PR #421, closes #404).
+- **Governed-fact relational appraisal (M4.8).** `deriveRelationalSignificance` (rule `dyadic-governed-fact-v1`) derives `relationalSignificance: high` only when the exact provenance-bound participant cognition link coexists with a valid governed `RelationshipFact` whose subject is that exact participant. The rule keys only on canonical structure — never `predicate`/`value` content, message text, names, or model output — cites exact evidence paths, and creates no persistence, promotion, governance, or execution authority; without a dyadic fact the appraisal is byte-identical to prior behavior (PR #422, closes #344).
+
+### Release boundaries
+
+- Public npm publication of `0.2.1-rc.1` itself, and its post-publication registry-install verification, are subsequent release gates not claimed by this entry.
+- All standing `0.2.0-rc.1` release boundaries continue to apply: the M4 end-to-end acceptance run (#27), Samuel-specific continuity judgment (#7), and DSH Presence surface-local semantics are unchanged.
+
 ## 0.2.0-rc.1
 
 Second public prerelease candidate. The delta since `0.1.0-rc.1` is dominated by the governed-evolution (M4) layer: selective Soul growth, governed agency, homeostasis, Cognitive Memory, continuity digest, and privacy erasure/redaction.

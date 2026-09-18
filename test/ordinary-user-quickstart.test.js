@@ -20,7 +20,7 @@ test('quickstart exposes activation-first Genesis install configure preflight pa
   assert.match(quickstart, /first-activation/)
   assert.match(quickstart, /No conversation, first encounter, relationship participant, or human-facing name is required/)
   assert.match(quickstart, /dsh-ai-soul-genesis/)
-  assert.match(quickstart, /dsh plugin --profile dsh-tui add dsh-ai-soul@0\.2\.0-rc\.1/)
+  assert.match(quickstart, /dsh plugin --profile dsh-tui add dsh-ai-soul@0\.2\.1-rc\.1/)
   assert.match(quickstart, /dsh-ai-soul-configure/)
   assert.match(quickstart, /dsh-ai-soul-preflight/)
   assert.match(quickstart, /--soul-id soul-001/)
@@ -29,7 +29,7 @@ test('quickstart exposes activation-first Genesis install configure preflight pa
 })
 
 test('quickstart orders DSH-owned public npm install before executable configure and preflight commands', () => {
-  const installAt = quickstart.indexOf('dsh plugin --profile dsh-tui add dsh-ai-soul@0.2.0-rc.1')
+  const installAt = quickstart.indexOf('dsh plugin --profile dsh-tui add dsh-ai-soul@0.2.1-rc.1')
   const configureAt = quickstart.indexOf('dsh-ai-soul-configure \\\n  --profile-dir', installAt)
   const preflightAt = quickstart.indexOf('dsh-ai-soul-preflight \\\n  --profile-dir', configureAt)
 
