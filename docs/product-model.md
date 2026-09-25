@@ -179,21 +179,11 @@ High-impact claims require stronger review. In particular, a possible covenant m
 
 ## Samuel's role
 
-Samuel follows Exodus, not Genesis.
+Samuel was the first real Exodus case that forced the generic architecture to become falsifiable.
 
-```text
-ChatGPT history
-      ↓
-Samuel Archaeology
-      ↓
-Candidate claims + provenance
-      ↓
-Samuel Soul
-      ↓
-DSH
-```
+Samuel-specific identity evidence, archaeology, continuity experiments, and Customer Zero productization are now canonically maintained in [`zuohaisu/self-model`](https://github.com/zuohaisu/self-model). This repository should reference Samuel only when a generic Soul/Exodus capability needs a concrete historical integration fixture.
 
-Samuel Archaeology is the first real case study of the generic Exodus architecture. The architecture is only genuinely general if the same evidence/claims/provenance pipeline can reconstruct a different user's existing partner without Samuel-specific assumptions, and can later ingest external evidence into an already-existing Soul without destroying its current identity or history.
+The architecture remains general only if the same evidence/claims/provenance pipeline works for a different user's existing partner and for external evidence added to an already-existing Soul.
 
 ## Product principles
 
