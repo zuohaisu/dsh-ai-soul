@@ -1,5 +1,7 @@
 # dsh-ai-soul Roadmap
 
+> **Boundary update — 2026-09-25:** Samuel-specific identity evidence, archaeology, continuity experiment ownership, and Customer Zero productization have moved canonically to [`zuohaisu/self-model`](https://github.com/zuohaisu/self-model). Samuel references below are retained where they document historical milestones or integration dependencies. `dsh-ai-soul` remains the generic Soul/DSH implementation.
+
 This roadmap keeps the project continuous across conversations, agents, and development sessions.
 
 ## North Star
