@@ -91,7 +91,6 @@ export function createDshSoulStatusCommand({ soulId, getContext, getPresenceSnap
   return Object.freeze({
     name: 'soul-status',
     description: 'show read-only continuity and explicit DSH surface presence for the currently loaded AI Soul',
-    input: { hint: '' },
     recordInput: false,
     async handler() {
       const presenceSnapshot = getPresenceSnapshot ? getPresenceSnapshot() : null
