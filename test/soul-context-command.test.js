@@ -59,12 +59,13 @@ test('command is read-only and registration remains optional', () => {
   assert.deepEqual(registerDshSoulContextCommand({}, { soulId: 'soul-1', getContext: () => context() }), { status: 'unavailable' })
 })
 
-test('registration adds the read-only command when commands service exists', () => {
+test('registration adds the read-only command without an input descriptor', () => {
   const registered = []
   const ctx = { commands: { register(command) { registered.push(command) } } }
   assert.deepEqual(registerDshSoulContextCommand(ctx, { soulId: 'soul-1', getContext: () => context() }), { status: 'registered' })
   assert.equal(registered.length, 1)
   assert.equal(registered[0].name, 'soul-context')
+  assert.equal(Object.hasOwn(registered[0], 'input'), false)
   assert.equal(registered[0].recordInput, false)
 })
 

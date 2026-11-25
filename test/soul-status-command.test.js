@@ -113,13 +113,14 @@ test('registration is optional when DSH commands service is absent', () => {
   assert.deepEqual(registerDshSoulStatusCommand({}, { soulId: 'soul-1', getContext: () => context() }), { status: 'unavailable' })
 })
 
-test('registration adds one read-only command when service is present', () => {
+test('registration adds one read-only command without an input descriptor', () => {
   const registered = []
   const ctx = { commands: { register(command) { registered.push(command) } } }
 
   assert.deepEqual(registerDshSoulStatusCommand(ctx, { soulId: 'soul-1', getContext: () => context() }), { status: 'registered' })
   assert.equal(registered.length, 1)
   assert.equal(registered[0].name, 'soul-status')
+  assert.equal(Object.hasOwn(registered[0], 'input'), false)
   assert.equal(registered[0].recordInput, false)
 })
 

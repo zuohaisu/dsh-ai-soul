@@ -37,7 +37,6 @@ export function createDshSoulContextCommand({ soulId, getContext } = {}) {
   return Object.freeze({
     name: 'soul-context',
     description: 'show bounded read-only current cognition for the currently loaded AI Soul',
-    input: { hint: '' },
     recordInput: false,
     async handler() {
       return commandSuccess(renderDshSoulContext(getContext(), soulId))
