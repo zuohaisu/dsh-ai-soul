@@ -146,6 +146,10 @@ The generic release path now has evidence for runtime-neutral persistence, activ
 
 These results establish prerelease installability and the tested generic lifecycle; they do not make Samuel-specific continuity judgment (#7) a generic release prerequisite and do not imply stable production readiness.
 
+## Development
+
+Start with [AGENTS](AGENTS.md) for task ownership and delivery rules. Consult [CONTEXT](CONTEXT.md) when a change depends on identity, governance, or DSH terminology. Check [LESSONS](LESSONS.md) for known failure cases and [QA](QA.md) for the commands and evidence your change needs.
+
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE).
